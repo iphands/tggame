@@ -96,11 +96,12 @@ export class Game {
 
   /**
    * Force-restart the level: drop the current round and start a new one
-   * (immediately, with a fresh countdown) as long as enough players are connected.
+   * immediately (fresh countdown) as soon as anyone is connected.
+   * This is the force button — it overrides the lobby grace timers entirely.
    */
   restart(): void {
     this.resetToLobby();
-    if (this.activeCount() >= WORLD.fallbackStartPlayers) {
+    if (this.activeCount() > 0) {
       this.phase = 'starting';
       this.countdownMs = WORLD.countdownMs;
       this.secondPlayerJoinedAt = null; // the restart is explicit — no grace period

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { store, renderRoster, setStatusPill, triggerJoin } from '../store';
-import { syncOverlay, setHeader, syncRestartButton } from '../ui';
+import { syncOverlay, setHeader, syncRestartButton, syncGoButton } from '../ui';
 import { setTouchControlsVisible } from '../controls';
 import { WORLD } from '../../../shared/src/constants';
 
@@ -36,7 +36,7 @@ export class LobbyScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(640, 640, 'Knock each other off the island — last one standing wins.', {
+      .text(640, 545, 'Knock each other off the island — last one standing wins.', {
         fontFamily: 'Courier New, monospace',
         fontSize: '18px',
         color: '#d6c9f0',
@@ -56,9 +56,20 @@ export class LobbyScene extends Phaser.Scene {
     };
     form?.addEventListener('submit', this.formHandler);
 
-    // hide touch controls + arena-only chrome if we were coming from the arena
+    // hide arena-only chrome if we were coming from the arena
     setTouchControlsVisible(false);
     syncRestartButton(false, false);
+
+    // GO button (lobby): visible once you're in, so anyone can force-reload
+    const kb = this.input.keyboard;
+    if (kb) {
+      kb.on('keydown', (e: KeyboardEvent) => {
+        if (e.code === 'Enter' && !e.repeat && store.joined && store.snapshot?.phase === 'lobby') {
+          store.client?.sendRestart();
+        }
+      });
+    }
+    syncGoButton(!!store.snapshot && store.snapshot.phase === 'lobby' && store.joined);
 
     // device-appropriate hint text
     const hint = document.getElementById('controls-hint');
@@ -104,6 +115,9 @@ export class LobbyScene extends Phaser.Scene {
     const snap = store.snapshot;
 
     syncOverlay();
+
+    // keep the GO button in sync (only in the lobby, only when joined)
+    syncGoButton(!!snap && snap.phase === 'lobby' && store.joined);
 
     if (!snap) {
       setStatusPill('off', 'Connecting…');

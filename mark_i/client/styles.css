@@ -278,6 +278,45 @@ body.touch-mode .roster {
   50% { box-shadow: 0 0 0 10px rgba(255, 179, 71, 0); }
 }
 
+/* ------- GO button (lobby) ------- */
+
+.go-btn {
+  position: absolute;
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  padding: 1.8vh 4.2vmin;
+  border: 2px solid var(--amber);
+  border-radius: clamp(8px, 1.8vmin, 14px);
+  background: linear-gradient(180deg, rgba(255, 179, 71, 0.95), rgba(214, 145, 47, 0.95));
+  color: #2a1230;
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-weight: bold;
+  font-size: clamp(18px, 4.6vmin, 34px);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  box-shadow: 0 5px 0 #7a4a12, 0 10px 26px rgba(0, 0, 0, 0.5);
+  animation: go-pulse 1.4s ease-in-out infinite;
+}
+
+.go-btn:hover { filter: brightness(1.08); }
+
+.go-btn:active {
+  transform: translateX(-50%) translateY(4px);
+  box-shadow: 0 1px 0 #7a4a12, 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes go-pulse {
+  0%, 100% { box-shadow: 0 5px 0 #7a4a12, 0 10px 26px rgba(0, 0, 0, 0.5), 0 0 0 0 rgba(255, 179, 71, 0.45); }
+  50% { box-shadow: 0 5px 0 #7a4a12, 0 10px 26px rgba(0, 0, 0, 0.5), 0 0 0 14px rgba(255, 179, 71, 0); }
+}
+
 /* ------- touch controls (phone, in-game) ------- */
 
 .touch-controls {

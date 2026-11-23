@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { store } from '../store';
-import { hideChrome, syncRestartButton } from '../ui';
+import { hideChrome, syncRestartButton, syncGoButton } from '../ui';
 import { touchInput, mergeInput, setTouchControlsVisible } from '../controls';
 import type { Snapshot } from '../net';
 import { WORLD } from '../../../shared/src/constants';
@@ -39,6 +39,7 @@ export class ArenaScene extends Phaser.Scene {
 
   create(): void {
     hideChrome();
+    syncGoButton(false);
     setTouchControlsVisible(store.touchMode);
     this.buffer = [];
     this.views.clear();
@@ -63,14 +64,14 @@ export class ArenaScene extends Phaser.Scene {
 
     const kb = this.input.keyboard;
     if (kb) {
-      kb.on('keydown', (e: KeyboardEvent) => {
-        if (e.code === 'KeyR' && !e.repeat) store.client?.sendRestart();
-      });
       this.keys = {
         left: [Phaser.Input.Keyboard.KeyCodes.LEFT, Phaser.Input.Keyboard.KeyCodes.A].map((code) => kb.addKey(code)),
         right: [Phaser.Input.Keyboard.KeyCodes.RIGHT, Phaser.Input.Keyboard.KeyCodes.D].map((code) => kb.addKey(code)),
         jump: [Phaser.Input.Keyboard.KeyCodes.SPACE, Phaser.Input.Keyboard.KeyCodes.UP, Phaser.Input.Keyboard.KeyCodes.W].map((code) => kb.addKey(code)),
       };
+      kb.on('keydown', (e: KeyboardEvent) => {
+        if (e.code === 'KeyR' && !e.repeat) store.client?.sendRestart();
+      });
     }
   }
 

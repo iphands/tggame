@@ -52,10 +52,10 @@ setJoinHandler(joinArena);
 // the touch bar is only for gameplay — never show it in the lobby
 setTouchControlsVisible(false);
 
-// force-restart button (wired once; the handler reads store.client at click time)
-document.getElementById('restart-btn')?.addEventListener('click', () => {
-  store.client?.sendRestart();
-});
+// force-reload controls (wired once; the handlers read store.client at click time)
+const forceReload = () => store.client?.sendRestart();
+document.getElementById('restart-btn')?.addEventListener('click', forceReload);
+document.getElementById('go-btn')?.addEventListener('click', forceReload);
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,

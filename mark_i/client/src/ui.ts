@@ -32,3 +32,10 @@ export function syncRestartButton(visible: boolean, ended: boolean): void {
   el.style.display = visible ? 'block' : 'none';
   el.classList.toggle('big', visible && ended);
 }
+
+/** Toggle the GO button (lobby only). Anyone can press it to force-reload the level. */
+export function syncGoButton(visible: boolean): void {
+  const el = document.getElementById('go-btn');
+  if (!el) return;
+  el.style.display = visible ? 'block' : 'none';
+}

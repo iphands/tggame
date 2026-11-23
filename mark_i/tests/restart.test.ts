@@ -71,9 +71,18 @@ describe('force restart', () => {
     expect(game.players.get(bId)?.alive).toBe(true);
   });
 
-  it('does not auto-start with fewer than 2 active players', () => {
+  it('forces a start with a single player (solo sandbox)', () => {
     const game = new Game();
     game.join('Solo');
+    game.restart();
+    expect(game.phase).toBe('starting');
+    expect(game.countdownMs).toBe(WORLD.countdownMs);
+  });
+
+  it('does not start with zero active players', () => {
+    const game = new Game();
+    const solo = game.join('Solo');
+    game.leave(solo.id);
     game.restart();
     expect(game.phase).toBe('lobby');
   });
