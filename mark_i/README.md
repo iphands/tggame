@@ -92,7 +92,7 @@ press **+ BOT** a few times, then **START**.
   jump back. A grounded victim is popped up and an airborne one is spiked
   down. 9% damage.
 - **Pistol:** the default weapon. Long range, hard-hitting, 10% with big knockback. **Aim
-  assist** bends shots toward the nearest foe in front of you (within ±25°),
+  assist** bends shots toward the nearest foe in front of you (within ±12.5°),
   so you can hit people on other platforms without jumping. It's a big help
   on touch screens. The boomstick spread is assisted too.
 - **Down:** on a platform, drop through to the one below. You can't drop if
