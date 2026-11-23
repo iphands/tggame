@@ -225,6 +225,17 @@ body {
   clip: rect(0 0 0 0);
 }
 
+/* ------- touch mode (phone): roster moves to the top so it clears the buttons ------- */
+
+body.touch-mode .roster {
+  top: 6.5%;
+  bottom: auto;
+  left: auto;
+  right: 1.6%;
+  max-height: 30%;
+  align-items: flex-end;
+}
+
 /* ------- touch controls (phone, in-game) ------- */
 
 .touch-controls {

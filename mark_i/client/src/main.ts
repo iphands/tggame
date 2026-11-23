@@ -10,6 +10,7 @@ let client: GameClient | null = null;
 
 /** Detect touch up-front and wire the on-screen control bar. */
 store.touchMode = isTouchDevice();
+document.body.classList.toggle('touch-mode', store.touchMode);
 initTouchControls();
 
 /** Best effort: force landscape (works on Android / PWA; ignored elsewhere). */
