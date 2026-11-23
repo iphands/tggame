@@ -277,7 +277,19 @@ export class Game {
       }
     }
 
-    p.vy = Math.min(p.vy + WORLD.gravity * dt, WORLD.maxFallSpeed);
+    // Variable-height jump: release while rising cuts the jump short;
+    // holding past peak floats the descent and caps the fall speed.
+    const held = p.input.jump;
+    const rising = p.vy < 0;
+    let gravity: number = WORLD.gravity;
+    let maxFall: number = WORLD.maxFallSpeed;
+    if (rising && !held) {
+      gravity = WORLD.gravity + WORLD.jumpCutGravity;
+    } else if (!rising && held) {
+      gravity = WORLD.descendGravity;
+      maxFall = WORLD.descendMaxFallSpeed;
+    }
+    p.vy = Math.min(p.vy + gravity * dt, maxFall);
 
     const grounded = p.grounded;
     const accel = grounded ? WORLD.accel : WORLD.airAccel;
