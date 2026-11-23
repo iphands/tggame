@@ -26,6 +26,7 @@ export function makeBrain(rng: () => number): BotBrain {
     pressHold: 0,
     jumpCd: 0,
     dropCd: 0,
+    calmUntil: 0,
   };
 }
 
@@ -94,11 +95,16 @@ export function thinkBot(w: World, p: Player, act: BotActions): void {
     let foe: Player | null = null;
     if (w.t >= b.retargetAt || (b.targetId && w.players.get(b.targetId)?.life !== 'alive')) {
       b.retargetAt = w.t + 700 + w.rng() * 900;
+      // spread out: a foe other bots already chase looks farther away
+      const chasers = new Map<string, number>();
+      for (const o of w.players.values()) {
+        if (o !== p && o.brain?.targetId) chasers.set(o.brain.targetId, (chasers.get(o.brain.targetId) ?? 0) + 1);
+      }
       let best = Infinity;
       b.targetId = null;
       for (const q of w.players.values()) {
         if (q === p || q.life !== 'alive') continue;
-        const d = Math.hypot(q.x - p.x, (q.y - p.y) * 1.5);
+        const d = Math.hypot(q.x - p.x, (q.y - p.y) * 1.5) + (chasers.get(q.id) ?? 0) * 260 + w.rng() * 120;
         if (d < best) {
           best = d;
           b.targetId = q.id;
@@ -164,7 +170,11 @@ export function thinkBot(w: World, p: Player, act: BotActions): void {
       const facing = Math.sign(fdx) === p.face || adx < 4;
       if (adx < 52 && ady < 40) {
         if (!facing) move = Math.sign(fdx); // turn around first
-        else if (w.rng() < 0.18 + 0.25 * b.skill) act.punch(p);
+        else if (w.t >= b.calmUntil && w.rng() < 0.035 + 0.06 * b.skill) {
+          act.punch(p);
+          // breathe between flurries so bots don't juggle anyone to death
+          if (w.rng() < 0.3) b.calmUntil = w.t + 350 + w.rng() * 700;
+        }
       } else if (facing) {
         const r = w.rng();
         if (p.weapon === 'bombs' && adx < 430 && ady < 140 && r < 0.07) act.fire(p);

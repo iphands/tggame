@@ -249,6 +249,8 @@ export class Game {
     for (const p of w.players.values()) {
       resetForRound(p);
       this.placeAtSpawn(p, i++);
+      // bots take a moment to size everyone up after "FIGHT!"
+      if (p.brain) p.brain.calmUntil = w.t + MATCH.countdownMs + 700 + w.rng() * 1100;
     }
   }
 

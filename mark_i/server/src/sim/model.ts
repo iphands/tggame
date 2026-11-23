@@ -28,6 +28,8 @@ export type BotBrain = {
   /** Ticks before another jump decision. */
   jumpCd: number;
   dropCd: number;
+  /** Sim ms until the bot may punch again (pacing). */
+  calmUntil: number;
 };
 
 export type Player = {
