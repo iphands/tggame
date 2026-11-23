@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"
+    />
+    <meta name="theme-color" content="#07041a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <title>Last Survivor Arena</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Survivor" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div class="stage">
+        <div id="game-root"></div>
+
+        <div id="ui">
+          <div id="conn" class="conn hidden">Connecting…</div>
+
+          <!-- join screen -->
+          <div id="join" class="screen join">
+            <div class="logo">
+              <div class="logo-top">LAST SURVIVOR</div>
+              <div class="logo-bottom">ARENA</div>
+            </div>
+            <form id="join-form" class="join-card panel" autocomplete="off">
+              <label for="name-input" class="sr-only">Your name</label>
+              <input id="name-input" maxlength="16" placeholder="Your name" enterkeyhint="go" />
+              <button type="submit" class="btn primary big">PLAY ▶</button>
+            </form>
+            <div class="tagline">Knock everyone off the arena. 5 lives each. Last one standing wins.</div>
+            <div id="ios-hint" class="ios-hint hidden">
+              For true full screen: tap <b>Share</b> <span class="share-glyph">⬆</span> then <b>Add to Home Screen</b>, and launch from there.
+              <button type="button" id="ios-hint-close" class="hint-close" aria-label="Dismiss">✕</button>
+            </div>
+          </div>
+
+          <!-- lobby -->
+          <div id="lobby" class="screen lobby hidden">
+            <div class="panel lobby-main">
+              <div class="label">NEXT ARENA <span id="lvl-index" class="muted"></span></div>
+              <div class="arena-pick">
+                <button type="button" id="lvl-prev" class="btn icon" aria-label="Previous arena">◀</button>
+                <div class="arena-info">
+                  <div id="lvl-name" class="arena-name"></div>
+                  <div id="lvl-tag" class="arena-tag"></div>
+                </div>
+                <button type="button" id="lvl-next" class="btn icon" aria-label="Next arena">▶</button>
+              </div>
+              <div id="lobby-status" class="lobby-status"></div>
+              <div class="lobby-buttons">
+                <button type="button" id="bot-remove" class="btn">− BOT</button>
+                <button type="button" id="bot-add" class="btn">+ BOT</button>
+                <button type="button" id="go-btn" class="btn primary">START ▶</button>
+              </div>
+            </div>
+
+            <div class="panel lobby-roster">
+              <div class="label">PLAYERS <span id="roster-count" class="muted"></span></div>
+              <div id="roster" class="roster"></div>
+            </div>
+
+            <div class="panel howto">
+              <div class="howto-keys desktop-only">
+                <span><b>A D / ← →</b> move</span>
+                <span><b>W / Space</b> jump ×2</span>
+                <span><b>S / ↓</b> drop / fast-fall</span>
+                <span><b>J / K</b> or click: shoot</span>
+              </div>
+              <div class="howto-keys touch-only">
+                <span><b>◀ ▶</b> move</span><span><b>JUMP / ▲</b> ×2</span><span><b>▼</b> drop</span><span><b>🔫</b> shoot</span>
+              </div>
+              <div class="howto-tip">The more damage you take, the farther you fly. Grab <b>?</b> crates for boomsticks, bombs, shields and heals.</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="game-buttons" class="game-buttons hidden">
+          <button type="button" id="gfx-btn" class="btn icon small gfx" aria-label="Graphics quality">✨ AUTO</button>
+          <button type="button" id="fs-btn" class="btn icon small hidden" aria-label="Full screen">⛶</button>
+          <button type="button" id="mute-btn" class="btn icon small" aria-label="Toggle sound">🔊</button>
+          <button type="button" id="restart-btn" class="btn icon small hidden" aria-label="Restart the round">↻</button>
+        </div>
+
+        <div id="perf-meter" class="perf-meter hidden"></div>
+
+        <div id="touch-controls" class="touch-controls hidden">
+          <div class="pad-left">
+            <button type="button" class="ctrl" id="ctrl-left" aria-label="Move left">◀</button>
+            <button type="button" class="ctrl tiny" id="ctrl-jump-left" aria-label="Jump">▲</button>
+            <button type="button" class="ctrl tiny" id="ctrl-down" aria-label="Drop down">▼</button>
+            <button type="button" class="ctrl" id="ctrl-right" aria-label="Move right">▶</button>
+          </div>
+          <div class="pad-right">
+            <button type="button" class="ctrl fire" id="ctrl-fire" aria-label="Shoot">🔫</button>
+            <button type="button" class="ctrl big" id="ctrl-jump" aria-label="Jump">JUMP</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="rotate-gate" class="rotate-gate" aria-hidden="true">
+        <div class="rotate-box">
+          <div class="phone"></div>
+          <p class="rotate-title">Rotate your device</p>
+          <p class="rotate-sub">Last Survivor Arena plays in landscape.</p>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
