@@ -105,7 +105,12 @@ const server = http.createServer((req, res) => {
   });
 });
 
-const wss = new WebSocketServer({ server, maxPayload: 4096 });
+// Snapshots are repetitive JSON: deflate cuts bandwidth ~4-5x (matters for many phones on Wi-Fi).
+const wss = new WebSocketServer({
+  server,
+  maxPayload: 4096,
+  perMessageDeflate: { threshold: 1024, zlibDeflateOptions: { level: 3 } },
+});
 
 function send(ws: WebSocket, msg: ServerMessage): void {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
