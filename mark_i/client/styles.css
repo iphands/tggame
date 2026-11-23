@@ -5,21 +5,40 @@
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html,
 body {
   margin: 0;
+  padding: 0;
   height: 100%;
   background: radial-gradient(120% 100% at 50% 10%, #131b33 0%, #0b0e1a 55%, #070a14 100%);
   color: #e8edf5;
   font-family: 'Courier New', ui-monospace, monospace;
   overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  position: fixed;
+  width: 100%;
 }
 
 #app {
   position: fixed;
   inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The forced 16:9 stage everything lives on */
+.stage {
+  position: relative;
+  width: min(100vw, 177.78vh);
+  height: min(56.25vw, 100vh);
+  aspect-ratio: 16 / 9;
+  /* keep canvas pixel-crisp on phones */
+  image-rendering: pixelated;
 }
 
 #game-root {
@@ -30,51 +49,47 @@ body {
   justify-content: center;
 }
 
+#game-root canvas {
+  display: block;
+}
+
 #ui {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 2;
 }
 
 #ui > * {
   pointer-events: auto;
 }
 
+/* ------- pills / header / roster ------- */
+
 .pill {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 13px;
+  top: 2.2%;
+  left: 1.6%;
+  padding: 1.2% 2.2%;
+  border-radius: clamp(4px, 1.2vmin, 8px);
+  font-size: clamp(10px, 2vmin, 16px);
   font-weight: bold;
   letter-spacing: 0.06em;
   background: rgba(10, 12, 28, 0.85);
   border: 1px solid #3a2c52;
 }
 
-.pill.ok {
-  color: #7dffb0;
-  border-color: #1f6b3f;
-}
-
-.pill.warn {
-  color: #ffd166;
-  border-color: #6b5a1f;
-}
-
-.pill.off {
-  color: #ff9d99;
-  border-color: #6b2f22;
-}
+.pill.ok { color: #7dffb0; border-color: #1f6b3f; }
+.pill.warn { color: #ffd166; border-color: #6b5a1f; }
+.pill.off { color: #ff9d99; border-color: #6b2f22; }
 
 .status-line {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 14px;
+  top: 2.2%;
+  right: 1.6%;
+  padding: 1.2% 2.2%;
+  border-radius: clamp(4px, 1.2vmin, 8px);
+  font-size: clamp(10px, 2.2vmin, 18px);
   font-weight: bold;
   background: rgba(10, 12, 28, 0.85);
   border: 1px solid #3a2c52;
@@ -83,29 +98,35 @@ body {
 
 .roster {
   position: absolute;
-  bottom: 16px;
-  left: 16px;
+  bottom: 2.5%;
+  left: 1.6%;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-height: 45%;
+  gap: clamp(3px, 0.7vh, 6px);
+  max-height: 42%;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  touch-action: pan-y;
 }
 
 .roster-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 10px;
-  border-radius: 4px;
+  gap: 0.8vmin;
+  padding: 0.9vh 1.4vmin;
+  border-radius: clamp(4px, 1.2vmin, 7px);
   background: rgba(12, 10, 28, 0.82);
   border: 1px solid #2e2546;
-  font-size: 13px;
+  font-size: clamp(10px, 2vmin, 15px);
+  white-space: nowrap;
 }
 
 .roster-item .dot {
-  width: 12px;
-  height: 12px;
+  width: 1.8vmin;
+  height: 1.8vmin;
+  min-width: 8px;
+  min-height: 8px;
   border-radius: 3px;
   display: inline-block;
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12);
@@ -114,88 +135,84 @@ body {
 .roster-item .you {
   margin-left: auto;
   color: var(--amber);
-  font-size: 11px;
+  font-size: clamp(8px, 1.6vmin, 12px);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+
+/* ------- name panel ------- */
 
 .panel {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: min(440px, 88vw);
-  padding: 28px 26px;
-  border-radius: 8px;
+  width: min(64%, 480px);
+  padding: clamp(14px, 4vmin, 32px) clamp(16px, 4vmin, 30px);
+  border-radius: clamp(6px, 1.6vmin, 12px);
   background: rgba(12, 9, 26, 0.92);
   border: 2px solid #3d2c5a;
   box-shadow: 0 0 0 2px #150d2b, 0 18px 50px rgba(0, 0, 0, 0.6), inset 0 0 60px rgba(120, 60, 180, 0.12);
   text-align: center;
+  max-height: 84%;
+  overflow-y: auto;
 }
 
 .panel h2 {
-  margin: 0 0 6px;
-  font-size: 26px;
+  margin: 0 0 0.6vmin;
+  font-size: clamp(18px, 4.4vmin, 30px);
   letter-spacing: 0.05em;
   color: var(--amber);
   text-shadow: 3px 3px 0 #2a1230;
 }
 
 .panel .subtitle {
-  margin: 0 0 18px;
-  font-size: 13px;
+  margin: 0 0 2.6vmin;
+  font-size: clamp(11px, 2.4vmin, 15px);
   color: #c9b8e6;
   line-height: 1.45;
 }
 
 .panel form {
   display: flex;
-  gap: 8px;
+  gap: 1.4vmin;
 }
 
 .panel input {
   flex: 1;
   min-width: 0;
-  padding: 10px 12px;
-  border-radius: 6px;
+  padding: 0.9vh 1.6vmin;
+  border-radius: clamp(5px, 1.2vmin, 9px);
   border: 2px solid #3a2c52;
   background: #191331;
   color: #fff;
   font-family: inherit;
-  font-size: 16px;
+  font-size: clamp(12px, 2.8vmin, 18px);
   outline: none;
 }
 
-.panel input:focus {
-  border-color: var(--amber);
-}
+.panel input:focus { border-color: var(--amber); }
 
 .panel button {
-  padding: 10px 18px;
-  border-radius: 6px;
+  padding: 0.9vh 2.4vmin;
+  border-radius: clamp(5px, 1.2vmin, 9px);
   border: none;
   background: var(--amber);
   color: #2a1230;
   font-family: inherit;
   font-weight: bold;
-  font-size: 15px;
+  font-size: clamp(12px, 2.8vmin, 17px);
   cursor: pointer;
   letter-spacing: 0.04em;
   box-shadow: 0 3px 0 #9c5f1d;
 }
 
-.panel button:hover {
-  filter: brightness(1.1);
-}
-
-.panel button:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 #9c5f1d;
-}
+.panel button:hover { filter: brightness(1.1); }
+.panel button:active { transform: translateY(2px); box-shadow: 0 1px 0 #9c5f1d; }
 
 .panel .hint {
-  margin: 14px 0 0;
-  font-size: 11px;
+  margin: 2.2vmin 0 0;
+  font-size: clamp(9px, 2vmin, 13px);
   color: #8a7aa8;
   line-height: 1.5;
 }
@@ -206,4 +223,120 @@ body {
   height: 1px;
   overflow: hidden;
   clip: rect(0 0 0 0);
+}
+
+/* ------- touch controls (phone, in-game) ------- */
+
+.touch-controls {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.ctrl {
+  position: absolute;
+  bottom: 3%;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #3d2c5a;
+  background: rgba(16, 14, 34, 0.72);
+  color: #f4ecff;
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-weight: bold;
+  font-size: clamp(20px, 5.2vmin, 44px);
+  border-radius: 18%;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.45);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ctrl:active,
+.ctrl.pressed {
+  background: rgba(255, 179, 71, 0.85);
+  border-color: var(--amber);
+  color: #2a1230;
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+.ctrl-left { left: 2.4%; width: 17%; height: 26%; }
+.ctrl-right { left: 21.5%; width: 17%; height: 26%; }
+.ctrl-jump { right: 2.4%; width: 27%; height: 34%; font-size: clamp(20px, 6.2vmin, 52px); background: rgba(38, 30, 66, 0.82); }
+
+/* ------- rotate-to-landscape gate ------- */
+
+.rotate-gate {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: rgba(8, 6, 18, 0.97);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  text-align: center;
+}
+
+.rotate-box { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+
+.phone-icon {
+  width: 74px;
+  height: 128px;
+  transform: rotate(90deg);
+  animation: nudge 1.6s ease-in-out infinite;
+}
+
+@keyframes nudge {
+  0%, 100% { transform: rotate(90deg); }
+  50% { transform: rotate(90deg) translateX(10px); }
+}
+
+.phone {
+  width: 74px;
+  height: 128px;
+  border: 5px solid var(--amber);
+  border-radius: 18px;
+  position: relative;
+}
+
+.phone::after {
+  content: '';
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 4px;
+  background: var(--amber);
+  border-radius: 2px;
+}
+
+.rotate-title {
+  margin: 0;
+  font-size: clamp(22px, 5vmin, 34px);
+  font-weight: bold;
+  color: var(--amber);
+  letter-spacing: 0.04em;
+}
+
+.rotate-sub {
+  margin: 0;
+  font-size: clamp(12px, 3vmin, 17px);
+  color: #c9b8e6;
+}
+
+@media (orientation: portrait) {
+  .rotate-gate {
+    display: flex;
+  }
+}
+
+@media (orientation: portrait) and (max-width: 520px) {
+  .panel { width: 86%; }
 }

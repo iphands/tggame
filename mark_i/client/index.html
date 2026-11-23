@@ -2,26 +2,53 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"
+    />
+    <meta name="theme-color" content="#0b0e1a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <title>Last Survivor Arena</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <div id="app">
-      <div id="game-root"></div>
-      <div id="ui">
-        <div id="toast" class="pill off">● Connecting…</div>
-        <div id="status-line" class="status-line" style="display:none"></div>
-        <div id="roster" class="roster" style="display:none"></div>
-        <div id="name-form" class="panel">
-          <h2>⚔️ Last Survivor Arena</h2>
-          <p class="subtitle">A server-authoritative 2D arena platformer — last one standing wins.</p>
-          <form id="name-form-inner">
-            <label for="name-input" class="sr-only">Choose a name</label>
-            <input id="name-input" maxlength="18" placeholder="Your name…" autocomplete="off" />
-            <button type="submit">Join arena</button>
-          </form>
-          <p class="hint">← → or A / D to move · Space to jump · Knock each other off the island.</p>
+      <div class="stage">
+        <div id="game-root"></div>
+
+        <div id="ui">
+          <div id="toast" class="pill off">● Connecting…</div>
+          <div id="status-line" class="status-line" style="display:none"></div>
+          <div id="roster" class="roster" style="display:none"></div>
+          <div id="name-form" class="panel">
+            <h2>⚔️ Last Survivor Arena</h2>
+            <p class="subtitle">A server-authoritative 2D arena platformer — last one standing wins.</p>
+            <form id="name-form-inner">
+              <label for="name-input" class="sr-only">Choose a name</label>
+              <input id="name-input" maxlength="18" placeholder="Your name…" autocomplete="off" />
+              <button type="submit">Join arena</button>
+            </form>
+            <p id="controls-hint" class="hint">← → or A / D to move · Space to jump · Knock each other off the island.</p>
+          </div>
+        </div>
+
+        <div id="touch-controls" class="touch-controls" style="display:none">
+          <button type="button" class="ctrl ctrl-left" id="ctrl-left" aria-label="Move left">◀</button>
+          <button type="button" class="ctrl ctrl-right" id="ctrl-right" aria-label="Move right">▶</button>
+          <button type="button" class="ctrl ctrl-jump" id="ctrl-jump" aria-label="Jump">JUMP</button>
+        </div>
+
+      </div>
+
+      <div id="rotate-gate" class="rotate-gate" aria-hidden="true">
+        <div class="rotate-box">
+          <div class="phone-icon">
+            <div class="phone"></div>
+          </div>
+          <p class="rotate-title">Rotate your device</p>
+          <p class="rotate-sub">Last Survivor Arena is landscape-only.</p>
         </div>
       </div>
     </div>
