@@ -84,7 +84,7 @@ export function initLobbyDom(onJoin: (name: string) => void): void {
   click('fs-btn', () => void toggleFullscreen());
   click('gfx-btn', () => {
     const next = nextSetting(store.quality.setting);
-    store.quality.set(next, store.touchMode);
+    store.quality.set(next);
     try {
       localStorage.setItem('lsa-gfx', next);
     } catch {

@@ -19,7 +19,7 @@ export const store = {
   fxQueue: [] as { t: number; fx: Fx }[],
   touchMode: false,
   /** Graphics tier (set up in main.ts from the saved setting). */
-  quality: new QualityManager('auto', false),
+  quality: new QualityManager('auto'),
 };
 
 export function onSnapshot(snap: SnapshotMessage): void {

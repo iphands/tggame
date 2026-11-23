@@ -48,7 +48,6 @@ export class ArenaScene extends Phaser.Scene {
   private camY = 360;
   private zoom = 1;
   private createdAt = 0;
-  private bloom: Phaser.FX.Bloom | null = null;
   private vignette: Phaser.GameObjects.Image | null = null;
   private zoomKick = 0;
   private keys = {} as Record<KeyName, Phaser.Input.Keyboard.Key[]>;
@@ -193,19 +192,17 @@ export class ArenaScene extends Phaser.Scene {
     this.updateCamera(players, snap.phase, delta);
   }
 
-  /** Zoom in and follow yourself on small screens; full view otherwise. */
-  /** Apply the current quality tier: bloom (shader, high only) + vignette overlay. */
+  /**
+   * Apply the current quality tier. No full-screen shader passes: glow comes
+   * from additive sprites and the vignette is one overlay sprite.
+   */
   private applyQuality(): void {
     const f = store.quality.flags;
     this.particles.mul = f.particleMul;
     this.vignette?.setVisible(f.vignette);
-    const cam = this.cameras.main;
-    this.bloom = null;
-    if (this.game.renderer.type !== Phaser.WEBGL || !cam.postFX) return;
-    cam.postFX.clear();
-    if (f.bloom) this.bloom = cam.postFX.addBloom(0xffffff, 1, 1, 1, 0.55, 3);
   }
 
+  /** Zoom in and follow yourself on small screens; full view otherwise. */
   private updateCamera(players: PlayerState[], phase: string, delta: number): void {
     camView.small = this.scale.displaySize.height < 560;
     const me = players.find((p) => p.id === store.selfId);
@@ -480,11 +477,6 @@ export class ArenaScene extends Phaser.Scene {
         this.cameras.main.shake(260, 0.02);
         this.cameras.main.flash(90, 255, 120, 230);
         this.zoomKick = Math.max(this.zoomKick, 0.045);
-        if (this.bloom) {
-          const b = this.bloom;
-          b.strength = 2.2;
-          this.tweens.add({ targets: b, strength: 0.55, duration: 500, ease: 'Cubic.easeOut' });
-        }
         play('railgun');
         break;
       }

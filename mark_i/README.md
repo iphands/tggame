@@ -47,7 +47,7 @@ press **+ BOT** a few times, then **START**.
   zooms back out while you're respawning and on the results screen. The HUD
   and lobby text also scale up.
 - **Graphics quality:** the ✨ button cycles Auto / High / Medium / Low. Auto
-  starts at High on desktop and Medium on phones, and drops a tier if the
+  (the default) runs Medium on every device and drops to Low if the
   frame rate stays under 50 fps. Add `?gfx=low` to the URL to force a tier.
 - **Perf meter:** open the game once with `?fps=1` to show FPS, frame times,
   1%-low FPS, game CPU time per frame and a frame-time graph in the top-left

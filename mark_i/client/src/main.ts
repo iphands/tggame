@@ -22,7 +22,7 @@ store.touchMode = isTouchDevice();
   }
   const fromUrl = new URLSearchParams(location.search).get('gfx') as Setting | null;
   const setting = fromUrl && SETTINGS.includes(fromUrl) ? fromUrl : SETTINGS.includes(saved) ? saved : 'auto';
-  store.quality = new QualityManager(setting, store.touchMode);
+  store.quality = new QualityManager(setting);
 }
 document.body.classList.toggle('touch-mode', store.touchMode);
 initTouchControls(unlockAudio);

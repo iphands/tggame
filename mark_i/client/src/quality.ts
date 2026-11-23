@@ -1,15 +1,13 @@
 /**
- * Graphics quality tiers. Costly effects (full-screen shaders, extra sprites)
- * are gated by the active tier. In `auto`, a rolling FPS monitor steps the tier
- * down when the device can't keep up. Pure logic: no DOM, unit-tested.
+ * Graphics quality tiers. Costlier effects (extra sprites, more particles)
+ * are gated by the active tier. `auto` starts at Medium and a rolling FPS
+ * monitor steps it down to Low if the device can't keep up. Pure logic: no DOM, unit-tested.
  */
 
 export type Tier = 'high' | 'medium' | 'low';
 export type Setting = 'auto' | Tier;
 
 export type QualityFlags = {
-  /** Full-screen bloom shader (the only post pass; desktop-class GPUs). */
-  bloom: boolean;
   /** Vignette overlay (a single sprite, not a shader pass). */
   vignette: boolean;
   /** Baked sun/moon rays over the backdrop. */
@@ -27,12 +25,15 @@ export type QualityFlags = {
 };
 
 export const FLAGS: Record<Tier, QualityFlags> = {
-  high: { bloom: true, vignette: true, lightShafts: true, shadows: true, afterimages: true, ribbons: true, ambientMul: 1, particleMul: 1 },
-  medium: { bloom: false, vignette: true, lightShafts: true, shadows: true, afterimages: true, ribbons: true, ambientMul: 0.7, particleMul: 0.75 },
-  low: { bloom: false, vignette: false, lightShafts: false, shadows: false, afterimages: false, ribbons: false, ambientMul: 0.35, particleMul: 0.5 },
+  high: { vignette: true, lightShafts: true, shadows: true, afterimages: true, ribbons: true, ambientMul: 1, particleMul: 1 },
+  medium: { vignette: true, lightShafts: true, shadows: true, afterimages: true, ribbons: true, ambientMul: 0.7, particleMul: 0.75 },
+  low: { vignette: false, lightShafts: false, shadows: false, afterimages: false, ribbons: false, ambientMul: 0.35, particleMul: 0.5 },
 };
 
 const ORDER: Tier[] = ['high', 'medium', 'low'];
+
+/** Auto mode starts here on every device (rock-solid and bright); it only ever steps down. */
+export const AUTO_START: Tier = 'medium';
 
 /** Rolling-average FPS below this (in auto) drops a tier. */
 export const MIN_FPS = 50;
@@ -44,11 +45,8 @@ export class QualityManager {
   private samples: { t: number; fps: number }[] = [];
   private lastChange = -Infinity;
 
-  constructor(
-    public setting: Setting,
-    touch: boolean
-  ) {
-    this.tier = setting === 'auto' ? (touch ? 'medium' : 'high') : setting;
+  constructor(public setting: Setting) {
+    this.tier = setting === 'auto' ? AUTO_START : setting;
   }
 
   get flags(): QualityFlags {
@@ -56,10 +54,10 @@ export class QualityManager {
   }
 
   /** Change the user setting; returns true if the active tier changed. */
-  set(setting: Setting, touch: boolean): boolean {
+  set(setting: Setting): boolean {
     const before = this.tier;
     this.setting = setting;
-    this.tier = setting === 'auto' ? (touch ? 'medium' : 'high') : setting;
+    this.tier = setting === 'auto' ? AUTO_START : setting;
     this.samples = [];
     return before !== this.tier;
   }
