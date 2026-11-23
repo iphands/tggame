@@ -29,7 +29,7 @@ export type BotBrain = {
   /** Ticks before another jump decision. */
   jumpCd: number;
   dropCd: number;
-  /** Sim ms until the bot may punch again (pacing). */
+  /** Sim ms until the bot may fire at close range again (pacing). */
   calmUntil: number;
 };
 
@@ -71,8 +71,6 @@ export type Player = {
   stocks: number;
   weapon: WeaponKind;
   ammo: number;
-  punchAt: number;
-  punchHits: Set<string>;
   shotAt: number;
   /** Railgun: sim ms the charged shot fires (0 = not charging). */
   chargeUntil: number;
@@ -179,8 +177,6 @@ export function createPlayer(id: string, name: string, color: string, bot: boole
     stocks: MATCH.stocks,
     weapon: 'pistol',
     ammo: -1,
-    punchAt: -1e9,
-    punchHits: new Set(),
     shotAt: -1e9,
     chargeUntil: 0,
     lastHit: null,
@@ -213,8 +209,6 @@ export function resetBody(p: Player): void {
   p.boostUntil = 0;
   p.weapon = 'pistol';
   p.ammo = -1;
-  p.punchAt = -1e9;
-  p.punchHits.clear();
   p.shotAt = -1e9;
   p.chargeUntil = 0;
   p.lastHit = null;

@@ -1,6 +1,6 @@
 /**
  * Bot brains. Bots produce the same inputs a human would (left/right/jump
- * plus punch / fire / drop actions) — they get no special powers.
+ * plus fire / drop actions) — they get no special powers.
  */
 import { PHYS } from '../../../shared/src/constants.js';
 import { isSolid } from './platforms.js';
@@ -10,7 +10,6 @@ const W = PHYS.playerW;
 const H = PHYS.playerH;
 
 export type BotActions = {
-  punch: (p: Player) => void;
   fire: (p: Player) => void;
   drop: (p: Player) => void;
   input: (p: Player, input: { left: boolean; right: boolean; jump: boolean }) => void;
@@ -171,7 +170,7 @@ export function thinkBot(w: World, p: Player, act: BotActions): void {
       if (adx < 52 && ady < 40) {
         if (!facing) move = Math.sign(fdx); // turn around first
         else if (w.t >= b.calmUntil && w.rng() < 0.035 + 0.06 * b.skill) {
-          act.punch(p);
+          act.fire(p); // point-blank shot
           // breathe between flurries so bots don't juggle anyone to death
           if (w.rng() < 0.3) b.calmUntil = w.t + 350 + w.rng() * 700;
         }

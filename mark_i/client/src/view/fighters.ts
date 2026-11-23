@@ -1,4 +1,4 @@
-/** On-screen fighters: animated sprite, name/damage tag, weapon, shield, punch swoosh. */
+/** On-screen fighters: animated sprite, name/damage tag, weapon, shield, shadow. */
 import Phaser from 'phaser';
 import { PHYS } from '../../../shared/src/constants';
 import type { PlatformState, PlayerState } from '../../../shared/src/types';
@@ -28,7 +28,6 @@ export class FighterView {
   private readonly dmg: Phaser.GameObjects.Text;
   private readonly marker: Phaser.GameObjects.Triangle | null;
   private readonly gun: Phaser.GameObjects.Image;
-  private readonly fist: Phaser.GameObjects.Image;
   private readonly shield: Phaser.GameObjects.Image;
   private readonly glow: Phaser.GameObjects.Image;
   private readonly crown: Phaser.GameObjects.Image;
@@ -50,7 +49,6 @@ export class FighterView {
     this.glow = scene.add.image(0, 0, 'soft').setTint(hexNum(p.color)).setAlpha(isSelf ? 0.35 : 0.18).setDisplaySize(70, 30).setDepth(9);
     this.sprite = scene.add.sprite(0, 0, key, 0).setOrigin(0.5, 1).setDepth(isSelf ? 12 : 11);
     this.gun = scene.add.image(0, 0, 'gun-pistol').setDepth(13).setOrigin(0.2, 0.5);
-    this.fist = scene.add.image(0, 0, 'fist').setDepth(14).setVisible(false).setBlendMode(Phaser.BlendModes.ADD);
     this.shield = scene.add.image(0, 0, 'shield').setDepth(15).setVisible(false);
     this.crown = scene.add.image(0, 0, 'crown').setDepth(13).setOrigin(0.5, 1).setVisible(false);
     this.sight = scene.add.graphics().setDepth(17).setBlendMode(Phaser.BlendModes.ADD);
@@ -102,9 +100,7 @@ export class FighterView {
 
     // ---- animation frame
     let frame: number;
-    const punching = p.punchAt >= 0 && simNow - p.punchAt < 140;
     if (p.launched) frame = FRAMES.hurt;
-    else if (punching) frame = FRAMES.punch;
     else if (!p.grounded) frame = p.vy < 0 ? FRAMES.jump : FRAMES.fall;
     else if (Math.abs(p.vx) > 40) {
       this.runDist += Math.abs(p.vx) * s;
@@ -158,18 +154,7 @@ export class FighterView {
       .setPosition(cx + p.face * (W / 2 - 2 + recoil), p.y + H * 0.55)
       .setFlipX(p.face < 0)
       .setOrigin(p.face < 0 ? 0.8 : 0.2, 0.5)
-      .setVisible(!punching && !p.launched);
-
-    // ---- punch swoosh
-    if (punching) {
-      const k = (simNow - p.punchAt) / 140;
-      this.fist
-        .setVisible(true)
-        .setPosition(cx + p.face * (W / 2 + 10 + k * 8), p.y + H * 0.45)
-        .setFlipX(p.face < 0)
-        .setAlpha(1 - k)
-        .setScale(0.8 + k * 0.4);
-    } else this.fist.setVisible(false);
+      .setVisible(!p.launched);
 
     // ---- shield bubble
     this.shield.setVisible(p.shield).setPosition(cx, p.y + H / 2);
@@ -199,13 +184,12 @@ export class FighterView {
     this.marker?.setVisible(v);
     if (!v) {
       this.sight.clear();
-      this.fist.setVisible(false);
       this.shield.setVisible(false);
     }
   }
 
   destroy(): void {
-    for (const o of [this.sprite, this.name, this.dmg, this.gun, this.fist, this.shield, this.glow, this.crown, this.sight, this.shadow]) o.destroy();
+    for (const o of [this.sprite, this.name, this.dmg, this.gun, this.shield, this.glow, this.crown, this.sight, this.shadow]) o.destroy();
     this.marker?.destroy();
   }
 }

@@ -13,7 +13,6 @@ import type {
 export type ClientMessage =
   | { type: 'join'; name?: string }
   | { type: 'input'; left: boolean; right: boolean; jump: boolean }
-  | { type: 'punch' }
   | { type: 'shoot' }
   | { type: 'drop' }
   | { type: 'restart' }
@@ -57,7 +56,7 @@ export type ServerMessage =
   | { type: 'full'; capacity: number }
   | SnapshotMessage;
 
-const NO_ARGS = new Set(['punch', 'shoot', 'drop', 'restart', 'leave', 'addBot', 'removeBot']);
+const NO_ARGS = new Set(['shoot', 'drop', 'restart', 'leave', 'addBot', 'removeBot']);
 
 export function isClientMessage(v: unknown): v is ClientMessage {
   if (!v || typeof v !== 'object') return false;

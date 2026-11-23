@@ -5,7 +5,7 @@ export type Phase = 'lobby' | 'starting' | 'playing' | 'ended';
 
 export type WeaponKind = 'pistol' | 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun';
 export type ItemKind = 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun' | 'shield' | 'heal';
-export type HitHow = 'punch' | 'stomp' | 'pistol' | 'boomstick' | 'bomb' | 'smg' | 'rocket' | 'railgun';
+export type HitHow = 'stomp' | 'pistol' | 'boomstick' | 'bomb' | 'smg' | 'rocket' | 'railgun';
 
 /**
  * alive      — on stage, playing
@@ -37,8 +37,6 @@ export type PlayerState = {
   launched: boolean;
   /** Charging a railgun shot (draw the sight line). */
   charging: boolean;
-  /** Sim ms of the last punch (-1 if never). */
-  punchAt: number;
   /** Sim ms of the last shot (-1 if never). */
   shotAt: number;
   airJumps: number;
@@ -77,7 +75,6 @@ export type CrateState = {
 /** One-shot visual/audio effects that happened since the previous snapshot. */
 export type Fx =
   | { k: 'jump' | 'airjump' | 'land' | 'bounce' | 'spawn'; x: number; y: number; id: string }
-  | { k: 'punch'; x: number; y: number; id: string; face: 1 | -1 }
   | { k: 'hit'; x: number; y: number; id: string; by: string | null; power: number; how: HitHow }
   | { k: 'block'; x: number; y: number; id: string }
   | { k: 'shot'; x: number; y: number; id: string; weapon: WeaponKind; face: 1 | -1 }

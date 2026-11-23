@@ -150,9 +150,6 @@ function handle(ws: WebSocket, peer: { id: string | null }, msg: ClientMessage):
     case 'input':
       game.setInput(id, msg);
       break;
-    case 'punch':
-      game.punch(id);
-      break;
     case 'shoot':
       game.shoot(id);
       break;

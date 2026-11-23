@@ -7,7 +7,7 @@ function player(x: number, y = 100, life: PlayerState['life'] = 'alive'): Player
   return {
     id: 'p1', name: 'A', color: '#fff', bot: false, x, y, vx: 0, vy: 0, face: 1, grounded: true, life,
     dmg: 0, stocks: 3, weapon: 'pistol', ammo: -1, invuln: false, shield: false, launched: false,
-    punchAt: -1, shotAt: -1, airJumps: 1, wins: 0, kos: 0,
+    shotAt: -1, airJumps: 1, wins: 0, kos: 0,
   };
 }
 

@@ -36,7 +36,7 @@ server/src/index.ts      HTTP static + /health, WebSocket dispatch, message budg
 server/src/sim/game.ts   Game: roster/bots, phases, stocks/KOs/respawn, results, snapshot()
 server/src/sim/model.ts  internal Player/Plat/Projectile/Crate/World types + reset helpers
 server/src/sim/physics.ts   applyInput, stepPlayer (gravity, jumps, ice, bounce, landing), tryDrop, separateBodies
-server/src/sim/combat.ts    applyHit/knockback, punch, stomp, fire (pistol/boomstick/bombs), projectiles, explode
+server/src/sim/combat.ts    applyHit/knockback, stomp, fire (pistol/boomstick/bombs), projectiles, explode
 server/src/sim/items.ts     crate spawn timer, falling/riding, pickup, grantItem
 server/src/sim/platforms.ts buildPlats, updatePlats (motion + crumble), findLanding
 server/src/sim/bots.ts      thinkBot: targeting, edge safety, gap jumps, recovery, attacks

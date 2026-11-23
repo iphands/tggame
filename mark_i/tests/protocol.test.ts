@@ -8,7 +8,6 @@ describe('client message validation', () => {
       { type: 'join', name: 'A' },
       { type: 'join' },
       { type: 'input', left: true, right: false, jump: false },
-      { type: 'punch' },
       { type: 'shoot' },
       { type: 'drop' },
       { type: 'restart' },
@@ -33,6 +32,7 @@ describe('client message validation', () => {
       { type: 'input', left: 1, right: false, jump: false },
       { type: 'pickLevel', dir: 2 },
       { type: 'toString' },
+      { type: 'punch' }, // removed mechanic
     ]) {
       expect(isClientMessage(m), JSON.stringify(m)).toBe(false);
     }

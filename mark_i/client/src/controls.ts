@@ -11,7 +11,7 @@ export const touchInput: InputState = { left: false, right: false, jump: false }
 export const fireHeld = { touch: false, mouse: false };
 
 /** One-shot requests (consumed by the arena scene). */
-export const requests = { punch: false, drop: false };
+export const requests = { drop: false };
 
 export function setTouchInput(name: keyof InputState, value: boolean): void {
   touchInput[name] = value;
@@ -28,7 +28,7 @@ export function mergeInput(keyboard: InputState, touch: InputState): InputState 
 export function resetTouch(): void {
   touchInput.left = touchInput.right = touchInput.jump = false;
   fireHeld.touch = fireHeld.mouse = false;
-  requests.punch = requests.drop = false;
+  requests.drop = false;
 }
 
 export function isTouchDevice(): boolean {
@@ -82,7 +82,6 @@ export function initTouchControls(onAnyPress: () => void): void {
   held('ctrl-right', (v) => setTouchInput('right', v));
   held('ctrl-jump', (v) => setTouchInput('jump', v));
   held('ctrl-fire', (v) => (fireHeld.touch = v));
-  tap('ctrl-punch', () => (requests.punch = true));
   tap('ctrl-down', () => (requests.drop = true));
 }
 

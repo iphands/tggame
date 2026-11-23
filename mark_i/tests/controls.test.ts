@@ -25,11 +25,11 @@ describe('input merge (keyboard OR touch)', () => {
 
   it('resetTouch clears held buttons and one-shot requests', () => {
     setTouchInput('left', true);
-    requests.punch = true;
+    requests.drop = true;
     fireHeld.touch = true;
     resetTouch();
     expect(touchInput.left).toBe(false);
-    expect(requests.punch).toBe(false);
+    expect(requests.drop).toBe(false);
     expect(fireHeld.touch).toBe(false);
   });
 });

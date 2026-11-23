@@ -16,7 +16,6 @@ export const FRAMES = {
   jump: 6,
   fall: 7,
   hurt: 8,
-  punch: 9,
 } as const;
 
 type FrameSpec = {
@@ -26,7 +25,7 @@ type FrameSpec = {
   lift: [number, number];
   eyes: 'open' | 'blink' | 'x' | 'squint' | 'wide';
   tail: number;
-  arm: 'down' | 'up' | 'punch' | 'back';
+  arm: 'down' | 'up' | 'back';
 };
 
 const BOTTOM = 18;
@@ -41,7 +40,6 @@ const SPECS: FrameSpec[] = [
   { top: 1, lean: 0, feet: [1, -1], lift: [1, 1], eyes: 'open', tail: 2, arm: 'up' },
   { top: 3, lean: 0, feet: [-1, 1], lift: [0, 0], eyes: 'wide', tail: 1, arm: 'up' },
   { top: 4, lean: -0.8, feet: [-1, 1], lift: [1, 0], eyes: 'x', tail: 2, arm: 'up' },
-  { top: 3, lean: 1, feet: [-2, 1], lift: [0, 0], eyes: 'squint', tail: 2, arm: 'punch' },
 ];
 
 function drawFighterFrame(ctx: CanvasRenderingContext2D, ox: number, color: string, f: FrameSpec): void {
@@ -142,12 +140,7 @@ function drawFighterFrame(ctx: CanvasRenderingContext2D, ox: number, color: stri
   // arms
   const armY = top + 9;
   const rightEdge = Math.round(cx + 5.5);
-  if (f.arm === 'punch') {
-    px(rightEdge, armY, outline, 4, 3);
-    px(rightEdge, armY + 1, color, 3, 1);
-    px(rightEdge + 3, armY, '#ffffff', 2, 3);
-    px(rightEdge + 3, armY - 0, outline, 1, 1);
-  } else if (f.arm === 'up') {
+  if (f.arm === 'up') {
     px(rightEdge - 1, armY - 4, outline, 2, 3);
     px(Math.round(cx - 6.5), armY - 4, outline, 2, 3);
   } else if (f.arm === 'back') {
@@ -268,20 +261,6 @@ export function makeCommonTextures(scene: Phaser.Scene): void {
     ctx.fillRect(2, 9, 5, 3);
     ctx.fillStyle = '#ffd34d';
     ctx.fillRect(0, 4, 3, 4);
-  });
-
-  add(scene, 'fist', 40, 40, (ctx) => {
-    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
-    ctx.lineCap = 'round';
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.arc(6, 20, 26, -0.9, 0.9);
-    ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(0, 20, 24, -0.7, 0.7);
-    ctx.stroke();
   });
 
   add(scene, 'shield', 72, 72, (ctx) => {

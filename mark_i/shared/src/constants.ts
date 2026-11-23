@@ -61,7 +61,6 @@ export const COMBAT = {
   /** Hitstun ms per px/s of knockback speed. */
   hitstunPerSpeed: 0.32,
   koCreditMs: 5000,
-  punch: { dmg: 11, base: 460, growth: 6.8, angleDeg: 32, range: 44, activeMs: 100, cooldownMs: 360, lunge: 280 },
   stomp: { dmg: 9, base: 220, growth: 3.6, bounceVel: 1100, angleDeg: 65 },
   pistol: { dmg: 10, base: 420, growth: 5.8, speed: 1600, ttlMs: 650, cooldownMs: 300, angleDeg: 24 },
   /** Guns bend toward the nearest foe in front within this cone (no jump-to-aim needed on touch). */

@@ -16,15 +16,20 @@ import { showScreen, syncGfxButton, syncMuteButton, syncRestartButton } from '..
 /** Camera zoom on phone-sized screens (the HUD is unaffected). */
 const SMALL_SCREEN_ZOOM = 1.45;
 
-type KeyName = 'left' | 'right' | 'jump' | 'down' | 'punch' | 'fire';
+type KeyName = 'left' | 'right' | 'jump' | 'down' | 'fire';
 
 const KEYMAP: Record<KeyName, number[]> = {
   left: [Phaser.Input.Keyboard.KeyCodes.LEFT, Phaser.Input.Keyboard.KeyCodes.A],
   right: [Phaser.Input.Keyboard.KeyCodes.RIGHT, Phaser.Input.Keyboard.KeyCodes.D],
   jump: [Phaser.Input.Keyboard.KeyCodes.SPACE, Phaser.Input.Keyboard.KeyCodes.UP, Phaser.Input.Keyboard.KeyCodes.W],
   down: [Phaser.Input.Keyboard.KeyCodes.DOWN, Phaser.Input.Keyboard.KeyCodes.S],
-  punch: [Phaser.Input.Keyboard.KeyCodes.J, Phaser.Input.Keyboard.KeyCodes.X, Phaser.Input.Keyboard.KeyCodes.Z],
-  fire: [Phaser.Input.Keyboard.KeyCodes.K, Phaser.Input.Keyboard.KeyCodes.C, Phaser.Input.Keyboard.KeyCodes.F],
+  fire: [
+    Phaser.Input.Keyboard.KeyCodes.K,
+    Phaser.Input.Keyboard.KeyCodes.J,
+    Phaser.Input.Keyboard.KeyCodes.C,
+    Phaser.Input.Keyboard.KeyCodes.X,
+    Phaser.Input.Keyboard.KeyCodes.F,
+  ],
 };
 
 const ITEM_LABEL: Record<string, [string, string]> = {
@@ -52,7 +57,6 @@ export class ArenaScene extends Phaser.Scene {
   private zoomKick = 0;
   private keys = {} as Record<KeyName, Phaser.Input.Keyboard.Key[]>;
   private prevDown = false;
-  private prevPunch = false;
   private lastFireSent = 0;
 
   constructor() {
@@ -91,10 +95,9 @@ export class ArenaScene extends Phaser.Scene {
       kb.on('keydown-M', onMute);
     }
     this.input.mouse?.disableContextMenu();
-    const onDown = (p: Phaser.Input.Pointer) => {
+    const onDown = () => {
       if (store.touchMode) return; // touch uses the on-screen buttons
-      if (p.rightButtonDown()) requests.punch = true;
-      else fireHeld.mouse = true;
+      fireHeld.mouse = true;
     };
     const release = () => (fireHeld.mouse = false);
     this.input.on('pointerdown', onDown);
@@ -248,10 +251,6 @@ export class ArenaScene extends Phaser.Scene {
     this.prevDown = downNow;
     requests.drop = false;
 
-    const punchNow = this.down('punch');
-    if ((punchNow && !this.prevPunch) || requests.punch) client.send({ type: 'punch' });
-    this.prevPunch = punchNow;
-    requests.punch = false;
 
     const firing = this.down('fire') || fireHeld.touch || fireHeld.mouse;
     const t = performance.now();
@@ -417,9 +416,6 @@ export class ArenaScene extends Phaser.Scene {
         this.ring(f.x, f.y, 0xffe066, 60, 350);
         this.particles.burst(f.x, f.y, { count: 14, colors: [0xffe066, 0xffffff, 0xff9f43], speed: [120, 320], angle: [-160, -20], life: [250, 500], size: [2, 4], gravity: 600 });
         play('bounce', vol);
-        break;
-      case 'punch':
-        play('punch', vol);
         break;
       case 'hit': {
         view?.onHit(f.power);

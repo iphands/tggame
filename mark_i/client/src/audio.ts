@@ -94,7 +94,6 @@ export type Sfx =
   | 'airjump'
   | 'land'
   | 'bounce'
-  | 'punch'
   | 'hit'
   | 'hitBig'
   | 'block'
@@ -138,9 +137,6 @@ export function play(name: Sfx, vol = 1): void {
     case 'bounce':
       tone('sine', 180, 900, 0.25, 0.3 * v);
       tone('square', 360, 1400, 0.12, 0.05 * v);
-      break;
-    case 'punch':
-      noise(0.09, 0.16 * v, 'bandpass', 900, 2400, 0, 2);
       break;
     case 'hit':
       tone('square', 220, 70, 0.12, 0.2 * v);

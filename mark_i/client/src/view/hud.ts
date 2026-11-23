@@ -10,7 +10,6 @@ import { dmgColor, TEXT_RES } from './fighters';
 
 const FONT = '"Trebuchet MS", "Segoe UI", system-ui, sans-serif';
 const HOW_LABEL: Record<FeedEntry['how'], string> = {
-  punch: 'punched out',
   stomp: 'stomped',
   pistol: 'blasted',
   boomstick: 'boomsticked',

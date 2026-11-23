@@ -141,7 +141,7 @@ describe('stocks, KOs and respawns', () => {
     expect(g.w.feed[0]).toMatchObject({ victim: 'Bob', killer: 'Alice', how: 'bomb' });
 
     run(g, MATCH.respawnDelayMs + 50);
-    pb.lastHit = { by: a, at: g.simTimeMs, how: 'punch' };
+    pb.lastHit = { by: a, at: g.simTimeMs, how: 'pistol' };
     run(g, 5200); // credit expires
     kill(g, b);
     expect(P(g, a).kos).toBe(1);

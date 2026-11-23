@@ -461,7 +461,7 @@ body.touch-mode .game-buttons {
 
 .pad-left {
   left: 2.5%;
-  width: 28%;
+  width: 32%;
   height: 40%;
 }
 
@@ -495,6 +495,18 @@ body.touch-mode .game-buttons {
   font-size: calc(var(--u) * 2.8);
 }
 
+.ctrl.tiny {
+  width: calc(var(--u) * 6.8);
+  height: calc(var(--u) * 6.8);
+  font-size: calc(var(--u) * 2.2);
+}
+
+.ctrl.fire {
+  width: calc(var(--u) * 10);
+  height: calc(var(--u) * 10);
+  font-size: calc(var(--u) * 3.4);
+}
+
 .ctrl.big {
   width: calc(var(--u) * 13.5);
   height: calc(var(--u) * 13.5);
@@ -513,14 +525,15 @@ body.touch-mode .game-buttons {
   bottom: 0;
 }
 
-#ctrl-right {
-  left: calc(var(--u) * 12.5);
-  bottom: 0;
+/* ▼ sits low between ◀ and ▶ so the thumb just rocks down onto it */
+#ctrl-down {
+  left: calc(var(--u) * 11.6);
+  bottom: calc(var(--u) * 0.4);
 }
 
-#ctrl-down {
-  left: calc(var(--u) * 7.8);
-  bottom: calc(var(--u) * 11.5);
+#ctrl-right {
+  left: calc(var(--u) * 18.8);
+  bottom: 0;
 }
 
 #ctrl-jump {
@@ -528,14 +541,10 @@ body.touch-mode .game-buttons {
   bottom: 0;
 }
 
-#ctrl-punch {
-  right: calc(var(--u) * 14.6);
-  bottom: calc(var(--u) * 0.6);
-}
-
+/* FIRE takes the old punch spot: next to JUMP, same thumb arc */
 #ctrl-fire {
-  right: calc(var(--u) * 3);
-  bottom: calc(var(--u) * 14.4);
+  right: calc(var(--u) * 14.4);
+  bottom: calc(var(--u) * 0.4);
 }
 
 .btn.gfx {

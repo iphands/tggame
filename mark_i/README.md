@@ -1,7 +1,7 @@
 # ⚔️ Last Survivor Arena
 
-A multiplayer 2D platform brawler for up to **16 players**. Punch, stomp,
-shoot and bomb each other off five themed floating arenas. **The more damage
+A multiplayer 2D platform brawler for up to **16 players**. Shoot, stomp
+and bomb each other off five themed floating arenas. **The more damage
 you take, the farther you fly.** Everyone gets 5 lives, and the last one
 standing wins.
 
@@ -62,8 +62,7 @@ press **+ BOT** a few times, then **START**.
 | Move | `A` `D` / `←` `→` | ◀ ▶ |
 | Jump (press again in the air to double jump) | `W` / `Space` / `↑` | JUMP |
 | Drop through a platform (fast-fall in the air) | `S` / `↓` | ▼ |
-| Punch | `J` / `X` / `Z` / right-click | 👊 |
-| Shoot / throw (hold to keep firing) | `K` / `C` / `F` / left-click | 🔫 |
+| Shoot / throw (hold to keep firing) | `J` / `K` / `C` / `X` / `F` / click | 🔫 (next to JUMP) |
 | Skip the results screen | `R` or ↻ | ↻ |
 | Start from the lobby | `Enter` or **START** | **START** |
 | Mute | `M` or 🔊 | 🔊 |
@@ -71,7 +70,7 @@ press **+ BOT** a few times, then **START**.
 ### The rules
 
 - **Damage %** goes up with every hit you take. Knockback grows with it, so
-  at 0% a punch barely moves you and at 150% it can send you off-screen.
+  at 0% a shot barely moves you and at 150% it can send you off-screen.
 - Leave the arena past the bottom, the sides or the top and you lose a life.
   The last player who hit you within 5 s gets credit for the **KO**.
 - You get **5 lives**. After a KO you drop back in at 0% with 2 s of
@@ -89,8 +88,6 @@ press **+ BOT** a few times, then **START**.
   jump** in the air. Holding jump while falling slows your fall, which
   helps you get back to the stage. Coyote time and input buffering keep
   jumps forgiving.
-- **Punch:** a quick lunge that sends the target up and away. 11% damage,
-  and the hardest-hitting move up close.
 - **Stomp:** land on someone's head. You bounce high and get your double
   jump back. A grounded victim is popped up and an airborne one is spiked
   down. 9% damage.
@@ -137,7 +134,7 @@ Pick the next arena in the lobby with ◀ ▶. Arenas rotate after every round.
   away at 10 players.
 - Players who join mid-round watch it and play the next one.
 - Bots play by the same rules as humans: same inputs, no cheats. They chase,
-  punch, stomp, grab crates, shoot and recover back to the stage, and they
+  stomp, grab crates, shoot and recover back to the stage, and they
   avoid all piling onto one target. A human joining a full arena replaces a
   bot. When the last human leaves, the bots go too.
 
@@ -151,7 +148,7 @@ shared/src/protocol.ts    client/server messages + isClientMessage()
 server/src/index.ts       HTTP (static client, /health) + WebSocket + 60 Hz loop / 30 Hz broadcast
 server/src/sim/game.ts    Game: roster, lobby → starting → playing → ended, stocks, KOs, snapshot
 server/src/sim/physics.ts movement, jumps, one-way landing, drop-through, ice, bounce pads
-server/src/sim/combat.ts  knockback, punch, stomp, pistol/boomstick/bombs, explosions
+server/src/sim/combat.ts  knockback, stomp, pistol/boomstick/bombs, explosions
 server/src/sim/items.ts   crate spawning, falling, pickup, item effects
 server/src/sim/platforms.ts moving + crumbling platforms, landing test
 server/src/sim/bots.ts    bot brains (targeting, edge safety, recovery, attacks)
@@ -175,7 +172,7 @@ tests/                    vitest suites (tests/sim/* drive the Game directly)
 The server is authoritative. It runs the simulation in **fixed 60 Hz ticks**,
 which makes it deterministic for a given seed and inputs. Every 2 ticks it
 broadcasts a full snapshot (30 Hz). Clients send held-button state when it
-changes, plus one-shot actions (`punch`, `shoot`, `drop`).
+changes, plus one-shot actions (`shoot`, `drop`).
 
 Clients draw about 75 ms behind the server clock and interpolate between
 snapshots by **server sim time**, so network jitter doesn't cause stutter.
@@ -191,7 +188,7 @@ Client → server:
 | --- | --- | --- |
 | `join` | `name?` | Letters, digits, space, `-` and `_`; max 16 chars; de-duplicated |
 | `input` | `left`, `right`, `jump` | Held state; sent on change |
-| `punch` / `shoot` / `drop` | — | One-shot actions; the server enforces cooldowns |
+| `shoot` / `drop` | — | One-shot actions; the server enforces cooldowns |
 | `restart` | — | Start a fresh round now (lobby START, ↻) |
 | `addBot` / `removeBot` | — | Manage bots |
 | `pickLevel` | `dir: 1 \| -1` | Change the next arena (lobby / results only) |

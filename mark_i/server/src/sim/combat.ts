@@ -72,49 +72,9 @@ export function angled(face: number, deg: number): { dirX: number; dirY: number 
   return { dirX: face * Math.cos(deg * RAD), dirY: -Math.sin(deg * RAD) };
 }
 
-/** Attacking (punching or shooting) ends spawn invulnerability early. */
+/** Shooting ends spawn invulnerability early. */
 function dropInvuln(w: World, p: Player): void {
   if (p.invulnUntil > w.t) p.invulnUntil = w.t;
-}
-
-// ------------------------------------------------------------------ punch
-
-export function startPunch(w: World, p: Player): boolean {
-  if (p.life !== 'alive') return false;
-  if (w.t - p.punchAt < COMBAT.punch.cooldownMs) return false;
-  p.punchAt = w.t;
-  p.punchHits.clear();
-  // a little lunge makes punches feel snappy and closes small gaps
-  if (w.t >= p.launchUntil) {
-    p.vx = p.face * Math.max(COMBAT.punch.lunge, p.vx * p.face);
-    p.boostUntil = Math.max(p.boostUntil, w.t + 120);
-  }
-  dropInvuln(w, p);
-  w.fx.push({ k: 'punch', x: p.x + W / 2, y: p.y + H / 2, id: p.id, face: p.face });
-  return true;
-}
-
-/** Hitbox of an active punch, or null. */
-export function punchBox(w: World, p: Player): { x: number; y: number; w: number; h: number } | null {
-  if (p.life !== 'alive' || w.t - p.punchAt >= COMBAT.punch.activeMs) return null;
-  const r = COMBAT.punch.range;
-  const x = p.face > 0 ? p.x + W - 6 : p.x - r + 6;
-  return { x, y: p.y + 4, w: r, h: H - 10 };
-}
-
-export function updatePunches(w: World, alive: Player[]): void {
-  const P = COMBAT.punch;
-  for (const p of alive) {
-    const box = punchBox(w, p);
-    if (!box) continue;
-    for (const q of alive) {
-      if (q === p || p.punchHits.has(q.id) || q.life !== 'alive') continue;
-      const hit = box.x < q.x + W && box.x + box.w > q.x && box.y < q.y + H && box.y + box.h > q.y;
-      if (!hit) continue;
-      p.punchHits.add(q.id);
-      applyHit(w, p, q, { dmg: P.dmg, base: P.base, growth: P.growth, ...angled(p.face, P.angleDeg), how: 'punch' });
-    }
-  }
 }
 
 // ------------------------------------------------------------------ stomp

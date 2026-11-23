@@ -16,60 +16,43 @@ function duel(gap = 30) {
   return { g, a, b };
 }
 
-describe('punch', () => {
-  it('hits a foe in front: damage + knockback away from the puncher', () => {
+describe('knockback', () => {
+  it('a point-blank pistol shot damages and launches the target away', () => {
     const { g, a, b } = duel(10);
-    g.punch(a);
+    g.shoot(a);
     run(g, TICK_MS * 3);
     const pb = P(g, b);
-    expect(pb.dmg).toBe(COMBAT.punch.dmg);
+    expect(pb.dmg).toBe(COMBAT.pistol.dmg);
     expect(pb.vx).toBeGreaterThan(200);
     expect(pb.vy).toBeLessThan(0);
     expect(pb.lastHit?.by).toBe(a);
-    expect(P(g, a).dmgDealt).toBe(COMBAT.punch.dmg);
+    expect(P(g, a).dmgDealt).toBe(COMBAT.pistol.dmg);
   });
 
-  it('misses someone behind you', () => {
-    const { g, a, b } = duel(10);
-    P(g, a).face = -1;
-    g.punch(a);
-    run(g, 200);
-    expect(P(g, b).dmg).toBe(0);
-  });
-
-  it('one punch hits a target only once, and respects the cooldown', () => {
-    const { g, a, b } = duel(10);
-    g.punch(a);
-    run(g, TICK_MS);
-    g.punch(a); // still cooling down
-    run(g, COMBAT.punch.activeMs + 20);
-    expect(P(g, b).dmg).toBe(COMBAT.punch.dmg);
-  });
-
-  it('knockback grows with damage', () => {
+  it('grows with damage', () => {
     expect(knockSpeed(330, 5.4, 100)).toBeGreaterThan(knockSpeed(330, 5.4, 10) * 2);
     const launch = (startDmg: number) => {
       const { g, a, b } = duel(10);
       P(g, b).dmg = startDmg;
-      g.punch(a);
-      run(g, TICK_MS * 2);
+      g.shoot(a);
+      run(g, TICK_MS * 3);
       return Math.hypot(P(g, b).vx, P(g, b).vy);
     };
     expect(launch(120)).toBeGreaterThan(launch(0) * 2);
   });
 
-  it('a heavily damaged player gets punched clean off the stage', () => {
+  it('a heavily damaged player gets blasted clean off the stage', () => {
     const { g, a, b } = duel(10);
     place(g, a, 760, 440);
-    place(g, b, 790, 440);
+    place(g, b, 800, 440);
     run(g, 50);
     P(g, a).face = 1;
     P(g, b).dmg = 180;
-    g.punch(a);
+    g.shoot(a);
     run(g, 4000);
     expect(P(g, b).stocks).toBe(MATCH.stocks - 1);
     expect(P(g, a).kos).toBe(1);
-    expect(g.w.feed[0]).toMatchObject({ victim: 'Bob', killer: 'Alice', how: 'punch' });
+    expect(g.w.feed[0]).toMatchObject({ victim: 'Bob', killer: 'Alice', how: 'pistol' });
   });
 });
 
@@ -180,7 +163,7 @@ describe('defense', () => {
   it('a shield blocks hits', () => {
     const { g, a, b } = duel(10);
     grantItem(g.w, P(g, b), 'shield');
-    g.punch(a);
+    g.shoot(a);
     run(g, 200);
     expect(P(g, b).dmg).toBe(0);
     expect(g.snapshot().players.find((p) => p.id === b)?.shield).toBe(true);
@@ -200,11 +183,11 @@ describe('defense', () => {
     const { g, a, b } = duel(10);
     const pb = P(g, b);
     pb.invulnUntil = g.simTimeMs + 5000;
-    g.punch(a);
+    g.shoot(a);
     run(g, 200);
     expect(pb.dmg).toBe(0);
     pb.face = 1;
-    g.punch(b); // attacking ends invulnerability
+    g.shoot(b); // attacking ends invulnerability
     expect(pb.invulnUntil).toBeLessThanOrEqual(g.simTimeMs);
   });
 
@@ -212,9 +195,8 @@ describe('defense', () => {
     const { g, a } = duel(10);
     const pa = P(g, a);
     pa.life = 'respawning';
-    g.punch(a);
     g.shoot(a);
-    expect(pa.punchAt).toBeLessThan(0);
+    expect(pa.shotAt).toBeLessThan(0);
     expect(g.w.projectiles.length).toBe(0);
   });
 });
@@ -224,10 +206,9 @@ describe('outside of play', () => {
     const g = newGame('sky');
     const a = g.join('Alice')!.id;
     g.join('Bob');
-    g.punch(a);
     g.shoot(a);
     expect(g.w.projectiles.length).toBe(0);
-    expect(P(g, a).punchAt).toBeLessThan(0);
+    expect(P(g, a).shotAt).toBeLessThan(0);
   });
 });
 
