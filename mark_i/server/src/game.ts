@@ -78,7 +78,9 @@ export class Game {
       input: { left: false, right: false, jump: false },
     };
     this.players.set(id, p);
-    if (this.players.size === 2) this.secondPlayerJoinedAt = this._simTimeMs;
+    if (this.secondPlayerJoinedAt === null && this.activeCount() >= WORLD.fallbackStartPlayers) {
+      this.secondPlayerJoinedAt = this._simTimeMs;
+    }
     return { id, name: n, color };
   }
 
@@ -90,6 +92,19 @@ export class Game {
     this.players.delete(id);
     if (this.phase === 'lobby' && this.players.size < 2) this.secondPlayerJoinedAt = null;
     if (playing) this.checkMatchEnd();
+  }
+
+  /**
+   * Force-restart the level: drop the current round and start a new one
+   * (immediately, with a fresh countdown) as long as enough players are connected.
+   */
+  restart(): void {
+    this.resetToLobby();
+    if (this.activeCount() >= WORLD.fallbackStartPlayers) {
+      this.phase = 'starting';
+      this.countdownMs = WORLD.countdownMs;
+      this.secondPlayerJoinedAt = null; // the restart is explicit — no grace period
+    }
   }
 
   setInput(id: string, input: PlayerInputMsg): void {
@@ -177,7 +192,8 @@ export class Game {
     this.winnerId = null;
     this.events = [];
     this.endHoldMs = null;
-    this.secondPlayerJoinedAt = null;
+    this.secondPlayerJoinedAt =
+      this.activeCount() >= WORLD.fallbackStartPlayers ? this._simTimeMs : null;
     for (const p of this.players.values()) {
       p.alive = true;
       p.waiting = false;

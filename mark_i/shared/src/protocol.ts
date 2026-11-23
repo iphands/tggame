@@ -13,7 +13,8 @@ export type PlayerInput = {
 export type ClientMessage =
   | { type: 'join'; name?: string }
   | { type: 'input'; left: boolean; right: boolean; jump: boolean }
-  | { type: 'leave' };
+  | { type: 'leave' }
+  | { type: 'restart' };
 
 export type PlayerSnapshot = {
   id: string;
@@ -75,5 +76,6 @@ export function isClientMessage(v: unknown): v is ClientMessage {
     return typeof i.left === 'boolean' && typeof i.right === 'boolean' && typeof i.jump === 'boolean';
   }
   if (m.type === 'leave') return true;
+  if (m.type === 'restart') return true;
   return false;
 }

@@ -108,6 +108,8 @@ wss.on('connection', (ws) => {
 
     if (msg.type === 'input') {
       game.setInput(playerId, { left: msg.left, right: msg.right, jump: msg.jump });
+    } else if (msg.type === 'restart') {
+      game.restart();
     } else if (msg.type === 'leave') {
       game.leave(playerId);
       playerId = null;
