@@ -3,6 +3,7 @@ import { MATCH } from '../../shared/src/constants';
 import { LEVELS, levelAt } from '../../shared/src/levels';
 import { store } from './store';
 import { isMuted, play, setMuted, unlockAudio } from './audio';
+import { canFullscreen, enterFullscreen, isFullscreen, isIOS, isStandalone, toggleFullscreen } from './fullscreen';
 
 export type Screen = 'join' | 'lobby' | 'game';
 
@@ -45,6 +46,7 @@ export function initLobbyDom(onJoin: (name: string) => void): void {
   $('join-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
     unlockAudio();
+    if (store.touchMode) void enterFullscreen(); // the PLAY tap is our user gesture
     const name = (input?.value ?? '').trim();
     input?.blur();
     onJoin(name);
@@ -71,6 +73,34 @@ export function initLobbyDom(onJoin: (name: string) => void): void {
   click('bot-remove', () => store.client?.send({ type: 'removeBot' }));
   click('go-btn', () => store.client?.send({ type: 'restart' }));
   click('restart-btn', () => store.client?.send({ type: 'restart' }));
+  click('fs-btn', () => void toggleFullscreen());
+  const syncFs = () => {
+    const b = $('fs-btn');
+    if (!b) return;
+    b.classList.toggle('hidden', !canFullscreen() || isStandalone());
+    b.textContent = isFullscreen() ? '🗗' : '⛶';
+  };
+  document.addEventListener('fullscreenchange', syncFs);
+  document.addEventListener('webkitfullscreenchange', syncFs);
+  syncFs();
+
+  // iPhone Safari can't go full screen: point people at "Add to Home Screen"
+  let hintDismissed = false;
+  try {
+    hintDismissed = localStorage.getItem('lsa-ios-hint') === '1';
+  } catch {
+    /* private mode */
+  }
+  if (isIOS() && !isStandalone() && !canFullscreen() && !hintDismissed) $('ios-hint')?.classList.remove('hidden');
+  $('ios-hint-close')?.addEventListener('click', () => {
+    $('ios-hint')?.classList.add('hidden');
+    try {
+      localStorage.setItem('lsa-ios-hint', '1');
+    } catch {
+      /* private mode */
+    }
+  });
+
   click('mute-btn', () => {
     setMuted(!isMuted());
     syncMuteButton();

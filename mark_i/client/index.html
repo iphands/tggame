@@ -11,6 +11,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="mobile-web-app-capable" content="yes" />
     <title>Last Survivor Arena</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Survivor" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -33,6 +37,10 @@
               <button type="submit" class="btn primary big">PLAY ▶</button>
             </form>
             <div class="tagline">Knock everyone off the arena. 3 lives each. Last one standing wins.</div>
+            <div id="ios-hint" class="ios-hint hidden">
+              For true full screen: tap <b>Share</b> <span class="share-glyph">⬆</span> then <b>Add to Home Screen</b>, and launch from there.
+              <button type="button" id="ios-hint-close" class="hint-close" aria-label="Dismiss">✕</button>
+            </div>
           </div>
 
           <!-- lobby -->
@@ -77,6 +85,7 @@
         </div>
 
         <div id="game-buttons" class="game-buttons hidden">
+          <button type="button" id="fs-btn" class="btn icon small hidden" aria-label="Full screen">⛶</button>
           <button type="button" id="mute-btn" class="btn icon small" aria-label="Toggle sound">🔊</button>
           <button type="button" id="restart-btn" class="btn icon small hidden" aria-label="Restart the round">↻</button>
         </div>

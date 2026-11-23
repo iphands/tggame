@@ -5,9 +5,12 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "icons": "node scripts/make-icons.mjs",
+    "predev": "npm run icons",
     "dev": "concurrently -n server,client,vite -c blue,green \"npm:dev:server\" \"npm:dev:client\"",
     "dev:server": "tsx watch server/src/index.ts",
     "dev:client": "vite",
+    "prebuild": "npm run icons",
     "build": "tsc -p tsconfig.server.json && vite build",
     "start": "node dist/server/src/index.js",
     "test": "vitest run",
