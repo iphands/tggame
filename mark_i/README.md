@@ -60,7 +60,7 @@ press **+ BOT** a few times, then **START**.
 | Action | Keyboard / mouse | Touch |
 | --- | --- | --- |
 | Move | `A` `D` / `←` `→` | ◀ ▶ |
-| Jump (press again in the air to double jump) | `W` / `Space` / `↑` | JUMP |
+| Jump (press again in the air to double jump) | `W` / `Space` / `↑` | JUMP (right thumb) or ▲ (left thumb) |
 | Drop through a platform (fast-fall in the air) | `S` / `↓` | ▼ |
 | Shoot / throw (hold to keep firing) | `J` / `K` / `C` / `X` / `F` / click | 🔫 (next to JUMP) |
 | Skip the results screen | `R` or ↻ | ↻ |

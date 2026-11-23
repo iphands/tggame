@@ -80,7 +80,17 @@ export function initTouchControls(onAnyPress: () => void): void {
 
   held('ctrl-left', (v) => setTouchInput('left', v));
   held('ctrl-right', (v) => setTouchInput('right', v));
-  held('ctrl-jump', (v) => setTouchInput('jump', v));
+  // two jump buttons (right thumb + a small one for the left thumb): jump is held while either is
+  const jumpHeld = { right: false, left: false };
+  const syncJump = () => setTouchInput('jump', jumpHeld.right || jumpHeld.left);
+  held('ctrl-jump', (v) => {
+    jumpHeld.right = v;
+    syncJump();
+  });
+  held('ctrl-jump-left', (v) => {
+    jumpHeld.left = v;
+    syncJump();
+  });
   held('ctrl-fire', (v) => (fireHeld.touch = v));
   tap('ctrl-down', () => (requests.drop = true));
 }

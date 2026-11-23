@@ -531,6 +531,12 @@ body.touch-mode .game-buttons {
   bottom: calc(var(--u) * 0.4);
 }
 
+/* small left-thumb jump, stacked above ▼ */
+#ctrl-jump-left {
+  left: calc(var(--u) * 11.6);
+  bottom: calc(var(--u) * 7.6);
+}
+
 #ctrl-right {
   left: calc(var(--u) * 18.8);
   bottom: 0;
