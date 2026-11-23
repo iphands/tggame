@@ -50,7 +50,10 @@ client/src/controls.ts   touch buttons → touchInput / fireHeld / requests (DOM
 client/src/audio.ts      WebAudio synthesized sfx (play('hit') etc.), mute persisted
 client/src/art/          color helpers, sprites.ts (fighter sheets, items, fx textures), themes.ts (backdrops, layers, platforms)
 client/src/view/         LevelView, FighterView, Hud, Particles
-client/src/scenes/       Boot (bake textures) → Lobby (live arena preview) → Arena (render + input + fx)
+client/src/scenes/       Boot (bake textures) → Lobby (live arena preview) → Arena (render + input + fx + camera)
+                         HudScene: HUD overlay launched by Arena (unzoomed); shares `view` (visible world rect)
+client/src/fullscreen.ts Fullscreen API / standalone detection; manifest in client/public/
+scripts/make-icons.mjs   generates client/public/icons/*.png (gitignored) before dev/build
 tests/sim/               sim tests (helpers.ts: newGame/startMatch/run/place/park)
 tests/*.test.ts          levels, interp, protocol, controls
 ```
@@ -125,6 +128,8 @@ body (it splices `selfId` into the JSON string).
   `?ws=` overrides it.
 - The client is touch-first: landscape-only, forced 16:9 stage. On touch
   devices the HUD cards move to the top so the thumb buttons don't cover them.
+  On small screens the Arena camera zooms/follows the player. Anything
+  screen-anchored belongs in the HUD scene, not the Arena (which is zoomed).
 - Art and audio are fully procedural. No binary assets are checked in.
   Textures are baked in `BootScene` / lazily (fighter sheets per color, arena
   textures per level).
