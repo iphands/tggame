@@ -63,7 +63,7 @@ export const COMBAT = {
   koCreditMs: 5000,
   punch: { dmg: 7, base: 360, growth: 5.2, angleDeg: 32, range: 40, activeMs: 100, cooldownMs: 380, lunge: 260 },
   stomp: { dmg: 9, base: 220, growth: 3.6, bounceVel: 1100, angleDeg: 65 },
-  pistol: { dmg: 6, base: 270, growth: 3.7, speed: 1500, ttlMs: 650, cooldownMs: 330, angleDeg: 22 },
+  pistol: { dmg: 8, base: 360, growth: 4.8, speed: 1600, ttlMs: 650, cooldownMs: 300, angleDeg: 24 },
   /** Guns bend toward the nearest foe in front within this cone (no jump-to-aim needed on touch). */
   aimAssist: { maxDeg: 25, range: 900 },
   boomstick: { pellets: 5, spreadDeg: 18, dmg: 5, base: 230, growth: 3.4, speed: 1350, ttlMs: 250, cooldownMs: 650, ammo: 4, angleDeg: 22, recoil: 380 },
