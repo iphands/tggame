@@ -74,11 +74,11 @@ export const COMBAT = {
 
 export const MATCH = {
   capacity: 16,
-  stocks: 3,
+  stocks: 5,
   respawnDelayMs: 1300,
   invulnMs: 2000,
   countdownMs: 3000,
-  durationMs: 3 * 60_000,
+  durationMs: 4 * 60_000,
   endHoldMs: 9000,
   quickStartPlayers: 10,
   fallbackStartPlayers: 2,

@@ -254,7 +254,8 @@ export class Hud {
     root.add(dmg);
     const pips: Phaser.GameObjects.Arc[] = [];
     for (let i = 0; i < MATCH.stocks; i++) {
-      const pip = s.add.circle(w - 12 - i * 11, h - 9, 4, hexNum(p.color)).setStrokeStyle(1.5, 0x120a20);
+      // compact pips so 5 lives fit beside the damage number
+      const pip = s.add.circle(w - 10 - i * 8.5, h - 8, 3.2, hexNum(p.color)).setStrokeStyle(1.2, 0x120a20);
       pips.push(pip);
       root.add(pip);
     }

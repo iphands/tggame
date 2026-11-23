@@ -2,7 +2,7 @@
 
 A multiplayer 2D platform brawler for up to **16 players**. Punch, stomp,
 shoot and bomb each other off five themed floating arenas. **The more damage
-you take, the farther you fly.** Everyone gets 3 lives, and the last one
+you take, the farther you fly.** Everyone gets 5 lives, and the last one
 standing wins.
 
 Phones and desktops play together. The game is built for phones first
@@ -68,9 +68,9 @@ press **+ BOT** a few times, then **START**.
   at 0% a punch barely moves you and at 150% it can send you off-screen.
 - Leave the arena past the bottom, the sides or the top and you lose a life.
   The last player who hit you within 5 s gets credit for the **KO**.
-- You get **3 lives**. After a KO you drop back in at 0% with 2 s of
+- You get **5 lives**. After a KO you drop back in at 0% with 2 s of
   invulnerability. Attacking ends the invulnerability early.
-- The round ends when one player has lives left, or after **3:00**. On
+- The round ends when one player has lives left, or after **4:00**. On
   time-out, the player with the most lives wins (then the lowest damage); a
   dead heat is a draw.
 - The results screen shows places, KOs, falls and damage dealt. After 9 s the
