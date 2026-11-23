@@ -127,7 +127,10 @@ export function renderLobby(): void {
   }
 
   const snap = store.snapshot;
-  if (!snap) return;
+  if (!snap) {
+    for (const id of ['go-btn', 'lvl-prev', 'lvl-next', 'bot-add', 'bot-remove']) $(id)?.toggleAttribute('disabled', true);
+    return;
+  }
   const level = levelAt(snap.nextLevel);
   const nameEl = $('lvl-name');
   if (nameEl && nameEl.textContent !== level.name) {
@@ -167,6 +170,9 @@ export function renderLobby(): void {
     else msg = 'Ready!';
     status.textContent = msg;
   }
-  ($('bot-add') as HTMLButtonElement | null)?.toggleAttribute('disabled', players.length >= MATCH.capacity);
-  ($('bot-remove') as HTMLButtonElement | null)?.toggleAttribute('disabled', bots === 0);
+  // nothing can be sent until the socket is up: don't let clicks vanish
+  const offline = store.conn !== 'connected';
+  ($('bot-add') as HTMLButtonElement | null)?.toggleAttribute('disabled', offline || players.length >= MATCH.capacity);
+  ($('bot-remove') as HTMLButtonElement | null)?.toggleAttribute('disabled', offline || bots === 0);
+  for (const id of ['go-btn', 'lvl-prev', 'lvl-next']) ($(id) as HTMLButtonElement | null)?.toggleAttribute('disabled', offline);
 }
