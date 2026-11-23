@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { store, renderRoster, setStatusPill, triggerJoin } from '../store';
 import { syncOverlay, setHeader } from '../ui';
+import { setTouchControlsVisible } from '../controls';
 import { WORLD } from '../../../shared/src/constants';
 
 export class LobbyScene extends Phaser.Scene {
@@ -54,6 +55,17 @@ export class LobbyScene extends Phaser.Scene {
       triggerJoin(name);
     };
     form?.addEventListener('submit', this.formHandler);
+
+    // hide touch controls + arena-only chrome if we were coming from the arena
+    setTouchControlsVisible(false);
+
+    // device-appropriate hint text
+    const hint = document.getElementById('controls-hint');
+    if (hint) {
+      hint.textContent = store.touchMode
+        ? 'Use the ◀ ▶ and JUMP buttons to move. Knock each other off the island — last one standing wins.'
+        : '← → or A / D to move · Space to jump · Knock each other off the island — last one standing wins.';
+    }
 
     // hide arena-only chrome if we were coming from the arena
     this.showDOMChrome();

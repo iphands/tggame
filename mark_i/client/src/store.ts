@@ -10,6 +10,8 @@ export const store = {
   selfPlayer: null as { name: string; color: string } | null,
   client: null as GameClient | null,
   joined: false,
+  /** true on touch-capable devices — controls switch to the on-screen bar */
+  touchMode: false,
 };
 
 let onJoinHandler: (name: string) => void = () => {};

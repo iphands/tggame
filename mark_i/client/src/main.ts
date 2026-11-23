@@ -1,11 +1,24 @@
 import Phaser from 'phaser';
 import { GameClient } from './net';
 import { store, setJoinHandler } from './store';
+import { initTouchControls, isTouchDevice, setTouchControlsVisible } from './controls';
 import { BootScene } from './scenes/BootScene';
 import { LobbyScene } from './scenes/LobbyScene';
 import { ArenaScene } from './scenes/ArenaScene';
 
 let client: GameClient | null = null;
+
+/** Detect touch up-front and wire the on-screen control bar. */
+store.touchMode = isTouchDevice();
+initTouchControls();
+
+/** Best effort: force landscape (works on Android / PWA; ignored elsewhere). */
+try {
+  // @ts-expect-error — orientation lock is not in the standard lib
+  void screen.orientation?.lock?.('landscape')?.catch?.(() => {});
+} catch {
+  /* not supported — the portrait gate covers us */
+}
 
 function joinArena(name: string): void {
   store.selfName = name;
@@ -34,6 +47,9 @@ function joinArena(name: string): void {
 }
 
 setJoinHandler(joinArena);
+
+// the touch bar is only for gameplay — never show it in the lobby
+setTouchControlsVisible(false);
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,

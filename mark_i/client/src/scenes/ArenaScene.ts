@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { store } from '../store';
 import { hideChrome } from '../ui';
+import { touchInput, mergeInput, setTouchControlsVisible } from '../controls';
 import type { Snapshot } from '../net';
 import { WORLD } from '../../../shared/src/constants';
 
@@ -38,6 +39,7 @@ export class ArenaScene extends Phaser.Scene {
 
   create(): void {
     hideChrome();
+    setTouchControlsVisible(store.touchMode);
     this.buffer = [];
     this.views.clear();
     this.platformImages = [];
@@ -80,12 +82,15 @@ export class ArenaScene extends Phaser.Scene {
       return;
     }
 
-    // ---- input
-    const input = {
-      left: this.anyKeyDown('left'),
-      right: this.anyKeyDown('right'),
-      jump: this.anyKeyDown('jump'),
-    };
+    // ---- input (keyboard OR touch)
+    const input = mergeInput(
+      {
+        left: this.anyKeyDown('left'),
+        right: this.anyKeyDown('right'),
+        jump: this.anyKeyDown('jump'),
+      },
+      touchInput
+    );
     const changed =
       input.left !== this.lastInputSent.left ||
       input.right !== this.lastInputSent.right ||
