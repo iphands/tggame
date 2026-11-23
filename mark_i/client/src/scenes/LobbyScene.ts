@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { store, renderRoster, setStatusPill, triggerJoin } from '../store';
-import { syncOverlay, setHeader } from '../ui';
+import { syncOverlay, setHeader, syncRestartButton } from '../ui';
 import { setTouchControlsVisible } from '../controls';
 import { WORLD } from '../../../shared/src/constants';
 
@@ -58,6 +58,7 @@ export class LobbyScene extends Phaser.Scene {
 
     // hide touch controls + arena-only chrome if we were coming from the arena
     setTouchControlsVisible(false);
+    syncRestartButton(false, false);
 
     // device-appropriate hint text
     const hint = document.getElementById('controls-hint');

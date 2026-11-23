@@ -96,6 +96,11 @@ export class GameClient {
     this.flush();
   }
 
+  /** Ask the server to force-restart the current level. */
+  sendRestart(): void {
+    this.send({ type: 'restart' });
+  }
+
   setName(name: string): void {
     this.name = name;
   }

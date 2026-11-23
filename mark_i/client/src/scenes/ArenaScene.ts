@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { store } from '../store';
-import { hideChrome } from '../ui';
+import { hideChrome, syncRestartButton } from '../ui';
 import { touchInput, mergeInput, setTouchControlsVisible } from '../controls';
 import type { Snapshot } from '../net';
 import { WORLD } from '../../../shared/src/constants';
@@ -63,6 +63,9 @@ export class ArenaScene extends Phaser.Scene {
 
     const kb = this.input.keyboard;
     if (kb) {
+      kb.on('keydown', (e: KeyboardEvent) => {
+        if (e.code === 'KeyR' && !e.repeat) store.client?.sendRestart();
+      });
       this.keys = {
         left: [Phaser.Input.Keyboard.KeyCodes.LEFT, Phaser.Input.Keyboard.KeyCodes.A].map((code) => kb.addKey(code)),
         right: [Phaser.Input.Keyboard.KeyCodes.RIGHT, Phaser.Input.Keyboard.KeyCodes.D].map((code) => kb.addKey(code)),
@@ -81,6 +84,8 @@ export class ArenaScene extends Phaser.Scene {
       this.scene.start('Lobby');
       return;
     }
+
+    syncRestartButton(true, snap.phase === 'ended');
 
     // ---- input (keyboard OR touch)
     const input = mergeInput(

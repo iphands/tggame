@@ -236,6 +236,48 @@ body.touch-mode .roster {
   align-items: flex-end;
 }
 
+/* ------- force-restart button ------- */
+
+.restart-btn {
+  position: absolute;
+  bottom: 3.5%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  padding: 0.9vh 2.4vmin;
+  border: 1px solid #3d2c5a;
+  border-radius: clamp(6px, 1.4vmin, 10px);
+  background: rgba(16, 14, 34, 0.72);
+  color: #f4ecff;
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-weight: bold;
+  font-size: clamp(11px, 2.4vmin, 16px);
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.restart-btn:hover { background: rgba(38, 30, 66, 0.9); }
+.restart-btn:active { transform: translateX(-50%) translateY(2px); }
+
+.restart-btn.big {
+  padding: 1.6vh 3.6vmin;
+  font-size: clamp(15px, 3.4vmin, 26px);
+  border-color: var(--amber);
+  background: rgba(38, 30, 66, 0.95);
+  color: var(--amber);
+  animation: restart-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes restart-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 179, 71, 0.35); }
+  50% { box-shadow: 0 0 0 10px rgba(255, 179, 71, 0); }
+}
+
 /* ------- touch controls (phone, in-game) ------- */
 
 .touch-controls {

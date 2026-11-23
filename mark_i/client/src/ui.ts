@@ -24,3 +24,11 @@ export function setHeader(text: string): void {
   const header = document.getElementById('status-line');
   if (header) header.textContent = text;
 }
+
+/** Toggle the force-restart button (arena only). Shown big on the win banner. */
+export function syncRestartButton(visible: boolean, ended: boolean): void {
+  const el = document.getElementById('restart-btn');
+  if (!el) return;
+  el.style.display = visible ? 'block' : 'none';
+  el.classList.toggle('big', visible && ended);
+}
