@@ -7,17 +7,8 @@
  */
 import { ARENA, BOT_NAMES, COLORS, COMBAT, ITEMS, MATCH, PHYS, TICK_MS } from '../../../shared/src/constants.js';
 import { LEVELS, levelAt } from '../../../shared/src/levels.js';
-import type {
-  CrateState,
-  FeedEntry,
-  HitHow,
-  Phase,
-  PlatformState,
-  PlayerState,
-  ProjectileState,
-  ResultRow,
-  Fx,
-} from '../../../shared/src/types.js';
+import type { SnapshotBody } from '../../../shared/src/protocol.js';
+import type { HitHow, Phase, ResultRow } from '../../../shared/src/types.js';
 import { makeBrain, thinkBot } from './bots.js';
 import { fire, startPunch, updateProjectiles, updatePunches, updateStomps } from './combat.js';
 import { scheduleFirstCrate, updateCrates } from './items.js';
@@ -28,23 +19,6 @@ import { makeRng } from './rng.js';
 
 export type GameOptions = { seed?: number };
 
-export type SnapshotBody = {
-  tick: number;
-  simTimeMs: number;
-  phase: Phase;
-  countdownMs: number | null;
-  timeLeftMs: number | null;
-  winnerId: string | null;
-  level: number;
-  nextLevel: number;
-  players: PlayerState[];
-  platforms: PlatformState[];
-  projectiles: ProjectileState[];
-  crates: CrateState[];
-  fx: Fx[];
-  feed: FeedEntry[];
-  results: ResultRow[] | null;
-};
 
 const FEED_MAX = 6;
 
@@ -477,6 +451,13 @@ export class Game {
 
   // ------------------------------------------------------------ snapshot
 
+  /** ms until the lobby auto-starts, or null if it isn't armed. */
+  autoStartMs(): number | null {
+    if (this.w.phase !== 'lobby' || this.fallbackSince === null || this.humanCount() === 0) return null;
+    if (this.w.players.size >= MATCH.quickStartPlayers) return 0;
+    return Math.max(0, Math.round(MATCH.fallbackWaitMs - (this.w.t - this.fallbackSince)));
+  }
+
   /** Build the broadcast payload. Drains the pending fx queue. */
   snapshot(): SnapshotBody {
     const w = this.w;
@@ -488,7 +469,8 @@ export class Game {
       tick: this.tick,
       simTimeMs: Math.round(t),
       phase: w.phase,
-      countdownMs: this.countdownMs,
+      countdownMs: this.w.phase === 'ended' ? Math.round(this.endHoldMs ?? 0) : this.countdownMs,
+      autoStartMs: this.autoStartMs(),
       timeLeftMs: this.timeLeftMs === null ? null : Math.round(this.timeLeftMs),
       winnerId: this.winnerId,
       level: this.levelIndex,

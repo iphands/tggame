@@ -1,421 +1,401 @@
 import Phaser from 'phaser';
+import { PHYS } from '../../../shared/src/constants';
+import type { Fx, PlatformState, PlayerState } from '../../../shared/src/types';
 import { store } from '../store';
-import { hideChrome, syncRestartButton, syncGoButton } from '../ui';
-import {
-  touchInput,
-  mergeInput,
-  setTouchControlsVisible,
-  fireInput,
-  setFireHeld,
-  dropRequest,
-} from '../controls';
-import type { Snapshot } from '../net';
-import { WORLD } from '../../../shared/src/constants';
+import { lerp, lerpPlayer } from '../interp';
+import { fireHeld, mergeInput, requests, setTouchControlsVisible, touchInput } from '../controls';
+import { play, setMuted, isMuted } from '../audio';
+import { hexNum } from '../art/color';
+import { LevelView } from '../view/levelView';
+import { FighterView } from '../view/fighters';
+import { Particles } from '../view/particles';
+import { Hud } from '../view/hud';
+import { showScreen, syncMuteButton } from '../lobby';
 
-type Views = Map<string, PlayerView>;
+type KeyName = 'left' | 'right' | 'jump' | 'down' | 'punch' | 'fire';
 
-type BulletView = {
-  id: string;
-  image: Phaser.GameObjects.Image;
+const KEYMAP: Record<KeyName, number[]> = {
+  left: [Phaser.Input.Keyboard.KeyCodes.LEFT, Phaser.Input.Keyboard.KeyCodes.A],
+  right: [Phaser.Input.Keyboard.KeyCodes.RIGHT, Phaser.Input.Keyboard.KeyCodes.D],
+  jump: [Phaser.Input.Keyboard.KeyCodes.SPACE, Phaser.Input.Keyboard.KeyCodes.UP, Phaser.Input.Keyboard.KeyCodes.W],
+  down: [Phaser.Input.Keyboard.KeyCodes.DOWN, Phaser.Input.Keyboard.KeyCodes.S],
+  punch: [Phaser.Input.Keyboard.KeyCodes.J, Phaser.Input.Keyboard.KeyCodes.X, Phaser.Input.Keyboard.KeyCodes.Z],
+  fire: [Phaser.Input.Keyboard.KeyCodes.K, Phaser.Input.Keyboard.KeyCodes.C, Phaser.Input.Keyboard.KeyCodes.F],
 };
 
-type PlayerView = {
-  image: Phaser.GameObjects.Image;
-  nameText: Phaser.GameObjects.Text;
-  hpBg: Phaser.GameObjects.Rectangle;
-  hpBar: Phaser.GameObjects.Rectangle;
-  lastX: number;
-  lastY: number;
-  fading: boolean;
+const ITEM_LABEL: Record<string, [string, string]> = {
+  boomstick: ['BOOMSTICK!', '#ffb02e'],
+  bombs: ['BOMBS!', '#ff7a5c'],
+  shield: ['SHIELD!', '#7fd3ff'],
+  heal: ['-40%', '#7dffb0'],
 };
-
-const INTERPOLATION_MS = 110;
 
 export class ArenaScene extends Phaser.Scene {
-  private buffer: { time: number; snap: Snapshot }[] = [];
-  private views: Views = new Map();
-  private platformImages: Phaser.GameObjects.Image[] = [];
-  private selfMarker: Phaser.GameObjects.Rectangle | null = null;
-  private timerText!: Phaser.GameObjects.Text;
-  private aliveText!: Phaser.GameObjects.Text;
-  private feedTexts: Phaser.GameObjects.Text[] = [];
-  private centerText!: Phaser.GameObjects.Text;
-  private eventsKey = '';
-  private lastInputSent = { left: false, right: false, jump: false };
-  private keys: Record<string, Phaser.Input.Keyboard.Key[]> = { left: [], right: [], jump: [], down: [] };
-  private bulletViews: BulletView[] = [];
-  private gunBar: Phaser.GameObjects.Rectangle | null = null;
-  private gunBarBg: Phaser.GameObjects.Rectangle | null = null;
-  private fireLabel: Phaser.GameObjects.Text | null = null;
-  private lastFireSent = 0;
+  private level: LevelView | null = null;
+  private levelIndex = -1;
+  private fighters = new Map<string, FighterView>();
+  private shots = new Map<number, Phaser.GameObjects.Image>();
+  private crates = new Map<number, Phaser.GameObjects.Image>();
+  private particles!: Particles;
+  private hud!: Hud;
+  private keys = {} as Record<KeyName, Phaser.Input.Keyboard.Key[]>;
   private prevDown = false;
-  private frame = 0;
+  private prevPunch = false;
+  private lastFireSent = 0;
 
   constructor() {
     super('Arena');
   }
 
   create(): void {
-    hideChrome();
-    syncGoButton(false);
+    showScreen('game');
     setTouchControlsVisible(store.touchMode);
-    this.buffer = [];
-    this.views.clear();
-    this.platformImages = [];
-    this.feedTexts = [];
-    this.eventsKey = '';
-    this.selfMarker = null;
-    this.frame = 0;
-    this.lastInputSent = { left: false, right: false, jump: false };
-
-    this.add.image(0, 0, 'bg').setOrigin(0, 0).setDisplaySize(1280, 720);
-
-    this.timerText = this.add
-      .text(640, 18, '', { fontFamily: 'Courier New, monospace', fontSize: '30px', fontStyle: 'bold', color: '#ffe9b0', stroke: '#1a0e2b', strokeThickness: 4 })
-      .setOrigin(0.5, 0);
-    this.aliveText = this.add
-      .text(1250, 20, '', { fontFamily: 'Courier New, monospace', fontSize: '18px', color: '#cfe9ff', stroke: '#101024', strokeThickness: 4 })
-      .setOrigin(1, 0);
-    this.centerText = this.add
-      .text(640, 300, '', { fontFamily: 'Courier New, monospace', fontSize: '60px', fontStyle: 'bold', color: '#ffd166', stroke: '#1d0f0b', strokeThickness: 8 })
-      .setOrigin(0.5);
-
-    this.bulletViews = [];
-    this.lastFireSent = 0;
-    this.prevDown = false;
+    store.fxQueue.length = 0;
+    this.fighters = new Map();
+    this.shots = new Map();
+    this.crates = new Map();
+    this.level = null;
+    this.levelIndex = -1;
+    this.particles = new Particles(this);
+    this.hud = new Hud(this, store.touchMode);
 
     const kb = this.input.keyboard;
     if (kb) {
-      this.keys = {
-        left: [Phaser.Input.Keyboard.KeyCodes.LEFT, Phaser.Input.Keyboard.KeyCodes.A].map((code) => kb.addKey(code)),
-        right: [Phaser.Input.Keyboard.KeyCodes.RIGHT, Phaser.Input.Keyboard.KeyCodes.D].map((code) => kb.addKey(code)),
-        jump: [Phaser.Input.Keyboard.KeyCodes.SPACE, Phaser.Input.Keyboard.KeyCodes.UP, Phaser.Input.Keyboard.KeyCodes.W].map((code) => kb.addKey(code)),
-        down: [Phaser.Input.Keyboard.KeyCodes.DOWN, Phaser.Input.Keyboard.KeyCodes.S].map((code) => kb.addKey(code)),
-      };
-      kb.on('keydown', (e: KeyboardEvent) => {
-        if (e.code === 'KeyR' && !e.repeat) store.client?.sendRestart();
-        if (e.code === 'KeyF' && !e.repeat) setFireHeld(true);
+      for (const name of Object.keys(KEYMAP) as KeyName[]) this.keys[name] = KEYMAP[name].map((c) => kb.addKey(c, true));
+      kb.on('keydown-R', () => {
+        if (store.snapshot?.phase === 'ended') store.client?.send({ type: 'restart' });
       });
-      kb.on('keyup', (e: KeyboardEvent) => {
-        if (e.code === 'KeyF') setFireHeld(false);
+      kb.on('keydown-M', () => {
+        setMuted(!isMuted());
+        syncMuteButton();
       });
     }
-    this.input.on('pointerdown', () => {
-      setFireHeld(true);
+    this.input.mouse?.disableContextMenu();
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      if (store.touchMode) return; // touch uses the on-screen buttons
+      if (p.rightButtonDown()) requests.punch = true;
+      else fireHeld.mouse = true;
     });
-    this.input.on('pointerup', () => {
-        setFireHeld(false);
-    });
-    this.input.on('pointerupoutside', () => {
-        setFireHeld(false);
-    });
+    const release = () => (fireHeld.mouse = false);
+    this.input.on('pointerup', release);
+    this.input.on('pointerupoutside', release);
 
-    this.gunBarBg = this.add
-      .rectangle(640, 58, 96, 7, 0x101024, 0.9)
-      .setStrokeStyle(1, 0x3d2c5a);
-    this.gunBar = this.add.rectangle(640 - 48 + 1, 58, 94, 5, 0xffb347).setOrigin(0, 0.5);
-    this.fireLabel = this.add
-      .text(640, 50, '🔫', { fontFamily: 'Courier New, monospace', fontSize: '13px', color: '#c9b8e6' })
-      .setOrigin(0.5, 1);
-
-    // start hidden until we know the gun isn't spam-firing
-    if (this.gunBar) this.gunBar.setVisible(false);
-    if (this.fireLabel) this.fireLabel.setVisible(false);
-    if (this.gunBarBg) this.gunBarBg.setVisible(false);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
   }
 
-  private anyKeyDown(name: 'left' | 'right' | 'jump' | 'down'): boolean {
+  private teardown(): void {
+    this.input.keyboard?.removeAllKeys(true);
+    this.input.keyboard?.clearCaptures();
+    this.input.keyboard?.removeAllListeners();
+    this.input.removeAllListeners();
+    for (const f of this.fighters.values()) f.destroy();
+    this.fighters.clear();
+    this.level?.destroy();
+    this.hud.destroy();
+    fireHeld.mouse = false;
+  }
+
+  private down(name: KeyName): boolean {
     return this.keys[name]?.some((k) => k.isDown) ?? false;
   }
 
   update(_time: number, delta: number): void {
     const snap = store.snapshot;
-    if (!snap || snap.phase === 'lobby') {
+    if (!snap || snap.phase === 'lobby' || !store.joined) {
       this.scene.start('Lobby');
       return;
     }
-
-    syncRestartButton(true, snap.phase === 'ended');
-
-    // ---- down-through button (keyboard edge, then touch flag)
-    const downNow = this.anyKeyDown('down');
-    if (downNow && !this.prevDown) store.client?.sendDrop();
-    this.prevDown = downNow;
-
-    if (dropRequest.requested) {
-      dropRequest.requested = false;
-      store.client?.sendDrop();
+    if (snap.level !== this.levelIndex) {
+      // new arena: rebuild everything world-side
+      for (const f of this.fighters.values()) f.destroy();
+      this.fighters.clear();
+      for (const s of this.shots.values()) s.destroy();
+      this.shots.clear();
+      for (const c of this.crates.values()) c.destroy();
+      this.crates.clear();
+      this.particles.clear();
+      this.level?.destroy();
+      this.level = new LevelView(this, snap.level);
+      this.levelIndex = snap.level;
     }
 
-    // ---- fire (mouse / F key / FIRE button), throttled to ~8/s client-side
-    const fireNow = performance.now();
-    if (fireInput.held && fireNow - this.lastFireSent >= 125) {
-      this.lastFireSent = fireNow;
-      store.client?.sendShoot();
-    }
+    this.handleInput();
 
-    // ---- input (keyboard OR touch)
-    const input = mergeInput(
-      {
-        left: this.anyKeyDown('left'),
-        right: this.anyKeyDown('right'),
-        jump: this.anyKeyDown('jump'),
-      },
-      touchInput
-    );
-    const changed =
-      input.left !== this.lastInputSent.left ||
-      input.right !== this.lastInputSent.right ||
-      input.jump !== this.lastInputSent.jump;
-    this.frame++;
-    if (changed || this.frame % 20 === 0) {
-      this.lastInputSent = { ...input };
-      store.client?.sendInput(input);
-    }
-
-    // ---- interpolation buffer
+    // ---- interpolated world state
     const now = performance.now();
-    if (this.buffer.length === 0 || this.buffer[this.buffer.length - 1].snap.tick !== snap.tick) {
-      this.buffer.push({ time: now, snap });
-      if (this.buffer.length > 4) this.buffer.shift();
-    }
+    const br = store.buffer.bracket(now);
+    const renderT = store.buffer.renderTime(now);
+    if (!br) return;
+    const { a, b, alpha } = br;
+    const prev = new Map(a.players.map((p) => [p.id, p]));
+    const players: PlayerState[] = b.players.map((p) => lerpPlayer(prev.get(p.id), p, alpha));
+    const plats: PlatformState[] =
+      a.platforms.length === b.platforms.length
+        ? b.platforms.map((p, i) => ({ ...p, x: lerp(a.platforms[i].x, p.x, alpha), y: lerp(a.platforms[i].y, p.y, alpha) }))
+        : b.platforms;
+    const simNow = lerp(a.simTimeMs, b.simTimeMs, alpha);
 
-    this.render(snap, now - INTERPOLATION_MS, delta);
+    this.level!.update(simNow, delta, plats.length ? plats : undefined);
+    this.renderFighters(players, simNow, delta);
+    this.renderProjectiles(a, b, alpha, delta);
+    this.renderCrates(b, simNow);
+
+    while (store.fxQueue.length && store.fxQueue[0].t <= renderT + 20) {
+      this.handleFx(store.fxQueue.shift()!.fx);
+    }
+    this.particles.update(delta);
+
+    const tick = this.hud.update(snap, snap.players, store.selfId, delta);
+    if (tick !== null) play(tick > 0 ? 'tick' : 'go');
   }
 
-  private bracket(renderTime: number): { prev: Snapshot; curr: Snapshot; alpha: number } | null {
-    if (this.buffer.length < 2) {
-      return this.buffer.length ? { prev: this.buffer[0].snap, curr: this.buffer[0].snap, alpha: 1 } : null;
+  // ------------------------------------------------------------ input
+
+  private handleInput(): void {
+    const client = store.client;
+    if (!client) return;
+    const input = mergeInput({ left: this.down('left'), right: this.down('right'), jump: this.down('jump') }, touchInput);
+    client.sendInput(input);
+
+    const downNow = this.down('down');
+    if ((downNow && !this.prevDown) || requests.drop) client.send({ type: 'drop' });
+    this.prevDown = downNow;
+    requests.drop = false;
+
+    const punchNow = this.down('punch');
+    if ((punchNow && !this.prevPunch) || requests.punch) client.send({ type: 'punch' });
+    this.prevPunch = punchNow;
+    requests.punch = false;
+
+    const firing = this.down('fire') || fireHeld.touch || fireHeld.mouse;
+    const t = performance.now();
+    if (firing && t - this.lastFireSent >= 70) {
+      this.lastFireSent = t;
+      client.send({ type: 'shoot' });
     }
-    let prev = this.buffer[0];
-    let curr = this.buffer[this.buffer.length - 1];
-    for (let i = 0; i < this.buffer.length - 1; i++) {
-      if (renderTime >= this.buffer[i].time && renderTime <= this.buffer[i + 1].time) {
-        prev = this.buffer[i];
-        curr = this.buffer[i + 1];
+  }
+
+  // ------------------------------------------------------------ world
+
+  private renderFighters(players: PlayerState[], simNow: number, delta: number): void {
+    const seen = new Set<string>();
+    for (const p of players) {
+      if (p.life === 'waiting') continue;
+      seen.add(p.id);
+      let v = this.fighters.get(p.id);
+      if (!v) {
+        v = new FighterView(this, p, p.id === store.selfId);
+        this.fighters.set(p.id, v);
+      }
+      v.update(p, simNow, delta);
+      if (p.life === 'alive' && p.launched && Math.hypot(p.vx, p.vy) > 850 && Math.random() < 0.7) {
+        this.particles.burst(p.x + PHYS.playerW / 2, p.y + PHYS.playerH / 2, {
+          count: 1,
+          colors: [0xffffff, hexNum(p.color)],
+          speed: [0, 20],
+          life: [250, 450],
+          size: [3, 5],
+          texture: 'puff',
+          alpha: 0.6,
+          depth: 8,
+        });
+      }
+    }
+    for (const [id, v] of this.fighters) {
+      if (!seen.has(id)) {
+        v.destroy();
+        this.fighters.delete(id);
+      }
+    }
+  }
+
+  private renderProjectiles(
+    a: { projectiles: { id: number; x: number; y: number }[] },
+    b: { projectiles: { id: number; kind: string; x: number; y: number; vx: number; vy: number }[] },
+    alpha: number,
+    delta: number
+  ): void {
+    const prev = new Map(a.projectiles.map((p) => [p.id, p]));
+    const seen = new Set<number>();
+    for (const pr of b.projectiles) {
+      seen.add(pr.id);
+      const pa = prev.get(pr.id);
+      const x = pa ? lerp(pa.x, pr.x, alpha) : pr.x;
+      const y = pa ? lerp(pa.y, pr.y, alpha) : pr.y;
+      let img = this.shots.get(pr.id);
+      if (!img) {
+        img = this.add.image(x, y, pr.kind).setDepth(16);
+        if (pr.kind !== 'bomb') img.setBlendMode(Phaser.BlendModes.ADD);
+        this.shots.set(pr.id, img);
+      }
+      img.setPosition(x, y);
+      if (pr.kind === 'bomb') {
+        img.rotation += (pr.vx / 160) * (delta / 1000) * 6;
+        if (Math.random() < 0.5) {
+          this.particles.burst(x + 4, y - 10, { count: 1, colors: [0xffd34d, 0xff7a1a], speed: [10, 60], angle: [-120, -60], life: [150, 300], size: [1, 2], add: true });
+        }
+      } else {
+        img.setRotation(Math.atan2(pr.vy, pr.vx));
+      }
+    }
+    for (const [id, img] of this.shots) {
+      if (!seen.has(id)) {
+        img.destroy();
+        this.shots.delete(id);
+      }
+    }
+  }
+
+  private renderCrates(b: { crates: { id: number; x: number; y: number; blink: boolean }[] }, simNow: number): void {
+    const seen = new Set<number>();
+    for (const c of b.crates) {
+      seen.add(c.id);
+      let img = this.crates.get(c.id);
+      if (!img) {
+        img = this.add.image(c.x, c.y, 'crate').setOrigin(0).setDepth(6);
+        this.crates.set(c.id, img);
+      }
+      img.setPosition(c.x, c.y - Math.abs(Math.sin(simNow / 300 + c.id)) * 2);
+      img.setAlpha(c.blink ? (Math.floor(simNow / 120) % 2 ? 0.3 : 1) : 1);
+    }
+    for (const [id, img] of this.crates) {
+      if (!seen.has(id)) {
+        img.destroy();
+        this.crates.delete(id);
+      }
+    }
+  }
+
+  // ------------------------------------------------------------ effects
+
+  private ring(x: number, y: number, color: number, size: number, dur: number): void {
+    const r = this.add.image(x, y, 'ring').setTint(color).setDepth(25).setScale(0.1).setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({ targets: r, scale: size / 64, alpha: 0, duration: dur, ease: 'Cubic.easeOut', onComplete: () => r.destroy() });
+  }
+
+  private glow(x: number, y: number, color: number, size: number, dur: number): void {
+    const g = this.add.image(x, y, 'soft').setTint(color).setDepth(24).setBlendMode(Phaser.BlendModes.ADD).setDisplaySize(size, size);
+    this.tweens.add({ targets: g, alpha: 0, scale: g.scale * 1.4, duration: dur, onComplete: () => g.destroy() });
+  }
+
+  private popup(x: number, y: number, msg: string, color: string, size = 22): void {
+    const t = this.add
+      .text(x, y, msg, {
+        fontFamily: '"Trebuchet MS", "Segoe UI", system-ui, sans-serif',
+        fontSize: `${size}px`,
+        fontStyle: 'bold',
+        color,
+        stroke: '#120a20',
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5)
+      .setDepth(60)
+      .setScale(0.4);
+    this.tweens.add({ targets: t, scale: 1, duration: 160, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: t, y: y - 46, alpha: 0, delay: 500, duration: 600, onComplete: () => t.destroy() });
+  }
+
+  private handleFx(f: Fx): void {
+    const self = 'id' in f && f.id === store.selfId;
+    const vol = self ? 1 : 0.55;
+    const view = 'id' in f ? this.fighters.get(f.id) : undefined;
+    const dust = [0xffffff, 0xe6e0f0, 0xcfc6dc];
+    switch (f.k) {
+      case 'jump':
+        view?.onJump();
+        this.particles.burst(f.x, f.y, { count: 5, colors: dust, speed: [30, 90], angle: [-170, -10], life: [200, 380], size: [3, 5], texture: 'puff', alpha: 0.7, gravity: -40 });
+        play('jump', vol);
+        break;
+      case 'airjump':
+        view?.onJump();
+        this.ring(f.x, f.y, 0xbff4ff, 34, 300);
+        this.particles.burst(f.x, f.y, { count: 8, colors: [0xbff4ff, 0xffffff], speed: [60, 160], angle: [20, 160], life: [200, 360], size: [2, 3], add: true });
+        play('airjump', vol);
+        break;
+      case 'land':
+        view?.onLand();
+        this.particles.burst(f.x, f.y, { count: 8, colors: dust, speed: [40, 140], angle: [-180, 0], life: [220, 420], size: [3, 6], texture: 'puff', alpha: 0.65, drag: 3 });
+        play('land', vol * 0.7);
+        break;
+      case 'bounce':
+        view?.onJump();
+        this.ring(f.x, f.y, 0xffe066, 60, 350);
+        this.particles.burst(f.x, f.y, { count: 14, colors: [0xffe066, 0xffffff, 0xff9f43], speed: [120, 320], angle: [-160, -20], life: [250, 500], size: [2, 4], gravity: 600 });
+        play('bounce', vol);
+        break;
+      case 'punch':
+        play('punch', vol);
+        break;
+      case 'hit': {
+        view?.onHit(f.power);
+        const big = f.power > 900;
+        const n = Math.min(30, 6 + Math.floor(f.power / 60));
+        this.particles.burst(f.x, f.y, { count: n, colors: [0xffffff, 0xffe066, 0xff9f43], speed: [120, 260 + f.power * 0.3], life: [180, 420], size: [2, 4], add: true, drag: 4 });
+        this.glow(f.x, f.y, 0xfff2c0, big ? 110 : 60, 200);
+        if (big) this.ring(f.x, f.y, 0xffffff, 70, 260);
+        if (f.power > 700) this.cameras.main.shake(big ? 180 : 100, Math.min(0.014, f.power / 120000));
+        play(big ? 'hitBig' : 'hit', self || f.by === store.selfId ? 1 : 0.6);
         break;
       }
-    }
-    const span = Math.max(1, curr.time - prev.time);
-    const alpha = Math.min(1, Math.max(0, (renderTime - prev.time) / span));
-    return { prev: prev.snap, curr: curr.snap, alpha };
-  }
-
-  private render(snap: Snapshot, renderTime: number, delta: number): void {
-    const pair = this.bracket(renderTime);
-    const plats = snap.platforms;
-    const players = pair ? pair.curr.players : snap.players;
-    const prevPlayers = pair ? pair.prev.players : players;
-    const prevById = new Map(prevPlayers.map((p) => [p.id, p]));
-    const alpha = pair ? pair.alpha : 1;
-
-    // ---- platforms
-    if (this.platformImages.length !== plats.length) {
-      for (const img of this.platformImages) img.destroy();
-      this.platformImages = [];
-      for (let i = 0; i < plats.length; i++) {
-        const img = this.add.image(0, 0, 'platform').setOrigin(0, 0).setDisplaySize(100, 22);
-        this.platformImages.push(img);
-      }
-    }
-    for (let i = 0; i < this.platformImages.length; i++) {
-      const plat = plats[i];
-      if (!plat) continue;
-      this.platformImages[i].setPosition(plat.x, plat.y).setDisplaySize(plat.w, Math.max(plat.h, 18));
-    }
-
-    // ---- players
-    const renderedIds = new Set<string>();
-    for (const p of players) {
-      if (p.waiting) continue;
-      renderedIds.add(p.id);
-      const prev = prevById.get(p.id) ?? p;
-      const x = prev.x + (p.x - prev.x) * alpha;
-      const y = prev.y + (p.y - prev.y) * alpha;
-
-      let view = this.views.get(p.id);
-      if (!view) {
-        view = this.createView(p);
-        this.views.set(p.id, view);
-      }
-      view.image.setPosition(x, y);
-      view.image.setDisplaySize(WORLD.playerW, WORLD.playerH);
-      view.image.setTint(parseInt(p.color.slice(1), 16));
-      view.nameText.setPosition(x + WORLD.playerW / 2, y - 26).setText(p.name);
-
-      // hp bar (above the sprite, under the name)
-      const hpFrac = Math.max(0, Math.min(1, p.hp / p.maxHp));
-      view.hpBg.setPosition(x + 1, y - 24);
-      view.hpBar
-        .setPosition(x + 2, y - 23)
-        .setSize(Math.max(2, 30 * hpFrac), 4)
-        .setFillStyle(hpColor(hpFrac));
-
-      if (p.id === store.selfId) {
-        if (!this.selfMarker) {
-          this.selfMarker = this.add.rectangle(0, 0, WORLD.playerW + 8, 4, 0xffd166).setOrigin(0.5, 0);
+      case 'block':
+        this.ring(f.x, f.y, 0x7fd3ff, 50, 260);
+        this.particles.burst(f.x, f.y, { count: 10, colors: [0x7fd3ff, 0xffffff], speed: [80, 200], life: [200, 350], size: [2, 3], add: true });
+        play('block', vol);
+        break;
+      case 'shot':
+        if (f.weapon === 'bombs') {
+          play('throw', vol);
+        } else {
+          this.glow(f.x, f.y, f.weapon === 'boomstick' ? 0xff9a3d : 0xffe066, f.weapon === 'boomstick' ? 70 : 40, 110);
+          this.particles.burst(f.x, f.y, { count: f.weapon === 'boomstick' ? 10 : 4, colors: [0xffe066, 0xffffff], speed: [80, 240], angle: f.face > 0 ? [-30, 30] : [150, 210], life: [80, 200], size: [1, 3], add: true });
+          if (f.weapon === 'boomstick') this.cameras.main.shake(80, self ? 0.006 : 0.003);
+          play(f.weapon === 'boomstick' ? 'boomstick' : 'pistol', vol);
         }
-        this.selfMarker.setPosition(x + WORLD.playerW / 2, y + WORLD.playerH + 8).setVisible(true);
+        break;
+      case 'boom':
+        this.glow(f.x, f.y, 0xffb347, f.r * 2.6, 380);
+        this.glow(f.x, f.y, 0xffffff, f.r * 1.2, 160);
+        this.ring(f.x, f.y, 0xffd166, f.r * 1.1, 420);
+        this.particles.burst(f.x, f.y, { count: 30, colors: [0xffd166, 0xff7a1a, 0xff4f2e, 0xffffff], speed: [150, 520], life: [300, 700], size: [2, 5], add: true, drag: 3, gravity: 300 });
+        this.particles.burst(f.x, f.y, { count: 14, colors: [0x4b4560, 0x2a2438, 0x6b6680], speed: [40, 140], life: [600, 1100], size: [8, 14], texture: 'puff', alpha: 0.75, gravity: -60, drag: 1.5, endScale: 1.4 });
+        this.cameras.main.shake(260, 0.016);
+        play('boom');
+        break;
+      case 'ko': {
+        const c = hexNum(f.color);
+        const ang = Phaser.Math.RadToDeg(Math.atan2(f.dirY, f.dirX || 0.0001));
+        const spread = f.dirX === 0 && f.dirY === 0 ? 180 : 35;
+        this.glow(f.x, f.y, c, 260, 500);
+        this.glow(f.x, f.y, 0xffffff, 120, 200);
+        this.ring(f.x, f.y, c, 150, 600);
+        this.particles.burst(f.x, f.y, { count: 46, colors: [c, 0xffffff, 0xffe066], speed: [300, 900], angle: [ang - spread, ang + spread], life: [400, 900], size: [3, 6], add: true, drag: 2.5 });
+        this.cameras.main.shake(380, 0.02);
+        this.popup(Phaser.Math.Clamp(f.x + f.dirX * 60, 80, 1200), Phaser.Math.Clamp(f.y + f.dirY * 60, 80, 640), 'KO!', '#ffd166', 46);
+        play('ko', self ? 1.2 : 0.9);
+        break;
       }
-
-      // death fade-out
-      if (!p.alive) {
-        view.fading = true;
+      case 'spawn':
+        this.ring(f.x, f.y - PHYS.playerH / 2, 0xffffff, 60, 500);
+        this.particles.burst(f.x, f.y - 20, { count: 16, colors: [0xffffff, 0xbff4ff, 0xffe066], speed: [30, 120], angle: [-120, -60], life: [400, 800], size: [2, 3], add: true, gravity: -80 });
+        play('spawn', vol);
+        break;
+      case 'pickup': {
+        const [label, color] = ITEM_LABEL[f.item] ?? [f.item, '#ffffff'];
+        this.popup(f.x, f.y - 30, label, color);
+        this.ring(f.x, f.y, hexNum(color), 50, 350);
+        this.particles.burst(f.x, f.y, { count: 14, colors: [hexNum(color), 0xffffff], speed: [80, 220], life: [250, 500], size: [2, 3], add: true });
+        play('pickup', vol);
+        break;
       }
-      if (view.fading) {
-        const a = Math.max(0, view.image.alpha - delta / 200);
-        view.image.setAlpha(a);
-        view.nameText.setAlpha(a);
-        view.hpBg.setAlpha(a);
-        view.hpBar.setAlpha(a);
-        if (a <= 0.01) {
-          view.image.destroy();
-          view.nameText.destroy();
-          view.hpBg.destroy();
-          view.hpBar.destroy();
-          this.views.delete(p.id);
+      case 'crate':
+        play('crate', 0.5);
+        break;
+      case 'crumble':
+        for (let i = 0; i < 4; i++) {
+          this.particles.burst(f.x + (f.w * (i + 0.5)) / 4, f.y + 8, { count: 6, colors: [0xb98a52, 0x8a6440, 0xd9a55b], speed: [20, 120], angle: [40, 140], life: [600, 1100], size: [3, 6], gravity: 900 });
         }
-      }
+        play('crumble', 0.8);
+        break;
     }
-
-    // self marker visibility
-    const selfAlive = players.some((p) => p.id === store.selfId && p.alive && !p.waiting);
-    if (this.selfMarker) this.selfMarker.setVisible(selfAlive && !!store.selfId);
-
-    // remove orphan views (player disconnected)
-    for (const [id, view] of [...this.views]) {
-      if (!renderedIds.has(id)) {
-        view.image.destroy();
-        view.nameText.destroy();
-        view.hpBg.destroy();
-        view.hpBar.destroy();
-        this.views.delete(id);
-      }
-    }
-
-    this.renderBullets(snap);
-    this.renderGunBar(snap);
-    this.renderHUD(snap, players);
-  }
-
-  private renderBullets(snap: Snapshot): void {
-    const seen = new Set<string>();
-    for (const b of snap.bullets) {
-      seen.add(b.id);
-      let view = this.bulletViews.find((v) => v.id === b.id);
-      if (!view) {
-        const image = this.add.image(0, 0, 'bullet').setOrigin(0.5, 0.5);
-        view = { id: b.id, image };
-        this.bulletViews.push(view);
-      }
-      view.image.setPosition(b.x, b.y).setVisible(true);
-      view.image.setFlipX(b.vx < 0);
-      view.image.setScale(Math.max(0.4, Math.abs(b.vx) / 1400));
-    }
-    // drop views whose bullets are gone (expired / hit something)
-    this.bulletViews = this.bulletViews.filter((v) => {
-      if (seen.has(v.id)) return true;
-      v.image.destroy();
-      return false;
-    });
-  }
-
-  private renderGunBar(snap: Snapshot): void {
-    const self = snap.players.find((p) => p.id === store.selfId);
-    if (!this.gunBar || !this.gunBarBg || !this.fireLabel) return;
-    // never shoot mid-lobby / pre-start: hide until there's an in-match self player
-    if (!self || snap.phase !== 'playing') {
-      this.gunBar.setVisible(false);
-      this.gunBarBg.setVisible(false);
-      this.fireLabel.setVisible(false);
-      return;
-    }
-    this.gunBar.setVisible(true);
-    this.gunBarBg.setVisible(true);
-    this.fireLabel.setVisible(true);
-    const elapsed = self.lastShotAtMs < 0 ? WORLD.shootCooldownMs : snap.simTimeMs - self.lastShotAtMs;
-    const frac = Math.max(0, Math.min(1, elapsed / WORLD.shootCooldownMs));
-    this.gunBar.setSize(94 * frac, 5);
-    this.fireLabel.setText(frac >= 1 ? '🔫 READY' : '🔫…');
-  }
-
-  private createView(p: { id: string; name: string; color: string }): PlayerView {
-    const image = this.add.image(0, 0, 'character').setOrigin(0, 0).setDisplaySize(WORLD.playerW, WORLD.playerH);
-    const nameText = this.add
-      .text(0, 0, p.name, {
-        fontFamily: 'Courier New, monospace',
-        fontSize: '12px',
-        fontStyle: 'bold',
-        color: '#f4f1ff',
-        stroke: '#140d22',
-        strokeThickness: 3,
-      })
-      .setOrigin(0.5, 1);
-    const hpBg = this.add.rectangle(0, 0, 32, 6, 0x101024, 0.9).setOrigin(0, 0);
-    const hpBar = this.add.rectangle(0, 0, 30, 4, 0x6ef58a).setOrigin(0, 0);
-    return { image, nameText, hpBg, hpBar, lastX: 0, lastY: 0, fading: false };
-  }
-
-  private renderHUD(snap: Snapshot, players: Snapshot['players']): void {
-    if (snap.phase === 'playing' && snap.timeLeftMs !== null) {
-      const total = Math.ceil(snap.timeLeftMs / 1000);
-      const m = Math.floor(total / 60);
-      const s = total % 60;
-      this.timerText.setText(`${m}:${String(s).padStart(2, '0')}`);
-      this.timerText.setColor(total <= 15 ? '#ff7b7b' : '#ffe9b0').setVisible(true);
-    } else {
-      this.timerText.setVisible(false);
-    }
-
-    const alive = players.filter((p) => p.alive && !p.waiting);
-    const active = players.filter((p) => !p.waiting);
-    this.aliveText.setText(`Alive  ${alive.length} / ${active.length}`);
-
-    if (snap.phase === 'starting' && snap.countdownMs !== null) {
-      const s = Math.ceil(snap.countdownMs / 1000);
-      this.centerText.setText(`${s}`).setVisible(true);
-    } else if (snap.phase === 'ended') {
-      const winner = players.find((p) => p.id === snap.winnerId);
-      this.centerText.setText(winner ? `🏆 ${winner.name} wins!` : "TIME'S UP").setVisible(true);
-    } else {
-      this.centerText.setVisible(false);
-    }
-
-    const key = snap.events.map((e) => `${e.id}:${e.cause}:${Math.round(e.atMs)}`).join('|');
-    if (key !== this.eventsKey) {
-      this.eventsKey = key;
-      for (const t of this.feedTexts) t.destroy();
-      this.feedTexts = [];
-      snap.events.slice(0, 5).forEach((e, i) => {
-        const t = this.add
-          .text(16, 700 - i * 22, `✗ ${e.name}  ${causeLabel(e.cause)}`, {
-            fontFamily: 'Courier New, monospace',
-            fontSize: '14px',
-            color: '#ffb0a0',
-            stroke: '#180d18',
-            strokeThickness: 3,
-          })
-          .setOrigin(0, 1);
-        this.feedTexts.push(t);
-      });
-    }
-  }
-}
-
-function hpColor(frac: number): number {
-  if (frac > 0.6) return 0x6ef58a; // green
-  if (frac > 0.3) return 0xffd166; // amber
-  return 0xff6b6b; // red
-}
-
-function causeLabel(c: string): string {
-  switch (c) {
-    case 'pit': return 'fell off';
-    case 'left': return 'left the arena';
-    case 'timeout': return 'time expired';
-    case 'knockdown': return 'knocked out';
-    case 'stomp': return 'was stomped';
-    case 'gun': return 'was shot';
-    default: return c;
   }
 }

@@ -6,7 +6,8 @@ export default defineConfig({
   publicDir: 'public',
   server: {
     port: 5173,
-    strictPort: true
+    strictPort: true,
+    host: true, // reachable from phones on the LAN
   },
   build: {
     outDir: 'dist',

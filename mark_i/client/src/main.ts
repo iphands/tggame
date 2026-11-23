@@ -1,77 +1,64 @@
 import Phaser from 'phaser';
 import { GameClient } from './net';
-import { store, setJoinHandler } from './store';
+import { store, onSnapshot } from './store';
 import { initTouchControls, isTouchDevice, setTouchControlsVisible } from './controls';
+import { initLobbyDom, renderLobby, showScreen } from './lobby';
+import { unlockAudio } from './audio';
 import { BootScene } from './scenes/BootScene';
 import { LobbyScene } from './scenes/LobbyScene';
 import { ArenaScene } from './scenes/ArenaScene';
 
-let client: GameClient | null = null;
-
-/** Detect touch up-front and wire the on-screen control bar. */
 store.touchMode = isTouchDevice();
 document.body.classList.toggle('touch-mode', store.touchMode);
-initTouchControls();
+initTouchControls(unlockAudio);
+setTouchControlsVisible(false);
 
-/** Best effort: force landscape (works on Android / PWA; ignored elsewhere). */
+// first gesture anywhere unlocks audio
+for (const ev of ['pointerdown', 'keydown'] as const) window.addEventListener(ev, unlockAudio, { passive: true });
+
 try {
-  // @ts-expect-error — orientation lock is not in the standard lib
-  void screen.orientation?.lock?.('landscape')?.catch?.(() => {});
+  // best effort; the portrait gate covers browsers that refuse
+  void (screen.orientation as unknown as { lock?: (o: string) => Promise<void> })?.lock?.('landscape')?.catch(() => {});
 } catch {
-  /* not supported — the portrait gate covers us */
+  /* unsupported */
 }
 
-function joinArena(name: string): void {
-  store.selfName = name;
+function join(name: string): void {
+  store.name = name;
   store.joined = true;
   try {
     localStorage.setItem('lsa-name', name);
   } catch {
     /* private mode */
   }
-  client?.disconnect();
-  client = new GameClient({
+  store.client?.disconnect();
+  store.buffer.clear();
+  store.snapshot = null;
+  const client = new GameClient({
     name,
-    onWelcome: (selfId, capacity) => {
-      store.selfId = selfId;
-      store.capacity = capacity;
-    },
-    onSnapshot: (snap) => {
-      store.snapshot = snap;
-    },
-    onStatus: (conn) => {
-      store.conn = conn;
+    onWelcome: (id) => (store.selfId = id),
+    onSnapshot,
+    onStatus: (s) => {
+      store.conn = s;
+      renderLobby();
     },
   });
   store.client = client;
   client.connect();
+  showScreen('lobby');
 }
 
-setJoinHandler(joinArena);
+initLobbyDom(join);
 
-// the touch bar is only for gameplay — never show it in the lobby
-setTouchControlsVisible(false);
-
-// force-reload controls (wired once; the handlers read store.client at click time)
-const forceReload = () => store.client?.sendRestart();
-document.getElementById('restart-btn')?.addEventListener('click', forceReload);
-document.getElementById('go-btn')?.addEventListener('click', forceReload);
-
-const game = new Phaser.Game({
+new Phaser.Game({
   type: Phaser.AUTO,
   width: 1280,
   height: 720,
   parent: 'game-root',
-  backgroundColor: '#0b0e1a',
-  scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-  },
-  render: {
-    pixelArt: true,
-    antialias: false,
-  },
+  backgroundColor: '#07041a',
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+  render: { pixelArt: true, antialias: false },
+  audio: { noAudio: true },
+  input: { activePointers: 4 },
   scene: [BootScene, LobbyScene, ArenaScene],
 });
-
-void game;

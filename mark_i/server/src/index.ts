@@ -1,16 +1,19 @@
+/** HTTP (static client + /health) and WebSocket entrypoint, plus the fixed-rate game loop. */
 import http from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs';
 import { WebSocketServer, WebSocket } from 'ws';
-import { Game } from './game.js';
+import { Game } from './sim/game.js';
 import { isClientMessage, type ClientMessage, type ServerMessage } from '../../shared/src/protocol.js';
-import { WORLD, SNAP_HZ, TICK_HZ } from '../../shared/src/constants.js';
+import { MATCH, SNAP_EVERY_TICKS, TICK_MS } from '../../shared/src/constants.js';
 
 const PORT = Number(process.env.PORT ?? 8080);
 const STATIC_DIR = path.resolve(process.cwd(), process.env.STATIC_DIR ?? path.join('client', 'dist'));
+/** Max messages a socket may send per second before extras are dropped. */
+const MSG_BUDGET_PER_SEC = 240;
 
 const game = new Game();
-const peers = new Map<WebSocket, { id: string }>();
+const peers = new Map<WebSocket, { id: string | null; budget: number }>();
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -30,183 +33,190 @@ const MIME: Record<string, string> = {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost');
-  const route = decodeURIComponent(url.pathname);
-
-  if (route === '/health') {
-    res.writeHead(200, { 'content-type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, phase: game.phase, players: game.players.size }));
+  let route: string;
+  try {
+    route = decodeURIComponent(url.pathname);
+  } catch {
+    res.writeHead(400).end();
     return;
   }
 
-  // static client (only present in prod builds, not in dev)
-  const staticDir = STATIC_DIR;
-  if (!fs.existsSync(staticDir)) {
+  if (route === '/health') {
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+    res.end(JSON.stringify({ ok: true, phase: game.phase, players: game.players.size, bots: game.botCount() }));
+    return;
+  }
+
+  if (!fs.existsSync(STATIC_DIR)) {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
     res.end(`<!doctype html><html><head><meta charset="utf-8"><title>Last Survivor Arena</title></head>
 <body style="background:#0b0e1a;color:#e8edf5;font-family:sans-serif;padding:40px;max-width:640px">
-<h1>⚔️ Last Survivor Arena — server online</h1>
-<p>The Node.js + TypeScript game server is running and accepting WebSocket clients on port <b>${PORT}</b>.</p>
-<p><b>Static client not found</b> at <code>${staticDir}</code>. Run <code>npm run dev</code> (or <code>npm run build</code> then <code>npm start</code>) to start the client.</p>
+<h1>Last Survivor Arena: server online</h1>
+<p>The game server is running and accepting WebSocket clients on port <b>${PORT}</b>.</p>
+<p><b>Static client not found</b> at <code>${STATIC_DIR}</code>. Run <code>npm run dev</code>
+(then open port 5173) or <code>npm run build</code> then <code>npm start</code>.</p>
 </body></html>`);
     return;
   }
 
   const rel = route === '/' ? 'index.html' : route.replace(/^\/+/, '');
-  const filePath = path.join(staticDir, rel);
-  if (!filePath.startsWith(path.resolve(staticDir))) {
+  const filePath = path.join(STATIC_DIR, rel);
+  if (!filePath.startsWith(STATIC_DIR + path.sep)) {
     res.writeHead(403).end();
     return;
   }
 
-  // Refresh-fast caching (LAN): the shell (index.html) is never stored, so
-  // phones always load the latest build, and hashed assets revalidate every
-  // load — unchanged files answer with a cheap 304 instead of re-downloading.
-  const isHtml = rel === 'index.html' || rel.toLowerCase().endsWith('.html');
+  // LAN-friendly caching: the HTML shell is never stored; other files
+  // revalidate each load (a cheap 304 when unchanged).
+  const isHtml = rel.toLowerCase().endsWith('.html');
   const cacheControl = isHtml ? 'no-store' : 'no-cache, must-revalidate';
 
-  const sendHtml = (html: Buffer | string) => {
-    res.writeHead(200, {
-      'content-type': 'text/html; charset=utf-8',
-      'cache-control': 'no-store',
-    });
-    res.end(html);
-  };
-
   fs.stat(filePath, (statErr, st) => {
-    // 304 fast path — unchanged assets reload instantly
-    const ims = req.headers['if-modified-since'];
-    if (!statErr && st && ims && Math.floor(st.mtime.getTime() / 1000) <= Math.floor(Date.parse(ims) / 1000)) {
-      res.writeHead(304, {
-        'cache-control': cacheControl,
-        'last-modified': st.mtime.toUTCString(),
+    if (statErr || !st.isFile()) {
+      // SPA fallback: unknown routes get the shell
+      fs.readFile(path.join(STATIC_DIR, 'index.html'), (err, html) => {
+        if (err) {
+          res.writeHead(404).end('not found');
+          return;
+        }
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+        res.end(html);
       });
+      return;
+    }
+    const ims = req.headers['if-modified-since'];
+    if (!isHtml && ims && Math.floor(st.mtime.getTime() / 1000) <= Math.floor(Date.parse(ims) / 1000)) {
+      res.writeHead(304, { 'cache-control': cacheControl, 'last-modified': st.mtime.toUTCString() });
       res.end();
       return;
     }
-
     fs.readFile(filePath, (err, buf) => {
       if (err) {
-        // SPA fallback: serve index.html for unknown routes
-        fs.readFile(path.join(staticDir, 'index.html'), (err2, html) => {
-          if (err2) {
-            res.writeHead(404).end('not found');
-            return;
-          }
-          sendHtml(html);
-        });
+        res.writeHead(500).end();
         return;
       }
-      const headers: Record<string, string> = {
+      res.writeHead(200, {
         'content-type': MIME[path.extname(filePath).toLowerCase()] ?? 'application/octet-stream',
         'cache-control': cacheControl,
-      };
-      if (st) headers['last-modified'] = st.mtime.toUTCString();
-      res.writeHead(200, headers);
+        'last-modified': st.mtime.toUTCString(),
+      });
       res.end(buf);
     });
   });
 });
 
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ server, maxPayload: 4096 });
+
+function send(ws: WebSocket, msg: ServerMessage): void {
+  if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
+}
+
+function handle(ws: WebSocket, peer: { id: string | null }, msg: ClientMessage): void {
+  if (msg.type === 'join') {
+    if (peer.id) game.leave(peer.id); // one identity per socket
+    const joined = game.join(msg.name);
+    if (!joined) {
+      peer.id = null;
+      send(ws, { type: 'full', capacity: MATCH.capacity });
+      return;
+    }
+    peer.id = joined.id;
+    send(ws, { type: 'welcome', selfId: joined.id, capacity: MATCH.capacity, serverTimeMs: Date.now() });
+    return;
+  }
+
+  const id = peer.id;
+  if (!id) return; // must join first
+  switch (msg.type) {
+    case 'input':
+      game.setInput(id, msg);
+      break;
+    case 'punch':
+      game.punch(id);
+      break;
+    case 'shoot':
+      game.shoot(id);
+      break;
+    case 'drop':
+      game.drop(id);
+      break;
+    case 'restart':
+      game.restart();
+      break;
+    case 'addBot':
+      game.addBot();
+      break;
+    case 'removeBot':
+      game.removeBot();
+      break;
+    case 'pickLevel':
+      game.pickLevel(msg.dir);
+      break;
+    case 'leave':
+      game.leave(id);
+      peer.id = null;
+      break;
+  }
+}
 
 wss.on('connection', (ws) => {
-  let playerId: string | null = null;
-
-  const send = (msg: ServerMessage) => {
-    if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
-  };
+  const peer = { id: null as string | null, budget: MSG_BUDGET_PER_SEC };
+  peers.set(ws, peer);
 
   ws.on('message', (raw) => {
-    let msg: ClientMessage;
+    if (peer.budget <= 0) return;
+    peer.budget--;
+    let msg: unknown;
     try {
       msg = JSON.parse(raw.toString());
     } catch {
       return;
     }
-    if (!isClientMessage(msg)) return;
-
-    if (msg.type === 'join') {
-      // a peer may only hold one match identity; drop any previous one
-      if (playerId) game.leave(playerId);
-      const { id, name } = game.join(msg.name);
-      playerId = id;
-      peers.set(ws, { id });
-      send({ type: 'welcome', selfId: id, capacity: WORLD.capacity, serverTimeMs: Date.now() });
-      return;
-    }
-
-    if (!playerId) return; // not joined yet — ignore
-
-    if (msg.type === 'input') {
-      game.setInput(playerId, { left: msg.left, right: msg.right, jump: msg.jump });
-    } else if (msg.type === 'restart') {
-      game.restart();
-    } else if (msg.type === 'shoot') {
-      game.shoot(playerId);
-    } else if (msg.type === 'drop') {
-      game.drop(playerId);
-    } else if (msg.type === 'leave') {
-      game.leave(playerId);
-      playerId = null;
-      peers.delete(ws);
-    }
+    if (isClientMessage(msg)) handle(ws, peer, msg);
   });
 
-  ws.on('close', () => {
-    if (playerId) game.leave(playerId);
+  const drop = () => {
+    if (peer.id) game.leave(peer.id);
+    peer.id = null;
     peers.delete(ws);
-  });
-  ws.on('error', () => {
-    if (playerId) game.leave(playerId);
-    peers.delete(ws);
-  });
+  };
+  ws.on('close', drop);
+  ws.on('error', drop);
 });
 
+setInterval(() => {
+  for (const peer of peers.values()) peer.budget = MSG_BUDGET_PER_SEC;
+}, 1000);
+
 server.listen(PORT, () => {
-  console.log(`Last Survivor Arena — listening on http://0.0.0.0:${PORT} (static dir: ${STATIC_DIR})`);
+  console.log(`Last Survivor Arena: listening on http://0.0.0.0:${PORT} (static dir: ${STATIC_DIR})`);
 });
 
 // -------------------------------------------------------------- game loop
 
-const FRAME = 1000 / TICK_HZ;
 let last = performance.now();
-let snapAccum = 0;
-const SNAP_INTERVAL = 1000 / SNAP_HZ;
+let lastSnapTick = 0;
+
+function broadcast(): void {
+  const body = JSON.stringify(game.snapshot());
+  // splice the per-client selfId into the shared payload instead of re-serializing
+  const tail = body.slice(1);
+  for (const [ws, peer] of peers) {
+    if (ws.readyState !== WebSocket.OPEN) continue;
+    ws.send(`{"type":"snapshot","selfId":${JSON.stringify(peer.id ?? '')},${tail}`);
+  }
+}
 
 function loop(): void {
   const now = performance.now();
-  const dt = Math.min(100, now - last);
+  game.step(now - last);
   last = now;
-
-  game.step(dt);
-
-  snapAccum += dt;
-  if (snapAccum >= SNAP_INTERVAL) {
-    snapAccum = 0;
-    const snap = game.snapshot(Date.now());
-
-    for (const [ws, { id }] of peers) {
-      if (ws.readyState !== WebSocket.OPEN) continue;
-      const msg: ServerMessage = {
-        type: 'snapshot',
-        tick: snap.tick,
-        phase: snap.phase,
-        selfId: id,
-        countdownMs: snap.countdownMs,
-        timeLeftMs: snap.timeLeftMs,
-        winnerId: snap.winnerId,
-        players: snap.players,
-        platforms: snap.platforms,
-        bullets: snap.bullets,
-        events: snap.events,
-        simTimeMs: snap.simTimeMs,
-        serverTimeMs: snap.serverTimeMs,
-      };
-      ws.send(JSON.stringify(msg));
-    }
+  if (game.tick - lastSnapTick >= SNAP_EVERY_TICKS) {
+    lastSnapTick = game.tick;
+    broadcast();
   }
-
-  setTimeout(loop, Math.max(1, FRAME - (performance.now() - now)));
+  const behind = performance.now() - now;
+  setTimeout(loop, Math.max(1, TICK_MS / 2 - behind));
 }
 
 loop();

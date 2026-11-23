@@ -1,13 +1,19 @@
 /**
- * Touch input state + detection.
- * DOM buttons (wired in initTouchControls) set `touchInput`; the arena scene
- * merges it with keyboard every frame and forwards the result to the server.
+ * Input sources. Touch buttons (DOM) write into `touchInput` / one-shot
+ * flags; the arena scene merges them with the keyboard every frame.
+ * Nothing here touches the DOM at import time (unit-tested in node).
  */
 export type InputState = { left: boolean; right: boolean; jump: boolean };
 
 export const touchInput: InputState = { left: false, right: false, jump: false };
 
-export function setTouchInput(name: 'left' | 'right' | 'jump', value: boolean): void {
+/** Held "fire" from touch / mouse. */
+export const fireHeld = { touch: false, mouse: false };
+
+/** One-shot requests (consumed by the arena scene). */
+export const requests = { punch: false, drop: false };
+
+export function setTouchInput(name: keyof InputState, value: boolean): void {
   touchInput[name] = value;
 }
 
@@ -19,94 +25,69 @@ export function mergeInput(keyboard: InputState, touch: InputState): InputState 
   };
 }
 
-/** Held fire state (mouse / F key / FIRE button). ArenaScene samples it. */
-export const fireInput = { held: false };
-
-export function setFireHeld(value: boolean): void {
-  fireInput.held = value;
-}
-
-/** One-shot drop request flag (▼ button / down key) consumed by ArenaScene. */
-export const dropRequest = { requested: false };
-
-export function requestDrop(): void {
-  dropRequest.requested = true;
+export function resetTouch(): void {
+  touchInput.left = touchInput.right = touchInput.jump = false;
+  fireHeld.touch = fireHeld.mouse = false;
+  requests.punch = requests.drop = false;
 }
 
 export function isTouchDevice(): boolean {
   if (typeof window === 'undefined') return false;
   const coarse = window.matchMedia?.('(pointer: coarse)').matches ?? false;
-  const touchPoints = (navigator?.maxTouchPoints ?? 0) > 0;
-  return coarse || touchPoints;
+  return coarse || (navigator?.maxTouchPoints ?? 0) > 0;
 }
 
-/** Wire the DOM touch buttons to touchInput. Safe to call multiple times. */
-export function initTouchControls(): void {
-  const bind = (id: string, name: 'left' | 'right' | 'jump') => {
+/** Wire the on-screen buttons. Call once. */
+export function initTouchControls(onAnyPress: () => void): void {
+  const held = (id: string, set: (v: boolean) => void) => {
     const el = document.getElementById(id);
     if (!el) return;
-    let pressed = 0;
-    const down = (e: Event) => {
+    const pointers = new Set<number>();
+    const down = (e: PointerEvent) => {
       e.preventDefault();
-      pressed++;
-      setTouchInput(name, true);
+      pointers.add(e.pointerId);
+      el.setPointerCapture?.(e.pointerId);
+      set(true);
       el.classList.add('pressed');
+      onAnyPress();
     };
-    const up = (e: Event) => {
+    const up = (e: PointerEvent) => {
       e.preventDefault();
-      pressed = Math.max(0, pressed - 1);
-      if (pressed === 0) {
-        setTouchInput(name, false);
+      pointers.delete(e.pointerId);
+      if (pointers.size === 0) {
+        set(false);
         el.classList.remove('pressed');
       }
     };
     el.addEventListener('pointerdown', down);
     el.addEventListener('pointerup', up);
     el.addEventListener('pointercancel', up);
-    el.addEventListener('pointerleave', up);
+    el.addEventListener('lostpointercapture', up);
+    el.addEventListener('contextmenu', (e) => e.preventDefault());
+  };
+  const tap = (id: string, fire: () => void) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      fire();
+      onAnyPress();
+      el.classList.add('pressed');
+      setTimeout(() => el.classList.remove('pressed'), 140);
+    });
     el.addEventListener('contextmenu', (e) => e.preventDefault());
   };
 
-  bind('ctrl-left', 'left');
-  bind('ctrl-right', 'right');
-  bind('ctrl-jump', 'jump');
-
-  // FIRE: held-state button (one shot per press feels faster)
-  const fire = document.getElementById('ctrl-fire');
-  if (fire) {
-    const down = (e: Event) => {
-      e.preventDefault();
-      setFireHeld(true);
-      fire.classList.add('pressed');
-    };
-    const up = (e: Event) => {
-      e.preventDefault();
-      setFireHeld(false);
-      fire.classList.remove('pressed');
-    };
-    fire.addEventListener('pointerdown', down);
-    fire.addEventListener('pointerup', up);
-    fire.addEventListener('pointercancel', up);
-    fire.addEventListener('pointerleave', up);
-    fire.addEventListener('contextmenu', (e) => e.preventDefault());
-  }
-
-  // ▼: discrete drop-through button
-  const downBtn = document.getElementById('ctrl-down');
-  if (downBtn) {
-    const press = (e: Event) => {
-      e.preventDefault();
-      requestDrop();
-      downBtn.classList.add('pressed');
-      setTimeout(() => downBtn.classList.remove('pressed'), 150);
-    };
-    downBtn.addEventListener('pointerdown', press);
-    downBtn.addEventListener('contextmenu', (e) => e.preventDefault());
-  }
+  held('ctrl-left', (v) => setTouchInput('left', v));
+  held('ctrl-right', (v) => setTouchInput('right', v));
+  held('ctrl-jump', (v) => setTouchInput('jump', v));
+  held('ctrl-fire', (v) => (fireHeld.touch = v));
+  tap('ctrl-punch', () => (requests.punch = true));
+  tap('ctrl-down', () => (requests.drop = true));
 }
 
-/** Show or hide the on-screen control bar. */
 export function setTouchControlsVisible(visible: boolean): void {
   const el = document.getElementById('touch-controls');
-  if (el) el.style.display = visible ? 'block' : 'none';
+  if (el) el.classList.toggle('hidden', !visible);
+  if (!visible) resetTouch();
 }

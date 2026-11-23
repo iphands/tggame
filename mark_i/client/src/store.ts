@@ -1,61 +1,34 @@
-import type { GameClient, Snapshot } from './net';
+import type { SnapshotMessage } from '../../shared/src/protocol';
+import type { Fx } from '../../shared/src/types';
+import type { ConnectionStatus, GameClient } from './net';
+import { SnapshotBuffer } from './interp';
 
-/** Mutable shared state between the ws client, scenes, and the DOM overlay. */
+/** Mutable state shared by the network client, the Phaser scenes and the DOM overlay. */
 export const store = {
-  conn: 'connecting' as 'connecting' | 'connected' | 'disconnected',
+  conn: 'connecting' as ConnectionStatus,
   selfId: null as string | null,
-  capacity: 16,
-  selfName: 'Adventurer',
-  snapshot: null as Snapshot | null,
-  selfPlayer: null as { name: string; color: string } | null,
-  client: null as GameClient | null,
+  name: '',
   joined: false,
-  /** true on touch-capable devices — controls switch to the on-screen bar */
+  client: null as GameClient | null,
+  /** Most recent snapshot (HUD / phase decisions). */
+  snapshot: null as SnapshotMessage | null,
+  /** Interpolation buffer (world rendering). */
+  buffer: new SnapshotBuffer(),
+  /** Effects waiting for the render clock to reach their sim time. */
+  fxQueue: [] as { t: number; fx: Fx }[],
   touchMode: false,
 };
 
-let onJoinHandler: (name: string) => void = () => {};
-export function setJoinHandler(fn: (name: string) => void): void {
-  onJoinHandler = fn;
-}
-export function triggerJoin(name: string): void {
-  onJoinHandler(name);
+export function onSnapshot(snap: SnapshotMessage): void {
+  store.snapshot = snap;
+  store.selfId = snap.selfId || store.selfId;
+  store.buffer.push(snap, performance.now());
+  for (const fx of snap.fx) store.fxQueue.push({ t: snap.simTimeMs, fx });
+  if (store.fxQueue.length > 400) store.fxQueue.splice(0, store.fxQueue.length - 400);
 }
 
-let rosterKey = '';
-export function renderRoster(containerId: string): void {
-  const el = document.getElementById(containerId);
-  if (!el) return;
+export function selfState() {
   const snap = store.snapshot;
-  if (!snap || (snap.phase !== 'lobby' && snap.phase !== 'starting')) {
-    if (rosterKey !== '') { el.innerHTML = ''; rosterKey = ''; }
-    return;
-  }
-  const active = snap.players.filter((p) => !p.waiting);
-  const key = active.map((p) => `${p.id}:${p.name}`).join('|');
-  if (key === rosterKey) return;
-  rosterKey = key;
-  el.innerHTML = active
-    .map(
-      (p) =>
-        `<div class="roster-item"><span class="dot" style="background:${p.color}"></span><span>${escapeHtml(p.name)}</span>${p.id === store.selfId ? '<span class="you">you</span>' : ''}</div>`
-    )
-    .join('');
-}
-
-export function setStatusPill(kind: 'ok' | 'warn' | 'off', text: string): void {
-  const el = document.getElementById('toast');
-  if (!el) return;
-  el.textContent = text;
-  el.className = `pill ${kind}`;
-}
-
-export function updateSelf(selfId: string, selfName: string | null, color?: string): void {
-  store.selfId = selfId;
-  if (selfName) store.selfName = selfName;
-  if (color) store.selfPlayer = { name: store.selfName, color };
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+  if (!snap || !store.selfId) return null;
+  return snap.players.find((p) => p.id === store.selfId) ?? null;
 }

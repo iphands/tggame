@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"
     />
-    <meta name="theme-color" content="#0b0e1a" />
+    <meta name="theme-color" content="#07041a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -19,42 +19,87 @@
         <div id="game-root"></div>
 
         <div id="ui">
-          <div id="toast" class="pill off">● Connecting…</div>
-          <div id="status-line" class="status-line" style="display:none"></div>
-          <div id="roster" class="roster" style="display:none"></div>
-          <div id="name-form" class="panel">
-            <h2>⚔️ Last Survivor Arena</h2>
-            <p class="subtitle">A server-authoritative 2D arena platformer — last one standing wins.</p>
-            <form id="name-form-inner">
-              <label for="name-input" class="sr-only">Choose a name</label>
-              <input id="name-input" maxlength="18" placeholder="Your name…" autocomplete="off" />
-              <button type="submit">Join arena</button>
+          <div id="conn" class="conn hidden">Connecting…</div>
+
+          <!-- join screen -->
+          <div id="join" class="screen join">
+            <div class="logo">
+              <div class="logo-top">LAST SURVIVOR</div>
+              <div class="logo-bottom">ARENA</div>
+            </div>
+            <form id="join-form" class="join-card panel" autocomplete="off">
+              <label for="name-input" class="sr-only">Your name</label>
+              <input id="name-input" maxlength="16" placeholder="Your name" enterkeyhint="go" />
+              <button type="submit" class="btn primary big">PLAY ▶</button>
             </form>
-            <p id="controls-hint" class="hint">← → or A / D to move · Space to jump · Knock each other off the island.</p>
+            <div class="tagline">Knock everyone off the arena. 3 lives each. Last one standing wins.</div>
+          </div>
+
+          <!-- lobby -->
+          <div id="lobby" class="screen lobby hidden">
+            <div class="panel lobby-main">
+              <div class="label">NEXT ARENA <span id="lvl-index" class="muted"></span></div>
+              <div class="arena-pick">
+                <button type="button" id="lvl-prev" class="btn icon" aria-label="Previous arena">◀</button>
+                <div class="arena-info">
+                  <div id="lvl-name" class="arena-name"></div>
+                  <div id="lvl-tag" class="arena-tag"></div>
+                </div>
+                <button type="button" id="lvl-next" class="btn icon" aria-label="Next arena">▶</button>
+              </div>
+              <div id="lobby-status" class="lobby-status"></div>
+              <div class="lobby-buttons">
+                <button type="button" id="bot-remove" class="btn">− BOT</button>
+                <button type="button" id="bot-add" class="btn">+ BOT</button>
+                <button type="button" id="go-btn" class="btn primary">START ▶</button>
+              </div>
+            </div>
+
+            <div class="panel lobby-roster">
+              <div class="label">PLAYERS <span id="roster-count" class="muted"></span></div>
+              <div id="roster" class="roster"></div>
+            </div>
+
+            <div class="panel howto">
+              <div class="howto-keys desktop-only">
+                <span><b>A D / ← →</b> move</span>
+                <span><b>W / Space</b> jump ×2</span>
+                <span><b>S / ↓</b> drop</span>
+                <span><b>J / X</b> or right-click: punch</span>
+                <span><b>K / C</b> or click: shoot</span>
+              </div>
+              <div class="howto-keys touch-only">
+                <span><b>◀ ▶</b> move</span><span><b>JUMP</b> ×2</span><span><b>▼</b> drop</span><span><b>👊</b> punch</span><span><b>🔫</b> shoot</span>
+              </div>
+              <div class="howto-tip">The more damage you take, the farther you fly. Grab <b>?</b> crates for boomsticks, bombs, shields and heals.</div>
+            </div>
           </div>
         </div>
 
-        <button type="button" id="restart-btn" class="restart-btn" style="display:none" aria-label="Force restart the level">↻ Restart</button>
-
-        <button type="button" id="go-btn" class="go-btn" style="display:none" aria-label="Go — force reload the level">▶ GO</button>
-
-        <div id="touch-controls" class="touch-controls" style="display:none">
-          <button type="button" class="ctrl ctrl-left" id="ctrl-left" aria-label="Move left">◀</button>
-          <button type="button" class="ctrl ctrl-right" id="ctrl-right" aria-label="Move right">▶</button>
-          <button type="button" class="ctrl ctrl-down" id="ctrl-down" aria-label="Drop down to a lower platform">▼</button>
-          <button type="button" class="ctrl ctrl-fire" id="ctrl-fire" aria-label="Fire pistol">FIRE</button>
-          <button type="button" class="ctrl ctrl-jump" id="ctrl-jump" aria-label="Jump">JUMP</button>
+        <div id="game-buttons" class="game-buttons hidden">
+          <button type="button" id="mute-btn" class="btn icon small" aria-label="Toggle sound">🔊</button>
+          <button type="button" id="restart-btn" class="btn icon small hidden" aria-label="Restart the round">↻</button>
         </div>
 
+        <div id="touch-controls" class="touch-controls hidden">
+          <div class="pad-left">
+            <button type="button" class="ctrl" id="ctrl-left" aria-label="Move left">◀</button>
+            <button type="button" class="ctrl" id="ctrl-right" aria-label="Move right">▶</button>
+            <button type="button" class="ctrl small" id="ctrl-down" aria-label="Drop down">▼</button>
+          </div>
+          <div class="pad-right">
+            <button type="button" class="ctrl small" id="ctrl-fire" aria-label="Shoot">🔫</button>
+            <button type="button" class="ctrl small" id="ctrl-punch" aria-label="Punch">👊</button>
+            <button type="button" class="ctrl big" id="ctrl-jump" aria-label="Jump">JUMP</button>
+          </div>
+        </div>
       </div>
 
       <div id="rotate-gate" class="rotate-gate" aria-hidden="true">
         <div class="rotate-box">
-          <div class="phone-icon">
-            <div class="phone"></div>
-          </div>
+          <div class="phone"></div>
           <p class="rotate-title">Rotate your device</p>
-          <p class="rotate-sub">Last Survivor Arena is landscape-only.</p>
+          <p class="rotate-sub">Last Survivor Arena plays in landscape.</p>
         </div>
       </div>
     </div>
