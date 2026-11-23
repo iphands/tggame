@@ -101,7 +101,7 @@ press **+ BOT** a few times, then **START**.
 
 ### `?` crates
 
-Crates fall from the sky every 7–11 s, and faster in the last 45 s. Walk
+Crates fall from the sky every 3.5–5.5 s (up to 5 at once), and faster in the last 45 s. Walk
 into one to open it.
 
 | Item | Effect |

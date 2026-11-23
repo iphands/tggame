@@ -89,14 +89,14 @@ export const MATCH = {
 } as const;
 
 export const ITEMS = {
-  firstCrateMinMs: 4000,
-  firstCrateMaxMs: 7000,
-  intervalMinMs: 7000,
-  intervalMaxMs: 11000,
+  firstCrateMinMs: 2000,
+  firstCrateMaxMs: 4000,
+  intervalMinMs: 3500,
+  intervalMaxMs: 5500,
   /** Crates rain faster near the end. */
   finaleMs: 45_000,
   finaleMul: 0.55,
-  maxCrates: 3,
+  maxCrates: 5,
   size: 28,
   lifeMs: 14_000,
   blinkMs: 3000,
