@@ -6,6 +6,7 @@ import { setTouchControlsVisible } from '../controls';
 import { LevelView } from '../view/levelView';
 import { fighterTexture, FRAMES } from '../art/sprites';
 import { renderLobby, showScreen } from '../lobby';
+import { setPerfExtra } from '../perfMeter';
 
 /**
  * Title / lobby: the next arena plays live behind the DOM lobby panels, with
@@ -70,6 +71,7 @@ export class LobbyScene extends Phaser.Scene {
       this.showLevel((this.shownIndex + 1) % LEVELS.length);
     }
     this.view?.update(time, delta);
+    setPerfExtra(`${store.quality.tier} · lobby`);
 
     const s = delta / 1000;
     for (const d of this.dancers) {

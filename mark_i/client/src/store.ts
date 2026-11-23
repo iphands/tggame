@@ -2,6 +2,7 @@ import type { SnapshotMessage } from '../../shared/src/protocol';
 import type { Fx } from '../../shared/src/types';
 import type { ConnectionStatus, GameClient } from './net';
 import { SnapshotBuffer } from './interp';
+import { QualityManager } from './quality';
 
 /** Mutable state shared by the network client, the Phaser scenes and the DOM overlay. */
 export const store = {
@@ -17,6 +18,8 @@ export const store = {
   /** Effects waiting for the render clock to reach their sim time. */
   fxQueue: [] as { t: number; fx: Fx }[],
   touchMode: false,
+  /** Graphics tier (set up in main.ts from the saved setting). */
+  quality: new QualityManager('auto', false),
 };
 
 export function onSnapshot(snap: SnapshotMessage): void {

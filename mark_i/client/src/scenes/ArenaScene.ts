@@ -7,10 +7,11 @@ import { fireHeld, mergeInput, requests, setTouchControlsVisible, touchInput } f
 import { play, setMuted, isMuted } from '../audio';
 import { hexNum } from '../art/color';
 import { LevelView } from '../view/levelView';
-import { FighterView } from '../view/fighters';
+import { FighterView, TEXT_RES } from '../view/fighters';
 import { Particles } from '../view/particles';
 import { view as camView } from './HudScene';
-import { showScreen, syncMuteButton, syncRestartButton } from '../lobby';
+import { setPerfExtra } from '../perfMeter';
+import { showScreen, syncGfxButton, syncMuteButton, syncRestartButton } from '../lobby';
 
 /** Camera zoom on phone-sized screens (the HUD is unaffected). */
 const SMALL_SCREEN_ZOOM = 1.45;
@@ -46,6 +47,10 @@ export class ArenaScene extends Phaser.Scene {
   private camX = 640;
   private camY = 360;
   private zoom = 1;
+  private createdAt = 0;
+  private bloom: Phaser.FX.Bloom | null = null;
+  private vignette: Phaser.GameObjects.Image | null = null;
+  private zoomKick = 0;
   private keys = {} as Record<KeyName, Phaser.Input.Keyboard.Key[]>;
   private prevDown = false;
   private prevPunch = false;
@@ -97,7 +102,15 @@ export class ArenaScene extends Phaser.Scene {
     this.input.on('pointerup', release);
     this.input.on('pointerupoutside', release);
 
+    // vignette: one screen-fixed sprite (cheap) instead of a shader pass
+    this.vignette = this.add.image(640, 360, 'vignette').setScrollFactor(0).setDepth(95);
+    this.createdAt = performance.now();
+    const onQuality = () => this.applyQuality();
+    window.addEventListener('lsa-quality', onQuality);
+    this.applyQuality();
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      window.removeEventListener('lsa-quality', onQuality);
       kb?.off('keydown-R', onRestart);
       kb?.off('keydown-M', onMute);
       this.input.off('pointerdown', onDown);
@@ -139,6 +152,7 @@ export class ArenaScene extends Phaser.Scene {
       this.particles.clear();
       this.level?.destroy();
       this.level = new LevelView(this, snap.level);
+      this.applyQuality();
       this.levelIndex = snap.level;
     }
 
@@ -160,7 +174,7 @@ export class ArenaScene extends Phaser.Scene {
     const simNow = lerp(a.simTimeMs, b.simTimeMs, alpha);
 
     this.level!.update(simNow, delta, plats.length ? plats : undefined);
-    this.renderFighters(players, simNow, delta);
+    this.renderFighters(players, simNow, delta, plats);
     this.renderProjectiles(a, b, alpha, delta);
     this.renderCrates(b, simNow);
 
@@ -168,10 +182,30 @@ export class ArenaScene extends Phaser.Scene {
       this.handleFx(store.fxQueue.shift()!.fx);
     }
     this.particles.update(delta);
+
+    // adaptive quality (skip the first seconds: texture baking hitches)
+    const nowMs = performance.now();
+    if (nowMs - this.createdAt > 2500 && store.quality.sample(this.game.loop.actualFps, nowMs)) {
+      this.applyQuality();
+      syncGfxButton();
+    }
+    setPerfExtra(`${store.quality.tier} · ${this.particles.active} fx · ${camView.small ? 'zoom' : 'full'}`);
     this.updateCamera(players, snap.phase, delta);
   }
 
   /** Zoom in and follow yourself on small screens; full view otherwise. */
+  /** Apply the current quality tier: bloom (shader, high only) + vignette overlay. */
+  private applyQuality(): void {
+    const f = store.quality.flags;
+    this.particles.mul = f.particleMul;
+    this.vignette?.setVisible(f.vignette);
+    const cam = this.cameras.main;
+    this.bloom = null;
+    if (this.game.renderer.type !== Phaser.WEBGL || !cam.postFX) return;
+    cam.postFX.clear();
+    if (f.bloom) this.bloom = cam.postFX.addBloom(0xffffff, 1, 1, 1, 0.55, 3);
+  }
+
   private updateCamera(players: PlayerState[], phase: string, delta: number): void {
     camView.small = this.scale.displaySize.height < 560;
     const me = players.find((p) => p.id === store.selfId);
@@ -190,7 +224,10 @@ export class ArenaScene extends Phaser.Scene {
     this.camX += (tx - this.camX) * f;
     this.camY += (ty - this.camY) * f;
     const cam = this.cameras.main;
-    cam.setZoom(this.zoom);
+    this.zoomKick *= Math.exp(-9 * s);
+    const z = this.zoom * (1 + this.zoomKick);
+    cam.setZoom(z);
+    this.vignette?.setScale(1 / z);
     cam.centerOn(this.camX, this.camY);
     // what the HUD needs to place off-screen markers (bounds-clamped like the camera)
     const w = 1280 / this.zoom;
@@ -229,7 +266,7 @@ export class ArenaScene extends Phaser.Scene {
 
   // ------------------------------------------------------------ world
 
-  private renderFighters(players: PlayerState[], simNow: number, delta: number): void {
+  private renderFighters(players: PlayerState[], simNow: number, delta: number, plats: PlatformState[]): void {
     const seen = new Set<string>();
     const topWins = Math.max(0, ...players.map((p) => p.wins));
     for (const p of players) {
@@ -241,7 +278,7 @@ export class ArenaScene extends Phaser.Scene {
         this.fighters.set(p.id, v);
       }
       v.leader = topWins > 0 && p.wins === topWins;
-      v.update(p, simNow, delta);
+      v.update(p, simNow, delta, plats);
       if (p.life === 'alive' && p.launched && Math.hypot(p.vx, p.vy) > 850 && Math.random() < 0.7) {
         this.particles.burst(p.x + PHYS.playerW / 2, p.y + PHYS.playerH / 2, {
           count: 1,
@@ -350,6 +387,7 @@ export class ArenaScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setDepth(60)
+      .setResolution(TEXT_RES)
       .setScale(0.4);
     this.tweens.add({ targets: t, scale: 1, duration: 160, ease: 'Back.easeOut' });
     this.tweens.add({ targets: t, y: y - 46, alpha: 0, delay: 500, duration: 600, onComplete: () => t.destroy() });
@@ -394,6 +432,7 @@ export class ArenaScene extends Phaser.Scene {
         this.glow(f.x, f.y, 0xfff2c0, big ? 110 : 60, 200);
         if (big) this.ring(f.x, f.y, 0xffffff, 70, 260);
         if (f.power > 700) this.cameras.main.shake(big ? 180 : 100, Math.min(0.014, f.power / 120000));
+        if (big) this.zoomKick = Math.max(this.zoomKick, 0.025);
         play(big ? 'hitBig' : 'hit', self || f.by === store.selfId ? 1 : 0.6);
         break;
       }
@@ -440,6 +479,12 @@ export class ArenaScene extends Phaser.Scene {
         this.glow(f.x, f.y, 0xffffff, 120, 220);
         this.cameras.main.shake(260, 0.02);
         this.cameras.main.flash(90, 255, 120, 230);
+        this.zoomKick = Math.max(this.zoomKick, 0.045);
+        if (this.bloom) {
+          const b = this.bloom;
+          b.strength = 2.2;
+          this.tweens.add({ targets: b, strength: 0.55, duration: 500, ease: 'Cubic.easeOut' });
+        }
         play('railgun');
         break;
       }
@@ -461,6 +506,7 @@ export class ArenaScene extends Phaser.Scene {
         this.ring(f.x, f.y, c, 150, 600);
         this.particles.burst(f.x, f.y, { count: 46, colors: [c, 0xffffff, 0xffe066], speed: [300, 900], angle: [ang - spread, ang + spread], life: [400, 900], size: [3, 6], add: true, drag: 2.5 });
         this.cameras.main.shake(380, 0.02);
+        this.zoomKick = Math.max(this.zoomKick, 0.05);
         this.popup(
           Phaser.Math.Clamp(f.x + f.dirX * 60, camView.x + 80, camView.x + camView.w - 80),
           Phaser.Math.Clamp(f.y + f.dirY * 60, camView.y + 80, camView.y + camView.h - 80),

@@ -538,6 +538,32 @@ body.touch-mode .game-buttons {
   bottom: calc(var(--u) * 14.4);
 }
 
+.btn.gfx {
+  font-size: calc(var(--u) * 1.15);
+  letter-spacing: 0.04em;
+}
+
+.perf-meter {
+  position: fixed;
+  top: max(4px, env(safe-area-inset-top));
+  left: max(4px, env(safe-area-inset-left));
+  z-index: 60;
+  padding: 4px 6px;
+  font: 11px/1.35 ui-monospace, Menlo, monospace;
+  color: #e8edf5;
+  background: rgba(0, 0, 0, 0.72);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.perf-meter canvas {
+  display: block;
+  margin-top: 3px;
+  width: 120px;
+  height: 28px;
+  image-rendering: pixelated;
+}
+
 /* ---------------------------------------------------------------- iOS install hint */
 
 .ios-hint {

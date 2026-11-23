@@ -3,6 +3,7 @@ import { MATCH } from '../../shared/src/constants';
 import { LEVELS, levelAt } from '../../shared/src/levels';
 import { store } from './store';
 import { isMuted, play, setMuted, unlockAudio } from './audio';
+import { nextSetting } from './quality';
 import { canFullscreen, enterFullscreen, isFullscreen, isIOS, isStandalone, toggleFullscreen } from './fullscreen';
 
 export type Screen = 'join' | 'lobby' | 'game';
@@ -27,6 +28,13 @@ export function syncRestartButton(inGame: boolean): void {
   const humans = snap ? snap.players.filter((p) => !p.bot).length : 0;
   const ok = inGame && !!snap && (snap.phase !== 'playing' || humans <= 1);
   $('restart-btn')?.classList.toggle('hidden', !ok);
+}
+
+export function syncGfxButton(): void {
+  const b = $('gfx-btn');
+  if (!b) return;
+  const q = store.quality;
+  b.textContent = q.setting === 'auto' ? `✨ AUTO·${q.tier[0].toUpperCase()}` : `✨ ${q.setting.toUpperCase()}`;
 }
 
 export function syncMuteButton(): void {
@@ -74,6 +82,18 @@ export function initLobbyDom(onJoin: (name: string) => void): void {
   click('go-btn', () => store.client?.send({ type: 'restart' }));
   click('restart-btn', () => store.client?.send({ type: 'restart' }));
   click('fs-btn', () => void toggleFullscreen());
+  click('gfx-btn', () => {
+    const next = nextSetting(store.quality.setting);
+    store.quality.set(next, store.touchMode);
+    try {
+      localStorage.setItem('lsa-gfx', next);
+    } catch {
+      /* private mode */
+    }
+    syncGfxButton();
+    window.dispatchEvent(new Event('lsa-quality'));
+  });
+  syncGfxButton();
   const syncFs = () => {
     const b = $('fs-btn');
     if (!b) return;

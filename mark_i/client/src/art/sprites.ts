@@ -191,6 +191,28 @@ export function makeCommonTextures(scene: Phaser.Scene): void {
     ctx.fillRect(0, 0, 64, 64);
   });
 
+  add(scene, 'vignette', 1280, 720, (ctx) => {
+    const g = ctx.createRadialGradient(640, 340, 260, 640, 360, 820);
+    g.addColorStop(0, 'rgba(6,2,18,0)');
+    g.addColorStop(0.6, 'rgba(6,2,18,0.12)');
+    g.addColorStop(1, 'rgba(6,2,18,0.6)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 1280, 720);
+  });
+
+  // a single soft light shaft (origin at the top center, fading downward)
+  add(scene, 'ray', 64, 512, (ctx) => {
+    for (let y = 0; y < 512; y++) {
+      const fade = Math.pow(1 - y / 512, 1.4);
+      const g = ctx.createLinearGradient(0, 0, 64, 0);
+      g.addColorStop(0, 'rgba(255,255,255,0)');
+      g.addColorStop(0.5, `rgba(255,255,255,${fade})`);
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, y, 64, 1);
+    }
+  });
+
   add(scene, 'ring', 128, 128, (ctx) => {
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 7;

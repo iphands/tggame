@@ -36,6 +36,8 @@ export type BurstOpts = {
 
 export class Particles {
   private pool: P[] = [];
+  /** Quality multiplier on burst counts. */
+  mul = 1;
 
   constructor(private scene: Phaser.Scene, private max = 700) {}
 
@@ -50,7 +52,8 @@ export class Particles {
 
   burst(x: number, y: number, o: BurstOpts): void {
     const [amin, amax] = o.angle ?? [0, 360];
-    for (let i = 0; i < o.count; i++) {
+    const count = o.count <= 1 ? o.count : Math.max(1, Math.round(o.count * this.mul));
+    for (let i = 0; i < count; i++) {
       const p = this.get();
       if (!p) return;
       const a = Phaser.Math.DegToRad(Phaser.Math.FloatBetween(amin, amax));
@@ -108,6 +111,13 @@ export class Particles {
       p.img.setScale((p.s0 + (p.s1 - p.s0) * k) * base);
       p.img.setAlpha(p.a0 * (1 - k * k));
     }
+  }
+
+  /** Particles currently alive (for the ?fps overlay). */
+  get active(): number {
+    let n = 0;
+    for (const p of this.pool) if (p.active) n++;
+    return n;
   }
 
   clear(): void {

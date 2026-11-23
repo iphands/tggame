@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import { levelAt, platformPos, type LevelDef } from '../../../shared/src/levels';
 import type { PlatformState } from '../../../shared/src/types';
 import { THEMES, backdropCanvas, layerCanvas, platformCanvas, W, H } from '../art/themes';
+import { store } from '../store';
 
 type Flake = { img: Phaser.GameObjects.Image; vx: number; vy: number; phase: number };
 
@@ -16,6 +17,7 @@ export class LevelView {
   private aurora: Phaser.GameObjects.TileSprite | null = null;
   private lavaGlow: Phaser.GameObjects.Image | null = null;
   private shake: number[] = [];
+  private rays: { img: Phaser.GameObjects.Image; base: number; rot: number; phase: number; period: number }[] = [];
 
   constructor(scene: Phaser.Scene, levelIndex: number) {
     this.level = levelAt(levelIndex);
@@ -24,18 +26,47 @@ export class LevelView {
 
     const bgKey = `bg-${id}`;
     if (!scene.textures.exists(bgKey)) scene.textures.addCanvas(bgKey, backdropCanvas(this.level.theme));
-    this.track(scene.add.image(0, 0, bgKey).setOrigin(0).setDepth(-100));
+    // parallax: far things move less when the (phone) camera follows you
+    this.track(scene.add.image(0, 0, bgKey).setOrigin(0).setDepth(-100).setScrollFactor(0.35));
+
+    // light shafts from the theme's light source
+    const R = theme.rays;
+    if (R) {
+      const n = Math.max(2, Math.round(R.count * Math.max(0.5, store.quality.flags.ambientMul)));
+      for (let i = 0; i < n; i++) {
+        const k = n === 1 ? 0.5 : i / (n - 1);
+        const deg = R.angle - R.spread / 2 + R.spread * k + (Math.random() - 0.5) * 6;
+        const img = scene.add
+          .image(R.x, R.y, 'ray')
+          .setOrigin(0.5, 0)
+          .setTint(R.color)
+          .setBlendMode(Phaser.BlendModes.ADD)
+          .setDepth(-90)
+          .setScrollFactor(0.4)
+          .setScale(0.8 + Math.random() * 1.6, R.length / 512);
+        const rot = Phaser.Math.DegToRad(deg - 90);
+        img.setRotation(rot);
+        const base = R.alpha * (0.6 + Math.random() * 0.8);
+        this.rays.push({ img, base, rot, phase: Math.random() * 10, period: 2500 + Math.random() * 3000 });
+        this.track(img);
+      }
+    }
 
     for (const layer of theme.layers) {
-      if (!scene.textures.exists(layer.key)) scene.textures.addCanvas(layer.key, layerCanvas(layer));
-      const ts = scene.add.tileSprite(0, 0, W, H, layer.key).setOrigin(0).setDepth(layer.depth).setAlpha(layer.alpha);
+      if (!scene.textures.exists(layer.key)) scene.textures.addCanvas(layer.key, layerCanvas(layer, this.level.theme));
+      const ts = scene.add
+        .tileSprite(0, 0, W, H, layer.key)
+        .setOrigin(0)
+        .setDepth(layer.depth)
+        .setAlpha(layer.alpha)
+        .setScrollFactor(layer.depth < 0 ? 0.6 : 1);
       this.track(ts);
       this.layers.push({ sprite: ts, speed: layer.speed });
       if (layer.key === 'frost-aurora') this.aurora = ts;
     }
 
     if (this.level.theme === 'neon') {
-      this.grid = scene.add.graphics().setDepth(-70);
+      this.grid = scene.add.graphics().setDepth(-70).setScrollFactor(0.35);
       this.track(this.grid);
     }
     if (this.level.theme === 'forge') {
@@ -63,12 +94,13 @@ export class LevelView {
 
     // ambient weather
     if (theme.ambient !== 'none') {
-      const n = theme.ambient === 'stars' ? 40 : 70;
+      const n = Math.round((theme.ambient === 'stars' ? 40 : 70) * store.quality.flags.ambientMul);
       for (let i = 0; i < n; i++) {
         const img = scene.add
           .image(Math.random() * W, Math.random() * H, theme.ambient === 'snow' ? 'puff' : 'px')
           .setTint(theme.ambientColor)
-          .setDepth(theme.ambient === 'snow' ? 45 : -50);
+          .setDepth(theme.ambient === 'snow' ? 45 : -50)
+          .setScrollFactor(theme.ambient === 'snow' ? 1 : theme.ambient === 'stars' ? 0.35 : 0.7);
         const f: Flake = { img, vx: 0, vy: 0, phase: Math.random() * Math.PI * 2 };
         this.resetFlake(f, true);
         this.flakes.push(f);
@@ -116,6 +148,14 @@ export class LevelView {
     const s = Math.min(dtMs, 50) / 1000;
     for (const l of this.layers) l.sprite.tilePositionX -= l.speed * s;
     if (this.aurora) this.aurora.setAlpha(0.4 + Math.sin(timeMs / 1700) * 0.18);
+    const shafts = store.quality.flags.lightShafts;
+    for (const r of this.rays) {
+      r.img.setVisible(shafts);
+      if (!shafts) continue;
+      const w = Math.sin(timeMs / r.period + r.phase);
+      r.img.setAlpha(r.base * (0.55 + 0.45 * w));
+      r.img.setRotation(r.rot + w * 0.025);
+    }
     if (this.lavaGlow) this.lavaGlow.setAlpha(0.4 + Math.sin(timeMs / 380) * 0.08);
     if (this.grid) this.drawGrid(timeMs);
 
@@ -185,5 +225,6 @@ export class LevelView {
     this.layers = [];
     this.plats = [];
     this.flakes = [];
+    this.rays = [];
   }
 }

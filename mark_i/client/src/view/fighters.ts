@@ -1,7 +1,8 @@
 /** On-screen fighters: animated sprite, name/damage tag, weapon, shield, punch swoosh. */
 import Phaser from 'phaser';
 import { PHYS } from '../../../shared/src/constants';
-import type { PlayerState } from '../../../shared/src/types';
+import type { PlatformState, PlayerState } from '../../../shared/src/types';
+import { store } from '../store';
 import { FRAMES, fighterTexture } from '../art/sprites';
 import { hexNum } from '../art/color';
 
@@ -16,6 +17,9 @@ export function dmgColor(dmg: number): string {
   return '#d63c8a';
 }
 
+/** Render text at device resolution (capped) so it stays crisp on high-DPI phones. */
+export const TEXT_RES = Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1);
+
 const TEXT_FONT = '"Trebuchet MS", "Segoe UI", system-ui, sans-serif';
 
 export class FighterView {
@@ -28,6 +32,8 @@ export class FighterView {
   private readonly shield: Phaser.GameObjects.Image;
   private readonly glow: Phaser.GameObjects.Image;
   private readonly crown: Phaser.GameObjects.Image;
+  /** Soft contact shadow on the platform below. */
+  private readonly shadow: Phaser.GameObjects.Image;
   /** Railgun sight line while charging. */
   private readonly sight: Phaser.GameObjects.Graphics;
   /** Set by the scene: this player leads the session in wins. */
@@ -40,6 +46,7 @@ export class FighterView {
 
   constructor(private scene: Phaser.Scene, p: PlayerState, readonly isSelf: boolean) {
     const key = fighterTexture(scene, p.color);
+    this.shadow = scene.add.image(0, 0, 'soft').setTint(0x07021a).setDepth(5).setVisible(false);
     this.glow = scene.add.image(0, 0, 'soft').setTint(hexNum(p.color)).setAlpha(isSelf ? 0.35 : 0.18).setDisplaySize(70, 30).setDepth(9);
     this.sprite = scene.add.sprite(0, 0, key, 0).setOrigin(0.5, 1).setDepth(isSelf ? 12 : 11);
     this.gun = scene.add.image(0, 0, 'gun-pistol').setDepth(13).setOrigin(0.2, 0.5);
@@ -57,11 +64,13 @@ export class FighterView {
         strokeThickness: 4,
       })
       .setOrigin(0.5, 1)
-      .setDepth(20);
+      .setDepth(20)
+      .setResolution(TEXT_RES);
     this.dmg = scene.add
       .text(0, 0, '0%', { fontFamily: TEXT_FONT, fontSize: '12px', fontStyle: 'bold', color: '#fff', stroke: '#120a20', strokeThickness: 4 })
       .setOrigin(0.5, 1)
-      .setDepth(20);
+      .setDepth(20)
+      .setResolution(TEXT_RES);
     this.marker = isSelf ? scene.add.triangle(0, 0, 0, 0, 12, 0, 6, 8, 0xffe066).setDepth(20).setOrigin(0.5, 0) : null;
   }
 
@@ -77,7 +86,7 @@ export class FighterView {
     if (power > 900) this.spin = (Math.random() < 0.5 ? -1 : 1) * Math.min(22, power / 70);
   }
 
-  update(p: PlayerState, simNow: number, dtMs: number): void {
+  update(p: PlayerState, simNow: number, dtMs: number, plats: PlatformState[] = []): void {
     const shown = p.life === 'alive';
     if (!shown) {
       if (this.lastShown) this.setVisible(false);
@@ -122,6 +131,20 @@ export class FighterView {
     this.sprite.setAlpha(p.invuln ? (Math.floor(simNow / 90) % 2 ? 0.35 : 0.9) : 1);
 
     this.glow.setPosition(cx, feet - 2).setVisible(p.grounded);
+
+    // ---- contact shadow: shrinks and fades with height above the platform below
+    let ground = Infinity;
+    if (store.quality.flags.shadows) {
+      for (const pl of plats) {
+        if (pl.state === 'gone' || cx < pl.x || cx > pl.x + pl.w || pl.y < feet - 4) continue;
+        if (pl.y < ground) ground = pl.y;
+      }
+    }
+    const h = ground - feet;
+    if (h < 340) {
+      const k = 1 - Math.max(0, h) / 340;
+      this.shadow.setVisible(true).setPosition(cx, ground + 1).setDisplaySize(16 + 30 * k, 5 + 5 * k).setAlpha(0.65 * k);
+    } else this.shadow.setVisible(false);
     this.crown
       .setVisible(this.leader)
       .setPosition(cx + p.face * -2, p.y + H * (1 - this.sprite.scaleY) + 4 + Math.sin(simNow / 200) * 1)
@@ -171,6 +194,7 @@ export class FighterView {
 
   setVisible(v: boolean): void {
     for (const o of [this.sprite, this.name, this.dmg, this.gun, this.glow]) o.setVisible(v);
+    if (!v) this.shadow.setVisible(false);
     this.crown.setVisible(v && this.leader);
     this.marker?.setVisible(v);
     if (!v) {
@@ -181,7 +205,7 @@ export class FighterView {
   }
 
   destroy(): void {
-    for (const o of [this.sprite, this.name, this.dmg, this.gun, this.fist, this.shield, this.glow, this.crown, this.sight]) o.destroy();
+    for (const o of [this.sprite, this.name, this.dmg, this.gun, this.fist, this.shield, this.glow, this.crown, this.sight, this.shadow]) o.destroy();
     this.marker?.destroy();
   }
 }

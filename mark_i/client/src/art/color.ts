@@ -39,6 +39,33 @@ export function mulberry32(seed: number): () => number {
   };
 }
 
+/**
+ * Bake a color grade into a canvas (saturation, contrast, brightness), so
+ * the look costs nothing per frame (no shader pass).
+ */
+export function gradeCanvas(c: HTMLCanvasElement, g: { saturate: number; contrast: number; brightness: number }): void {
+  const ctx = c.getContext('2d')!;
+  const img = ctx.getImageData(0, 0, c.width, c.height);
+  const d = img.data;
+  const sat = 1 + g.saturate;
+  const con = 1 + g.contrast;
+  const br = g.brightness;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] === 0) continue;
+    let r = d[i];
+    let gg = d[i + 1];
+    let b = d[i + 2];
+    const l = 0.299 * r + 0.587 * gg + 0.114 * b;
+    r = (l + (r - l) * sat - 128) * con + 128;
+    gg = (l + (gg - l) * sat - 128) * con + 128;
+    b = (l + (b - l) * sat - 128) * con + 128;
+    d[i] = r * br;
+    d[i + 1] = gg * br;
+    d[i + 2] = b * br;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
 export function canvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const c = document.createElement('canvas');
   c.width = Math.max(1, Math.ceil(w));

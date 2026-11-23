@@ -3,7 +3,7 @@
  * textures for each theme. Everything is drawn once onto canvases.
  */
 import type { PlatformKind, ThemeId } from '../../../shared/src/levels';
-import { canvas, mulberry32, rgba, shade } from './color';
+import { canvas, gradeCanvas, mulberry32, rgba, shade } from './color';
 
 export const W = 1280;
 export const H = 720;
@@ -21,9 +21,28 @@ export type ThemeLayer = {
   paint: (ctx: CanvasRenderingContext2D, w: number, h: number) => void;
 };
 
+/** Light shafts fanning out from a light source (sun, moon, lava…). */
+export type Rays = {
+  x: number;
+  y: number;
+  color: number;
+  count: number;
+  length: number;
+  /** Center direction in degrees (0 = right, 90 = down). */
+  angle: number;
+  /** Total fan width in degrees. */
+  spread: number;
+  alpha: number;
+};
+
+/** Camera color grade (applied via a ColorMatrix pass). */
+export type Grade = { saturate: number; contrast: number; brightness: number };
+
 export type Theme = {
   /** Shown on HUD panels / lobby accents. */
   accent: string;
+  rays: Rays | null;
+  grade: Grade;
   paintBackdrop: (ctx: CanvasRenderingContext2D) => void;
   layers: ThemeLayer[];
   ambient: Ambient;
@@ -133,6 +152,8 @@ function underside(ctx: CanvasRenderingContext2D, rand: () => number, w: number,
 
 const sky: Theme = {
   accent: '#4da3ff',
+  rays: { x: 1060, y: 120, color: 0xfff1c4, count: 7, length: 950, angle: 125, spread: 60, alpha: 0.13 },
+  grade: { saturate: 0.18, contrast: 0.06, brightness: 1.03 },
   ambient: 'none',
   ambientColor: 0xffffff,
   paintBackdrop(ctx) {
@@ -228,6 +249,8 @@ const sky: Theme = {
 
 const frost: Theme = {
   accent: '#7fe6ff',
+  rays: { x: 230, y: 110, color: 0xc4e8ff, count: 6, length: 850, angle: 58, spread: 50, alpha: 0.09 },
+  grade: { saturate: 0.12, contrast: 0.1, brightness: 1.02 },
   ambient: 'snow',
   ambientColor: 0xffffff,
   paintBackdrop(ctx) {
@@ -359,6 +382,8 @@ const frost: Theme = {
 
 const temple: Theme = {
   accent: '#ffb35c',
+  rays: { x: 640, y: 520, color: 0xffcf8a, count: 11, length: 760, angle: -90, spread: 150, alpha: 0.1 },
+  grade: { saturate: 0.22, contrast: 0.08, brightness: 1.04 },
   ambient: 'dust',
   ambientColor: 0xffd59a,
   paintBackdrop(ctx) {
@@ -481,6 +506,8 @@ const temple: Theme = {
 
 const forge: Theme = {
   accent: '#ff7a2e',
+  rays: { x: 640, y: 780, color: 0xff7a2e, count: 8, length: 760, angle: -90, spread: 100, alpha: 0.1 },
+  grade: { saturate: 0.25, contrast: 0.14, brightness: 1.0 },
   ambient: 'embers',
   ambientColor: 0xff9a3d,
   paintBackdrop(ctx) {
@@ -597,6 +624,8 @@ const forge: Theme = {
 
 const neon: Theme = {
   accent: '#ff4fd8',
+  rays: { x: 640, y: 505, color: 0xff7ab6, count: 9, length: 620, angle: -90, spread: 170, alpha: 0.08 },
+  grade: { saturate: 0.35, contrast: 0.12, brightness: 1.02 },
   ambient: 'stars',
   ambientColor: 0xb9f6ff,
   paintBackdrop(ctx) {
@@ -711,18 +740,37 @@ export const THEMES: Record<ThemeId, Theme> = { sky, frost, temple, forge, neon 
 
 export function platformCanvas(theme: ThemeId, w: number, h: number, kind: PlatformKind, seed: number): HTMLCanvasElement {
   const [c, ctx] = canvas(w, h + PLATFORM_HANG);
+  // baked ambient occlusion: a soft shadow pooled under the platform
+  ctx.save();
+  ctx.translate(w / 2, h + 2);
+  ctx.scale(w / 2, PLATFORM_HANG * 0.7);
+  const ao = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+  ao.addColorStop(0, 'rgba(10,4,24,0.42)');
+  ao.addColorStop(1, 'rgba(10,4,24,0)');
+  ctx.fillStyle = ao;
+  ctx.beginPath();
+  ctx.arc(0, 0, 1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
   THEMES[theme].paintPlatform(ctx, w, h, kind, seed);
+  // crisp top highlight + darker underside line for depth
+  ctx.fillStyle = 'rgba(255,255,255,0.22)';
+  ctx.fillRect(3, 0, w - 6, 1);
+  ctx.fillStyle = 'rgba(8,2,20,0.35)';
+  ctx.fillRect(2, h - 2, w - 4, 2);
+  gradeCanvas(c, THEMES[theme].grade);
   return c;
 }
 
 export function backdropCanvas(theme: ThemeId): HTMLCanvasElement {
   const [c, ctx] = canvas(W, H);
   THEMES[theme].paintBackdrop(ctx);
+  gradeCanvas(c, THEMES[theme].grade);
   return c;
 }
 
 /** Scrolling layers are painted three times (shifted by ±W) so the tile wraps without a seam. */
-export function layerCanvas(layer: ThemeLayer): HTMLCanvasElement {
+export function layerCanvas(layer: ThemeLayer, theme: ThemeId): HTMLCanvasElement {
   const [c, ctx] = canvas(W, H);
   for (const dx of [-W, 0, W]) {
     ctx.save();
@@ -730,5 +778,6 @@ export function layerCanvas(layer: ThemeLayer): HTMLCanvasElement {
     layer.paint(ctx, W, H);
     ctx.restore();
   }
+  gradeCanvas(c, THEMES[theme].grade);
   return c;
 }

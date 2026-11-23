@@ -6,7 +6,7 @@ import type { SnapshotMessage } from '../../../shared/src/protocol';
 import type { FeedEntry, PlayerState } from '../../../shared/src/types';
 import { fighterTexture } from '../art/sprites';
 import { hexNum } from '../art/color';
-import { dmgColor } from './fighters';
+import { dmgColor, TEXT_RES } from './fighters';
 
 const FONT = '"Trebuchet MS", "Segoe UI", system-ui, sans-serif';
 const HOW_LABEL: Record<FeedEntry['how'], string> = {
@@ -37,14 +37,16 @@ type Card = {
 };
 
 function text(scene: Phaser.Scene, x: number, y: number, s: string, size: number, color = '#ffffff', stroke = 5) {
-  return scene.add.text(x, y, s, {
-    fontFamily: FONT,
-    fontSize: `${size}px`,
-    fontStyle: 'bold',
-    color,
-    stroke: '#120a20',
-    strokeThickness: stroke,
-  });
+  return scene.add
+    .text(x, y, s, {
+      fontFamily: FONT,
+      fontSize: `${size}px`,
+      fontStyle: 'bold',
+      color,
+      stroke: '#120a20',
+      strokeThickness: stroke,
+    })
+    .setResolution(TEXT_RES);
 }
 
 export class Hud {

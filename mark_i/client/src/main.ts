@@ -4,12 +4,26 @@ import { store, onSnapshot } from './store';
 import { initTouchControls, isTouchDevice, setTouchControlsVisible } from './controls';
 import { initLobbyDom, renderLobby, showScreen } from './lobby';
 import { unlockAudio } from './audio';
+import { QualityManager, SETTINGS, type Setting } from './quality';
+import { perfEnabled, reportCpu, startPerfMeter } from './perfMeter';
 import { BootScene } from './scenes/BootScene';
 import { LobbyScene } from './scenes/LobbyScene';
 import { ArenaScene } from './scenes/ArenaScene';
 import { HudScene } from './scenes/HudScene';
 
 store.touchMode = isTouchDevice();
+// graphics quality: ?gfx=high|medium|low|auto overrides the saved setting
+{
+  let saved: Setting = 'auto';
+  try {
+    saved = (localStorage.getItem('lsa-gfx') as Setting | null) ?? 'auto';
+  } catch {
+    /* private mode */
+  }
+  const fromUrl = new URLSearchParams(location.search).get('gfx') as Setting | null;
+  const setting = fromUrl && SETTINGS.includes(fromUrl) ? fromUrl : SETTINGS.includes(saved) ? saved : 'auto';
+  store.quality = new QualityManager(setting, store.touchMode);
+}
 document.body.classList.toggle('touch-mode', store.touchMode);
 initTouchControls(unlockAudio);
 setTouchControlsVisible(false);
@@ -51,7 +65,7 @@ function join(name: string): void {
 
 initLobbyDom(join);
 
-new Phaser.Game({
+const game = new Phaser.Game({
   type: Phaser.AUTO,
   width: 1280,
   height: 720,
@@ -63,3 +77,11 @@ new Phaser.Game({
   input: { activePointers: 4 },
   scene: [BootScene, LobbyScene, ArenaScene, HudScene], // Hud renders above Arena
 });
+
+// optional on-screen perf meter (?fps=1 to enable, remembered; ?fps=0 to disable)
+if (perfEnabled()) {
+  startPerfMeter();
+  let t0 = 0;
+  game.events.on(Phaser.Core.Events.PRE_STEP, () => (t0 = performance.now()));
+  game.events.on(Phaser.Core.Events.POST_RENDER, () => reportCpu(performance.now() - t0));
+}
