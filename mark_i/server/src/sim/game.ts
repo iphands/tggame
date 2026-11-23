@@ -89,6 +89,7 @@ export class Game {
       if (!this.removeBot()) return null;
     }
     const p = this.addPlayer(uniqueName(this.w.players, sanitizeName(name) ?? `Player ${this.idSeq}`), false);
+    this.endPracticeIfJoined();
     return { id: p.id, name: p.name, color: p.color };
   }
 
@@ -99,6 +100,7 @@ export class Game {
     const name = pool.length ? pool[Math.floor(this.w.rng() * pool.length)] : uniqueName(this.w.players, 'Bot');
     const p = this.addPlayer(name, true);
     p.brain = makeBrain(this.w.rng);
+    this.endPracticeIfJoined();
     return p;
   }
 
@@ -109,6 +111,14 @@ export class Game {
     if (!last) return false;
     this.leave(last.id);
     return true;
+  }
+
+  /** A solo practice round restarts with company as soon as someone joins. */
+  private endPracticeIfJoined(): void {
+    if (this.w.phase === 'playing' && this.startCount < 2) {
+      this.resetToLobby();
+      this.beginCountdown();
+    }
   }
 
   private addPlayer(name: string, bot: boolean): Player {
@@ -130,7 +140,11 @@ export class Game {
     const p = this.w.players.get(id);
     if (!p) return;
     const inPlay = this.w.phase === 'playing' && (p.life === 'alive' || p.life === 'respawning');
-    if (inPlay) this.pushFeed(p, null, 'left');
+    if (inPlay) {
+      this.pushFeed(p, null, 'left');
+      // everyone already eliminated moves up a place
+      for (const q of this.w.players.values()) if (q.place > 0) q.place--;
+    }
     this.w.players.delete(id);
     if (this.humanCount() === 0) {
       // nobody left to play with: clear the bots and idle in the lobby
@@ -172,9 +186,14 @@ export class Game {
     this.nextLevelIndex = (((this.nextLevelIndex + dir) % n) + n) % n;
   }
 
-  /** Force a fresh round right now (lobby GO / restart button). */
+  /**
+   * Force a fresh round right now (lobby START / restart button). Mid-match it
+   * only works when you're the only human, so nobody can wipe a shared round.
+   */
   restart(): void {
-    if (this.humanCount() === 0) return;
+    const humans = this.humanCount();
+    if (humans === 0) return;
+    if (this.w.phase === 'playing' && humans > 1) return;
     this.resetToLobby();
     this.beginCountdown();
   }
@@ -260,6 +279,8 @@ export class Game {
     this.countdownMs = null;
     this.timeLeftMs = MATCH.durationMs;
     this.startCount = [...w.players.values()].filter((p) => p.life === 'alive').length;
+    // a jump tapped during the countdown must not fire as an air jump at FIGHT
+    for (const p of w.players.values()) p.jumpBufferMs = 0;
     scheduleFirstCrate(w);
   }
 
@@ -311,7 +332,11 @@ export class Game {
     for (const p of alive) {
       if (!outOfBounds(p)) continue;
       if (combat) this.knockOut(p);
-      else p.life = 'out';
+      else {
+        // victory lap: just park anyone who wanders off; standings are final
+        p.life = 'respawning';
+        p.respawnAt = Infinity;
+      }
     }
   }
 
@@ -371,6 +396,7 @@ export class Game {
       p.respawnAt = w.t + MATCH.respawnDelayMs;
     } else {
       p.life = 'out';
+      p.outAt = w.t;
       const remaining = [...w.players.values()].filter((q) => q.life === 'alive' || q.life === 'respawning').length;
       p.place = remaining + 1;
     }
@@ -404,6 +430,10 @@ export class Game {
     // rank survivors: more stocks first, then less damage
     const ranked = [...remaining].sort((a, b) => b.stocks - a.stocks || a.dmg - b.dmg);
     ranked.forEach((p, i) => (p.place = i + 1));
+    if (ranked.length === 0) {
+      // the last fighters went out on the same tick: they share first place
+      for (const p of w.players.values()) if (p.outAt === w.t) p.place = 1;
+    }
     let winner: Player | null = ranked[0] ?? null;
     if (timeout && ranked.length > 1) {
       const [a, b] = ranked;
@@ -448,6 +478,9 @@ export class Game {
     p.life = 'alive';
     p.x = x - PHYS.playerW / 2;
     p.y = s.y - PHYS.playerH;
+    const idx = this.w.plats.findIndex((pl) => pl.y === s.y && x >= pl.x && x <= pl.x + pl.w);
+    p.grounded = idx >= 0;
+    p.platIdx = idx;
     p.face = x < ARENA.width / 2 ? 1 : -1;
   }
 

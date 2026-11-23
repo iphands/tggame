@@ -80,6 +80,8 @@ export type Player = {
   falls: number;
   dmgDealt: number;
   place: number;
+  /** Sim ms the player lost their last stock (-1 if not out). */
+  outAt: number;
 
   // session stats
   wins: number;
@@ -182,6 +184,7 @@ export function createPlayer(id: string, name: string, color: string, bot: boole
     falls: 0,
     dmgDealt: 0,
     place: 0,
+    outAt: -1,
     wins: 0,
     totalKos: 0,
   };
@@ -226,6 +229,7 @@ export function resetForRound(p: Player): void {
   p.falls = 0;
   p.dmgDealt = 0;
   p.place = 0;
+  p.outAt = -1;
   p.input = { ...NO_INPUT };
   p.prevJump = false;
 }
