@@ -26,6 +26,13 @@ export function setFireHeld(value: boolean): void {
   fireInput.held = value;
 }
 
+/** One-shot drop request flag (▼ button / down key) consumed by ArenaScene. */
+export const dropRequest = { requested: false };
+
+export function requestDrop(): void {
+  dropRequest.requested = true;
+}
+
 export function isTouchDevice(): boolean {
   if (typeof window === 'undefined') return false;
   const coarse = window.matchMedia?.('(pointer: coarse)').matches ?? false;
@@ -82,6 +89,19 @@ export function initTouchControls(): void {
     fire.addEventListener('pointercancel', up);
     fire.addEventListener('pointerleave', up);
     fire.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  // ▼: discrete drop-through button
+  const downBtn = document.getElementById('ctrl-down');
+  if (downBtn) {
+    const press = (e: Event) => {
+      e.preventDefault();
+      requestDrop();
+      downBtn.classList.add('pressed');
+      setTimeout(() => downBtn.classList.remove('pressed'), 150);
+    };
+    downBtn.addEventListener('pointerdown', press);
+    downBtn.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 }
 

@@ -7,6 +7,7 @@ import {
   setTouchControlsVisible,
   fireInput,
   setFireHeld,
+  dropRequest,
 } from '../controls';
 import type { Snapshot } from '../net';
 import { WORLD } from '../../../shared/src/constants';
@@ -41,12 +42,13 @@ export class ArenaScene extends Phaser.Scene {
   private centerText!: Phaser.GameObjects.Text;
   private eventsKey = '';
   private lastInputSent = { left: false, right: false, jump: false };
-  private keys: Record<string, Phaser.Input.Keyboard.Key[]> = { left: [], right: [], jump: [] };
+  private keys: Record<string, Phaser.Input.Keyboard.Key[]> = { left: [], right: [], jump: [], down: [] };
   private bulletViews: BulletView[] = [];
   private gunBar: Phaser.GameObjects.Rectangle | null = null;
   private gunBarBg: Phaser.GameObjects.Rectangle | null = null;
   private fireLabel: Phaser.GameObjects.Text | null = null;
   private lastFireSent = 0;
+  private prevDown = false;
   private frame = 0;
 
   constructor() {
@@ -80,6 +82,7 @@ export class ArenaScene extends Phaser.Scene {
 
     this.bulletViews = [];
     this.lastFireSent = 0;
+    this.prevDown = false;
 
     const kb = this.input.keyboard;
     if (kb) {
@@ -87,6 +90,7 @@ export class ArenaScene extends Phaser.Scene {
         left: [Phaser.Input.Keyboard.KeyCodes.LEFT, Phaser.Input.Keyboard.KeyCodes.A].map((code) => kb.addKey(code)),
         right: [Phaser.Input.Keyboard.KeyCodes.RIGHT, Phaser.Input.Keyboard.KeyCodes.D].map((code) => kb.addKey(code)),
         jump: [Phaser.Input.Keyboard.KeyCodes.SPACE, Phaser.Input.Keyboard.KeyCodes.UP, Phaser.Input.Keyboard.KeyCodes.W].map((code) => kb.addKey(code)),
+        down: [Phaser.Input.Keyboard.KeyCodes.DOWN, Phaser.Input.Keyboard.KeyCodes.S].map((code) => kb.addKey(code)),
       };
       kb.on('keydown', (e: KeyboardEvent) => {
         if (e.code === 'KeyR' && !e.repeat) store.client?.sendRestart();
@@ -120,7 +124,7 @@ export class ArenaScene extends Phaser.Scene {
     if (this.gunBarBg) this.gunBarBg.setVisible(false);
   }
 
-  private anyKeyDown(name: 'left' | 'right' | 'jump'): boolean {
+  private anyKeyDown(name: 'left' | 'right' | 'jump' | 'down'): boolean {
     return this.keys[name]?.some((k) => k.isDown) ?? false;
   }
 
@@ -132,6 +136,17 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     syncRestartButton(true, snap.phase === 'ended');
+
+    // ---- down-through button (keyboard edge, then touch flag)
+    const downNow = this.anyKeyDown('down');
+    if (downNow && !this.prevDown) store.client?.sendDrop();
+    this.prevDown = downNow;
+
+    if (dropRequest.requested) {
+      dropRequest.requested = false;
+      store.client?.sendDrop();
+    }
+
     // ---- fire (mouse / F key / FIRE button), throttled to ~8/s client-side
     const fireNow = performance.now();
     if (fireInput.held && fireNow - this.lastFireSent >= 125) {

@@ -75,8 +75,8 @@ export class LobbyScene extends Phaser.Scene {
     const hint = document.getElementById('controls-hint');
     if (hint) {
       hint.textContent = store.touchMode
-        ? 'Use the ◀ ▶ and JUMP buttons to move. Knock each other off the island — last one standing wins.'
-        : '← → or A / D to move · Space to jump · Knock each other off the island — last one standing wins.';
+        ? '◀ ▶ move · ▼ drop down · JUMP to hop · FIRE to shoot. Knock each other off the island — last one standing wins.'
+        : '← → or A / D to move · Space to jump · S / ↓ to drop down · F to fire (or click canvas). Knock each other off the island — last one standing wins.';
     }
 
     // hide arena-only chrome if we were coming from the arena

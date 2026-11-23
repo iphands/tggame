@@ -26,6 +26,8 @@ type Player = {
   prevBottom: number; // bottom of the feet at the start of the tick (px)
   boostUntil: number; // sim ms — while active, the max-speed clamp is skipped (stomp shoves)
   lastShotAt: number; // sim ms — last pistol shot
+  dropFromIdx: number; // platform index being dropped through (-1 = none)
+  dropThroughUntil: number; // sim ms — ignore that platform until this time
   input: { left: boolean; right: boolean; jump: boolean };
 };
 
@@ -89,6 +91,8 @@ export class Game {
       prevBottom: -1e9,
       boostUntil: 0,
       lastShotAt: 0,
+      dropFromIdx: -1,
+      dropThroughUntil: 0,
       input: { left: false, right: false, jump: false },
     };
     this.players.set(id, p);
@@ -139,6 +143,35 @@ export class Game {
       vx: dir * WORLD.bulletSpeed,
       ttlMs: WORLD.bulletTtlMs,
     });
+  }
+
+  /**
+   * Drop through the current platform — allowed only when a platform exists
+   * below (the drop leads to a lower level, never straight into the pit).
+   */
+  drop(id: string): void {
+    const p = this.players.get(id);
+    if (!p || !p.alive || p.waiting) return;
+    if (this.phase !== 'playing') return;
+    if (!p.grounded || p.platIdx < 0) return;
+
+    const now = this._simTimeMs;
+    const plats = PLATFORMS.map((def) => this.platformAt(def, now));
+    const feet = p.y + WORLD.playerH;
+    let hasBelow = false;
+    for (let i = 0; i < plats.length; i++) {
+      if (i === p.platIdx) continue; // the platform we're dropping through
+      const pl = plats[i];
+      if (pl.y <= feet) continue; // must be BELOW the player's feet
+      const overlapX = p.x + WORLD.playerW > pl.x && p.x < pl.x + pl.w;
+      if (overlapX) { hasBelow = true; break; }
+    }
+    if (!hasBelow) return; // lowest level or nothing below — refuse
+
+    p.dropFromIdx = p.platIdx;
+    p.dropThroughUntil = now + WORLD.dropThroughMs;
+    p.grounded = false;
+    p.platIdx = -1;
   }
 
   setInput(id: string, input: PlayerInputMsg): void {
@@ -216,6 +249,8 @@ export class Game {
       p.prevBottom = -1e9;
       p.boostUntil = 0;
       p.lastShotAt = 0;
+      p.dropFromIdx = -1;
+      p.dropThroughUntil = 0;
       i++;
     }
   }
@@ -242,6 +277,8 @@ export class Game {
       p.prevBottom = -1e9;
       p.boostUntil = 0;
       p.lastShotAt = 0;
+      p.dropFromIdx = -1;
+      p.dropThroughUntil = 0;
       p.hp = WORLD.maxHp;
       p.maxHp = WORLD.maxHp;
       p.input = { left: false, right: false, jump: false };
@@ -404,7 +441,9 @@ export class Game {
     let landed = false;
     let landedIdx = -1;
     if (p.vy >= 0) {
+      const skipPlatIdx = t < p.dropThroughUntil ? p.dropFromIdx : -1;
       for (let i = 0; i < plats.length; i++) {
+        if (i === skipPlatIdx) continue; // dropped through this platform
         const plat = plats[i];
         const newBottom = p.y + WORLD.playerH;
         const overlapX = p.x + WORLD.playerW > plat.x && p.x < plat.x + plat.w;

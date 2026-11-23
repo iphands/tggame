@@ -106,6 +106,11 @@ export class GameClient {
     this.send({ type: 'shoot' });
   }
 
+  /** Ask the server to drop through the current platform (if it leads to a lower one). */
+  sendDrop(): void {
+    this.send({ type: 'drop' });
+  }
+
   setName(name: string): void {
     this.name = name;
   }

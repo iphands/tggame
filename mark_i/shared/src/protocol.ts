@@ -15,7 +15,8 @@ export type ClientMessage =
   | { type: 'input'; left: boolean; right: boolean; jump: boolean }
   | { type: 'leave' }
   | { type: 'restart' }
-  | { type: 'shoot' };
+  | { type: 'shoot' }
+  | { type: 'drop' };
 
 export type PlayerSnapshot = {
   id: string;
@@ -92,5 +93,6 @@ export function isClientMessage(v: unknown): v is ClientMessage {
   if (m.type === 'leave') return true;
   if (m.type === 'restart') return true;
   if (m.type === 'shoot') return true;
+  if (m.type === 'drop') return true;
   return false;
 }

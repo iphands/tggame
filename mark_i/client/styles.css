@@ -356,8 +356,9 @@ body.touch-mode .roster {
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
 }
 
-.ctrl-left { left: 2.4%; width: 17%; height: 26%; }
-.ctrl-right { left: 21.5%; width: 17%; height: 26%; }
+.ctrl-left { left: 2.4%; width: 15.5%; height: 26%; }
+.ctrl-right { left: 19.1%; width: 15.5%; height: 26%; }
+.ctrl-down { left: 35.8%; width: 12.5%; height: 26%; font-size: clamp(18px, 4.6vmin, 36px); }
 .ctrl-fire {
   right: 31.8%;
   width: 12.8%;
