@@ -31,6 +31,9 @@ const ITEM_LABEL: Record<string, [string, string]> = {
   bombs: ['BOMBS!', '#ff7a5c'],
   shield: ['SHIELD!', '#7fd3ff'],
   heal: ['-40%', '#7dffb0'],
+  smg: ['SMG!', '#3df2ff'],
+  rockets: ['ROCKETS!', '#ff6b4f'],
+  railgun: ['☢ RAILGUN ☢', '#ff4fd8'],
 };
 
 export class ArenaScene extends Phaser.Scene {
@@ -276,7 +279,7 @@ export class ArenaScene extends Phaser.Scene {
       let img = this.shots.get(pr.id);
       if (!img) {
         img = this.add.image(x, y, pr.kind).setDepth(16);
-        if (pr.kind !== 'bomb') img.setBlendMode(Phaser.BlendModes.ADD);
+        if (pr.kind !== 'bomb' && pr.kind !== 'rocket') img.setBlendMode(Phaser.BlendModes.ADD);
         this.shots.set(pr.id, img);
       }
       img.setPosition(x, y);
@@ -287,6 +290,12 @@ export class ArenaScene extends Phaser.Scene {
         }
       } else {
         img.setRotation(Math.atan2(pr.vy, pr.vx));
+        if (pr.kind === 'rocket') {
+          const back = Math.atan2(pr.vy, pr.vx) + Math.PI;
+          const deg = Phaser.Math.RadToDeg(back);
+          this.particles.burst(x + Math.cos(back) * 12, y + Math.sin(back) * 12, { count: 2, colors: [0xffd34d, 0xff7a1a, 0xffffff], speed: [40, 140], angle: [deg - 20, deg + 20], life: [120, 260], size: [2, 3], add: true });
+          this.particles.burst(x + Math.cos(back) * 14, y + Math.sin(back) * 14, { count: 1, colors: [0x6b6680, 0x8d88a0], speed: [10, 40], life: [400, 700], size: [5, 8], texture: 'puff', alpha: 0.5, endScale: 1.5, gravity: -40 });
+        }
       }
     }
     for (const [id, img] of this.shots) {
@@ -396,6 +405,13 @@ export class ArenaScene extends Phaser.Scene {
       case 'shot':
         if (f.weapon === 'bombs') {
           play('throw', vol);
+        } else if (f.weapon === 'smg') {
+          this.glow(f.x, f.y, 0x3df2ff, 28, 70);
+          play('smg', vol * 0.8);
+        } else if (f.weapon === 'rockets') {
+          this.glow(f.x, f.y, 0xff9a3d, 60, 160);
+          this.particles.burst(f.x - f.face * 20, f.y, { count: 8, colors: [0xcfc6dc, 0x8d88a0], speed: [40, 160], angle: f.face > 0 ? [150, 210] : [-30, 30], life: [250, 500], size: [5, 9], texture: 'puff', alpha: 0.6, drag: 3 });
+          play('rocket', vol);
         } else {
           this.glow(f.x, f.y, f.weapon === 'boomstick' ? 0xff9a3d : 0xffe066, f.weapon === 'boomstick' ? 70 : 40, 110);
           this.particles.burst(f.x, f.y, { count: f.weapon === 'boomstick' ? 10 : 4, colors: [0xffe066, 0xffffff], speed: [80, 240], angle: f.face > 0 ? [-30, 30] : [150, 210], life: [80, 200], size: [1, 3], add: true });
@@ -403,6 +419,30 @@ export class ArenaScene extends Phaser.Scene {
           play(f.weapon === 'boomstick' ? 'boomstick' : 'pistol', vol);
         }
         break;
+      case 'charge':
+        this.glow(f.x, f.y, 0xff4fd8, 70, 330);
+        this.particles.burst(f.x, f.y, { count: 14, colors: [0xff4fd8, 0xffffff, 0x3df2ff], speed: [60, 140], life: [250, 330], size: [1, 2], add: true, drag: 1, gravity: 0 });
+        play('charge', self ? 1 : 0.7);
+        break;
+      case 'beam': {
+        const c = hexNum(f.color);
+        const g = this.add.graphics().setDepth(26).setBlendMode(Phaser.BlendModes.ADD);
+        g.lineStyle(26, c, 0.35).lineBetween(f.x, f.y, f.x2, f.y2);
+        g.lineStyle(12, 0xff4fd8, 0.8).lineBetween(f.x, f.y, f.x2, f.y2);
+        g.lineStyle(4, 0xffffff, 1).lineBetween(f.x, f.y, f.x2, f.y2);
+        this.tweens.add({ targets: g, alpha: 0, duration: 420, ease: 'Cubic.easeIn', onComplete: () => g.destroy() });
+        // sparks streaming along the beam
+        const n = 24;
+        for (let i = 0; i < n; i++) {
+          const k = i / n;
+          this.particles.burst(f.x + (f.x2 - f.x) * k, f.y + (f.y2 - f.y) * k, { count: 1, colors: [0xffffff, 0xff4fd8, c], speed: [20, 120], life: [200, 500], size: [2, 3], add: true });
+        }
+        this.glow(f.x, f.y, 0xffffff, 120, 220);
+        this.cameras.main.shake(260, 0.02);
+        this.cameras.main.flash(90, 255, 120, 230);
+        play('railgun');
+        break;
+      }
       case 'boom':
         this.glow(f.x, f.y, 0xffb347, f.r * 2.6, 380);
         this.glow(f.x, f.y, 0xffffff, f.r * 1.2, 160);

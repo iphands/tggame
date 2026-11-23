@@ -8,6 +8,7 @@ import type {
   ItemKind,
   LifeState,
   Phase,
+  ProjectileState,
   WeaponKind,
 } from '../../../shared/src/types.js';
 
@@ -73,6 +74,8 @@ export type Player = {
   punchAt: number;
   punchHits: Set<string>;
   shotAt: number;
+  /** Railgun: sim ms the charged shot fires (0 = not charging). */
+  chargeUntil: number;
   lastHit: { by: string; at: number; how: HitHow } | null;
 
   // per-match stats
@@ -104,7 +107,7 @@ export type Plat = {
 
 export type Projectile = {
   id: number;
-  kind: 'bullet' | 'pellet' | 'bomb';
+  kind: ProjectileState['kind'];
   owner: string;
   x: number;
   y: number;
@@ -179,6 +182,7 @@ export function createPlayer(id: string, name: string, color: string, bot: boole
     punchAt: -1e9,
     punchHits: new Set(),
     shotAt: -1e9,
+    chargeUntil: 0,
     lastHit: null,
     kos: 0,
     falls: 0,
@@ -212,6 +216,7 @@ export function resetBody(p: Player): void {
   p.punchAt = -1e9;
   p.punchHits.clear();
   p.shotAt = -1e9;
+  p.chargeUntil = 0;
   p.lastHit = null;
 }
 

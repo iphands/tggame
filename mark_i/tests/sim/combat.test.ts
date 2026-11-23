@@ -256,3 +256,77 @@ describe('pistol aim assist', () => {
     expect(g.w.projectiles[0].vy).toBe(0);
   });
 });
+
+describe('crate weapons', () => {
+  it('SMG: rapid fire, small hits, runs dry back to the pistol', () => {
+    const { g, a, b } = duel(150);
+    const pa = P(g, a);
+    grantItem(g.w, pa, 'smg');
+    for (let i = 0; i < 6; i++) {
+      g.shoot(a);
+      run(g, COMBAT.smg.cooldownMs + 5);
+    }
+    run(g, 300);
+    expect(P(g, b).dmg).toBeGreaterThanOrEqual(COMBAT.smg.dmg * 4);
+    expect(P(g, b).lastHit?.how).toBe('smg');
+    pa.ammo = 1;
+    g.shoot(a);
+    expect(pa.weapon).toBe('pistol');
+  });
+
+  it('rockets fly, explode on contact, and blast the target', () => {
+    const { g, a, b } = duel(150);
+    grantItem(g.w, P(g, a), 'rockets');
+    g.shoot(a);
+    expect(g.w.projectiles[0].kind).toBe('rocket');
+    run(g, 800);
+    expect(g.w.projectiles.length).toBe(0);
+    expect(P(g, b).dmg).toBeGreaterThan(COMBAT.rocket.dmg * 0.5);
+    expect(P(g, b).lastHit?.how).toBe('rocket');
+  });
+
+  it('railgun: telegraphed charge, then a piercing beam that launches everyone in line', () => {
+    const g = newGame('sky');
+    const [a, b, c] = startMatch(g, ['A', 'B', 'C']);
+    place(g, a, 470, 440);
+    place(g, b, 640, 440);
+    place(g, c, 800, 440);
+    run(g, 100);
+    const pa = P(g, a);
+    pa.face = 1;
+    grantItem(g.w, pa, 'railgun');
+    g.shoot(a);
+    expect(g.snapshot().players.find((p) => p.id === a)?.charging).toBe(true);
+    expect(P(g, b).dmg).toBe(0); // nothing yet: it's charging
+    run(g, COMBAT.railgun.chargeMs + 40);
+    for (const id of [b, c]) {
+      expect(P(g, id).dmg).toBe(COMBAT.railgun.dmg);
+      expect(Math.hypot(P(g, id).vx, P(g, id).vy)).toBeGreaterThan(1000); // huge launch even at low %
+    }
+    expect(pa.ammo).toBe(COMBAT.railgun.ammo - 1);
+  });
+
+  it('railgun is very powerful: a mid-damage target gets KO’d', () => {
+    const g = newGame('sky');
+    const [a, b] = startMatch(g);
+    place(g, a, 500, 440);
+    place(g, b, 640, 440);
+    run(g, 100);
+    P(g, a).face = 1;
+    P(g, b).dmg = 50;
+    grantItem(g.w, P(g, a), 'railgun');
+    g.shoot(a);
+    run(g, 3000);
+    expect(P(g, b).falls).toBe(1);
+    expect(g.w.feed[0].how).toBe('railgun');
+  });
+
+  it('railgun charge fizzles if the shooter is KO’d mid-charge', () => {
+    const { g, a, b } = duel(100);
+    grantItem(g.w, P(g, a), 'railgun');
+    g.shoot(a);
+    P(g, a).life = 'respawning';
+    run(g, COMBAT.railgun.chargeMs + 40);
+    expect(P(g, b).dmg).toBe(0);
+  });
+});

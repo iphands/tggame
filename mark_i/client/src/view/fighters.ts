@@ -28,6 +28,8 @@ export class FighterView {
   private readonly shield: Phaser.GameObjects.Image;
   private readonly glow: Phaser.GameObjects.Image;
   private readonly crown: Phaser.GameObjects.Image;
+  /** Railgun sight line while charging. */
+  private readonly sight: Phaser.GameObjects.Graphics;
   /** Set by the scene: this player leads the session in wins. */
   leader = false;
   private runDist = 0;
@@ -44,6 +46,7 @@ export class FighterView {
     this.fist = scene.add.image(0, 0, 'fist').setDepth(14).setVisible(false).setBlendMode(Phaser.BlendModes.ADD);
     this.shield = scene.add.image(0, 0, 'shield').setDepth(15).setVisible(false);
     this.crown = scene.add.image(0, 0, 'crown').setDepth(13).setOrigin(0.5, 1).setVisible(false);
+    this.sight = scene.add.graphics().setDepth(17).setBlendMode(Phaser.BlendModes.ADD);
     this.name = scene.add
       .text(0, 0, p.name, {
         fontFamily: TEXT_FONT,
@@ -147,6 +150,16 @@ export class FighterView {
 
     // ---- shield bubble
     this.shield.setVisible(p.shield).setPosition(cx, p.y + H / 2);
+
+    // ---- railgun charge: a flickering sight line warns everyone in its path
+    this.sight.clear();
+    if (p.charging) {
+      const mx = cx + p.face * (W / 2 + 6);
+      const my = p.y + H * 0.45;
+      const flicker = 0.35 + 0.4 * Math.abs(Math.sin(simNow / 25));
+      this.sight.lineStyle(2, 0xff4fd8, flicker).lineBetween(mx, my, mx + p.face * 1500, my);
+      this.sight.fillStyle(0xffffff, 0.9).fillCircle(mx, my, 3 + Math.sin(simNow / 40) * 1.5);
+    }
     if (p.shield) this.shield.setScale(1 + Math.sin(simNow / 120) * 0.04).setAlpha(0.8 + Math.sin(simNow / 70) * 0.15);
 
     // ---- name + damage tag
@@ -161,13 +174,14 @@ export class FighterView {
     this.crown.setVisible(v && this.leader);
     this.marker?.setVisible(v);
     if (!v) {
+      this.sight.clear();
       this.fist.setVisible(false);
       this.shield.setVisible(false);
     }
   }
 
   destroy(): void {
-    for (const o of [this.sprite, this.name, this.dmg, this.gun, this.fist, this.shield, this.glow, this.crown]) o.destroy();
+    for (const o of [this.sprite, this.name, this.dmg, this.gun, this.fist, this.shield, this.glow, this.crown, this.sight]) o.destroy();
     this.marker?.destroy();
   }
 }

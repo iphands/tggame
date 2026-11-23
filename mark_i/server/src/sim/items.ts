@@ -8,6 +8,9 @@ import type { Crate, Player, World } from './model.js';
 const ITEM_WEIGHTS: [ItemKind, number][] = [
   ['boomstick', 3],
   ['bombs', 3],
+  ['smg', 3],
+  ['rockets', 2],
+  ['railgun', 1], // rare and devastating
   ['shield', 2],
   ['heal', 2],
 ];
@@ -44,6 +47,16 @@ export function grantItem(w: World, p: Player, item: ItemKind): void {
   } else if (item === 'bombs') {
     p.weapon = 'bombs';
     p.ammo = COMBAT.bomb.ammo;
+  } else if (item === 'smg') {
+    p.weapon = 'smg';
+    p.ammo = COMBAT.smg.ammo;
+  } else if (item === 'rockets') {
+    p.weapon = 'rockets';
+    p.ammo = COMBAT.rocket.ammo;
+  } else if (item === 'railgun') {
+    p.weapon = 'railgun';
+    p.ammo = COMBAT.railgun.ammo;
+    p.chargeUntil = 0;
   } else if (item === 'shield') {
     p.shieldUntil = w.t + COMBAT.shieldMs;
   } else {

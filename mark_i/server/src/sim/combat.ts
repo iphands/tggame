@@ -152,9 +152,20 @@ export function updateStomps(w: World, alive: Player[]): void {
 // ------------------------------------------------------------------ guns
 
 function weaponCooldown(p: Player): number {
-  if (p.weapon === 'boomstick') return COMBAT.boomstick.cooldownMs;
-  if (p.weapon === 'bombs') return COMBAT.bomb.cooldownMs;
-  return COMBAT.pistol.cooldownMs;
+  switch (p.weapon) {
+    case 'boomstick':
+      return COMBAT.boomstick.cooldownMs;
+    case 'bombs':
+      return COMBAT.bomb.cooldownMs;
+    case 'smg':
+      return COMBAT.smg.cooldownMs;
+    case 'rockets':
+      return COMBAT.rocket.cooldownMs;
+    case 'railgun':
+      return COMBAT.railgun.cooldownMs;
+    default:
+      return COMBAT.pistol.cooldownMs;
+  }
 }
 
 function spendAmmo(p: Player): void {
@@ -168,6 +179,7 @@ function spendAmmo(p: Player): void {
 
 export function fire(w: World, p: Player): boolean {
   if (p.life !== 'alive') return false;
+  if (p.chargeUntil > 0) return false; // railgun already charging
   if (w.t - p.shotAt < weaponCooldown(p)) return false;
   p.shotAt = w.t;
   dropInvuln(w, p);
@@ -175,6 +187,13 @@ export function fire(w: World, p: Player): boolean {
   const muzzleX = p.x + W / 2 + p.face * (W / 2 + 6);
   const muzzleY = p.y + H * 0.45;
   const weapon = p.weapon;
+
+  if (weapon === 'railgun') {
+    // telegraphed: the beam fires after a short charge (see updateCharges)
+    p.chargeUntil = w.t + COMBAT.railgun.chargeMs;
+    w.fx.push({ k: 'charge', x: muzzleX, y: muzzleY, id: p.id });
+    return true;
+  }
 
   const aim = assistAngle(w, p, muzzleX, muzzleY);
   if (weapon === 'pistol') {
@@ -189,6 +208,17 @@ export function fire(w: World, p: Player): boolean {
     // recoil kicks the shooter backwards
     p.vx -= p.face * B.recoil;
     p.boostUntil = Math.max(p.boostUntil, w.t + 160);
+    spendAmmo(p);
+  } else if (weapon === 'smg') {
+    const S = COMBAT.smg;
+    const a = aim + (w.rng() - 0.5) * S.spreadDeg * RAD;
+    spawn(w, p, 'dart', muzzleX, muzzleY, p.face * Math.cos(a) * S.speed, Math.sin(a) * S.speed, S.ttlMs, S.angleDeg);
+    spendAmmo(p);
+  } else if (weapon === 'rockets') {
+    const R = COMBAT.rocket;
+    spawn(w, p, 'rocket', muzzleX, muzzleY, p.face * Math.cos(aim) * R.speed, Math.sin(aim) * R.speed, R.ttlMs, 0);
+    p.vx -= p.face * R.recoil;
+    p.boostUntil = Math.max(p.boostUntil, w.t + 120);
     spendAmmo(p);
   } else {
     const B = COMBAT.bomb;
@@ -226,6 +256,64 @@ export function assistAngle(w: World, p: Player, mx: number, my: number): number
   return best;
 }
 
+/** Fire railgun beams whose charge has finished. Call once per tick. */
+export function updateCharges(w: World): void {
+  for (const p of w.players.values()) {
+    if (p.chargeUntil <= 0) continue;
+    if (p.life !== 'alive') {
+      p.chargeUntil = 0;
+      continue;
+    }
+    if (w.t < p.chargeUntil) continue;
+    p.chargeUntil = 0;
+    fireRail(w, p);
+  }
+}
+
+/** Screen-wide piercing beam: hits every foe along the line. */
+function fireRail(w: World, p: Player): void {
+  const R = COMBAT.railgun;
+  const mx = p.x + W / 2 + p.face * (W / 2 + 6);
+  const my = p.y + H * 0.45;
+  const aim = assistAngle(w, p, mx, my);
+  const dx = p.face * Math.cos(aim);
+  const dy = Math.sin(aim);
+  const x2 = mx + dx * R.range;
+  const y2 = my + dy * R.range;
+  const pad = R.width / 2;
+  for (const q of w.players.values()) {
+    if (q === p || q.life !== 'alive') continue;
+    if (!segmentHitsBox(mx, my, x2, y2, q.x - pad, q.y - pad, q.x + W + pad, q.y + H + pad)) continue;
+    applyHit(w, p, q, { dmg: R.dmg, base: R.base, growth: R.growth, ...angled(p.face, R.angleDeg), how: 'railgun' });
+  }
+  // big kick back on the shooter
+  p.vx -= p.face * R.recoil;
+  p.boostUntil = Math.max(p.boostUntil, w.t + 200);
+  w.fx.push({ k: 'beam', x: mx, y: my, x2, y2, id: p.id, color: p.color });
+  spendAmmo(p);
+}
+
+/** Liang–Barsky segment vs axis-aligned box. */
+export function segmentHitsBox(x1: number, y1: number, x2: number, y2: number, bx0: number, by0: number, bx1: number, by1: number): boolean {
+  let t0 = 0;
+  let t1 = 1;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const clip = (p: number, q: number) => {
+    if (p === 0) return q >= 0;
+    const r = q / p;
+    if (p < 0) {
+      if (r > t1) return false;
+      if (r > t0) t0 = r;
+    } else {
+      if (r < t0) return false;
+      if (r < t1) t1 = r;
+    }
+    return true;
+  };
+  return clip(-dx, x1 - bx0) && clip(dx, bx1 - x1) && clip(-dy, y1 - by0) && clip(dy, by1 - y1) && t0 <= t1;
+}
+
 function spawn(
   w: World,
   owner: Player,
@@ -247,6 +335,10 @@ export function updateProjectiles(w: World, dtMs: number): void {
     pr.ttlMs -= dtMs;
     if (pr.kind === 'bomb') {
       if (updateBomb(w, pr, s)) next.push(pr);
+      continue;
+    }
+    if (pr.kind === 'rocket') {
+      if (updateRocket(w, pr, s)) next.push(pr);
       continue;
     }
     const x0 = pr.x;
@@ -273,13 +365,13 @@ export function updateProjectiles(w: World, dtMs: number): void {
     }
     if (hit) {
       const owner = w.players.get(pr.owner) ?? null;
-      const spec = pr.kind === 'bullet' ? COMBAT.pistol : COMBAT.boomstick;
+      const spec = pr.kind === 'bullet' ? COMBAT.pistol : pr.kind === 'dart' ? COMBAT.smg : COMBAT.boomstick;
       applyHit(w, owner, hit, {
         dmg: spec.dmg,
         base: spec.base,
         growth: spec.growth,
         ...angled(Math.sign(pr.vx) || 1, pr.angleDeg),
-        how: pr.kind === 'bullet' ? 'pistol' : 'boomstick',
+        how: pr.kind === 'bullet' ? 'pistol' : pr.kind === 'dart' ? 'smg' : 'boomstick',
       });
       continue; // consumed
     }
@@ -334,8 +426,36 @@ function updateBomb(w: World, b: Projectile, s: number): boolean {
   return true;
 }
 
+/** Rockets fly straight, speed up, and explode on the first body they touch. Returns true if alive. */
+function updateRocket(w: World, r: Projectile, s: number): boolean {
+  const R = COMBAT.rocket;
+  const speed = Math.hypot(r.vx, r.vy) || 1;
+  const next = Math.min(R.maxSpeed, speed + R.accel * s);
+  r.vx = (r.vx / speed) * next;
+  r.vy = (r.vy / speed) * next;
+  const x0 = r.x;
+  const y0 = r.y;
+  r.x += r.vx * s;
+  r.y += r.vy * s;
+  if (r.x < ARENA.blastLeft || r.x > ARENA.blastRight || r.y > ARENA.blastBottom || r.y < ARENA.blastTop) return false;
+  let hit = false;
+  for (const q of w.players.values()) {
+    if (q.life !== 'alive' || q.id === r.owner) continue;
+    if (segmentHitsBox(x0, y0, r.x, r.y, q.x - 4, q.y - 4, q.x + W + 4, q.y + H + 4)) {
+      hit = true;
+      break;
+    }
+  }
+  if (hit || r.ttlMs <= 0) {
+    explode(w, r);
+    return false;
+  }
+  return true;
+}
+
 export function explode(w: World, b: Projectile): void {
-  const B = COMBAT.bomb;
+  const B = b.kind === 'rocket' ? COMBAT.rocket : COMBAT.bomb;
+  const how = b.kind === 'rocket' ? 'rocket' : 'bomb';
   w.fx.push({ k: 'boom', x: b.x, y: b.y, r: B.radius });
   const owner = w.players.get(b.owner) ?? null;
   const minA = B.minAngleDeg * RAD;
@@ -355,7 +475,7 @@ export function explode(w: World, b: Projectile): void {
       growth: B.growth * f,
       dirX: side * Math.cos(a),
       dirY: -Math.sin(a),
-      how: 'bomb',
+      how,
     });
   }
 }

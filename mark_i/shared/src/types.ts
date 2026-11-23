@@ -3,9 +3,9 @@ import type { PlatformKind } from './levels.js';
 
 export type Phase = 'lobby' | 'starting' | 'playing' | 'ended';
 
-export type WeaponKind = 'pistol' | 'boomstick' | 'bombs';
-export type ItemKind = 'boomstick' | 'bombs' | 'shield' | 'heal';
-export type HitHow = 'punch' | 'stomp' | 'pistol' | 'boomstick' | 'bomb';
+export type WeaponKind = 'pistol' | 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun';
+export type ItemKind = 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun' | 'shield' | 'heal';
+export type HitHow = 'punch' | 'stomp' | 'pistol' | 'boomstick' | 'bomb' | 'smg' | 'rocket' | 'railgun';
 
 /**
  * alive      — on stage, playing
@@ -35,6 +35,8 @@ export type PlayerState = {
   invuln: boolean;
   shield: boolean;
   launched: boolean;
+  /** Charging a railgun shot (draw the sight line). */
+  charging: boolean;
   /** Sim ms of the last punch (-1 if never). */
   punchAt: number;
   /** Sim ms of the last shot (-1 if never). */
@@ -56,7 +58,7 @@ export type PlatformState = {
 
 export type ProjectileState = {
   id: number;
-  kind: 'bullet' | 'pellet' | 'bomb';
+  kind: 'bullet' | 'pellet' | 'bomb' | 'dart' | 'rocket';
   owner: string;
   x: number; // center
   y: number;
@@ -80,6 +82,8 @@ export type Fx =
   | { k: 'block'; x: number; y: number; id: string }
   | { k: 'shot'; x: number; y: number; id: string; weapon: WeaponKind; face: 1 | -1 }
   | { k: 'boom'; x: number; y: number; r: number }
+  | { k: 'charge'; x: number; y: number; id: string }
+  | { k: 'beam'; x: number; y: number; x2: number; y2: number; id: string; color: string }
   | { k: 'ko'; x: number; y: number; id: string; color: string; dirX: number; dirY: number }
   | { k: 'pickup'; x: number; y: number; id: string; item: ItemKind }
   | { k: 'crate'; x: number; y: number }

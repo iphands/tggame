@@ -180,6 +180,9 @@ export function thinkBot(w: World, p: Player, act: BotActions): void {
         if (p.weapon === 'bombs' && adx < 430 && ady < 140 && r < 0.07) act.fire(p);
         else if (p.weapon === 'boomstick' && adx < 240 && ady < 40 && r < 0.25) act.fire(p);
         else if (p.weapon === 'pistol' && adx < 650 && ady < 22 && r < 0.035 * b.skill) act.fire(p);
+        else if (p.weapon === 'smg' && adx < 600 && ady < 120 && r < 0.5) act.fire(p);
+        else if (p.weapon === 'rockets' && adx < 700 && ady < 150 && r < 0.05) act.fire(p);
+        else if (p.weapon === 'railgun' && adx < 1100 && ady < 200 && r < 0.03 * b.skill) act.fire(p);
       }
     }
   }

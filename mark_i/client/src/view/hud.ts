@@ -15,6 +15,9 @@ const HOW_LABEL: Record<FeedEntry['how'], string> = {
   pistol: 'blasted',
   boomstick: 'boomsticked',
   bomb: 'bombed',
+  smg: 'riddled',
+  rocket: 'rocketed',
+  railgun: 'RAILED',
   fall: 'fell',
   left: 'left',
 };

@@ -101,6 +101,10 @@ export type Sfx =
   | 'pistol'
   | 'boomstick'
   | 'throw'
+  | 'smg'
+  | 'rocket'
+  | 'charge'
+  | 'railgun'
   | 'boom'
   | 'ko'
   | 'pickup'
@@ -157,6 +161,23 @@ export function play(name: Sfx, vol = 1): void {
     case 'boomstick':
       noise(0.22, 0.6 * v, 'lowpass', 4000, 300);
       tone('sawtooth', 140, 50, 0.18, 0.25 * v);
+      break;
+    case 'smg':
+      noise(0.04, 0.16 * v, 'highpass', 2600, 1400);
+      tone('square', 1300, 500, 0.04, 0.06 * v);
+      break;
+    case 'rocket':
+      noise(0.5, 0.3 * v, 'bandpass', 600, 2400, 0, 0.8);
+      tone('sawtooth', 120, 260, 0.35, 0.12 * v);
+      break;
+    case 'charge':
+      tone('sawtooth', 200, 1800, 0.32, 0.12 * v);
+      tone('sine', 400, 3600, 0.32, 0.1 * v);
+      break;
+    case 'railgun':
+      tone('square', 2400, 80, 0.45, 0.3 * v);
+      noise(0.6, 0.7 * v, 'lowpass', 6000, 120);
+      tone('sine', 90, 30, 0.6, 0.5 * v);
       break;
     case 'throw':
       tone('triangle', 300, 700, 0.12, 0.15 * v);

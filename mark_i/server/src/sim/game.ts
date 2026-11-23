@@ -10,7 +10,7 @@ import { LEVELS, levelAt } from '../../../shared/src/levels.js';
 import type { SnapshotBody } from '../../../shared/src/protocol.js';
 import type { HitHow, Phase, ResultRow } from '../../../shared/src/types.js';
 import { makeBrain, thinkBot } from './bots.js';
-import { fire, startPunch, updateProjectiles, updatePunches, updateStomps } from './combat.js';
+import { fire, startPunch, updateCharges, updateProjectiles, updatePunches, updateStomps } from './combat.js';
 import { scheduleFirstCrate, updateCrates } from './items.js';
 import { createPlayer, resetBody, resetForRound, type Input, type Player, type World } from './model.js';
 import { applyInput, separateBodies, stepPlayer, tryDrop } from './physics.js';
@@ -325,6 +325,7 @@ export class Game {
     }
     separateBodies(alive);
     if (combat) {
+      updateCharges(w);
       updateProjectiles(w, TICK_MS);
       updateCrates(w, TICK_MS, this.timeLeftMs ?? 0);
     }
@@ -529,6 +530,7 @@ export class Game {
         invuln: t < p.invulnUntil,
         shield: t < p.shieldUntil,
         launched: t < p.launchUntil,
+        charging: p.chargeUntil > 0,
         punchAt: p.punchAt < 0 ? -1 : Math.round(p.punchAt),
         shotAt: p.shotAt < 0 ? -1 : Math.round(p.shotAt),
         airJumps: p.airJumpsLeft,

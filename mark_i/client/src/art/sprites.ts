@@ -224,6 +224,30 @@ export function makeCommonTextures(scene: Phaser.Scene): void {
 
   add(scene, 'bomb', 20, 22, (ctx) => drawBomb(ctx, 10, 13, 8));
 
+  add(scene, 'dart', 10, 4, (ctx) => {
+    ctx.fillStyle = '#3df2ff';
+    ctx.fillRect(0, 0, 10, 4);
+    ctx.fillStyle = '#e8feff';
+    ctx.fillRect(4, 1, 6, 2);
+  });
+
+  add(scene, 'rocket', 26, 12, (ctx) => {
+    ctx.fillStyle = '#7a8094';
+    ctx.fillRect(3, 3, 16, 6);
+    ctx.fillStyle = '#ff4f4f';
+    ctx.beginPath();
+    ctx.moveTo(19, 2);
+    ctx.lineTo(26, 6);
+    ctx.lineTo(19, 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#c0392b';
+    ctx.fillRect(2, 0, 5, 3);
+    ctx.fillRect(2, 9, 5, 3);
+    ctx.fillStyle = '#ffd34d';
+    ctx.fillRect(0, 4, 3, 4);
+  });
+
   add(scene, 'fist', 40, 40, (ctx) => {
     ctx.strokeStyle = 'rgba(255,255,255,0.95)';
     ctx.lineCap = 'round';
@@ -308,7 +332,43 @@ export function makeCommonTextures(scene: Phaser.Scene): void {
 
   add(scene, 'gun-bombs', 16, 18, (ctx) => drawBomb(ctx, 8, 11, 6));
 
-  for (const item of ['boomstick', 'bombs', 'shield', 'heal'] as const) {
+  add(scene, 'gun-smg', 24, 14, (ctx) => {
+    ctx.fillStyle = '#14111c';
+    ctx.fillRect(0, 1, 22, 6);
+    ctx.fillRect(4, 6, 4, 8); // grip
+    ctx.fillRect(11, 6, 4, 7); // magazine
+    ctx.fillStyle = '#3df2ff';
+    ctx.fillRect(1, 2, 20, 2);
+    ctx.fillStyle = '#5d6275';
+    ctx.fillRect(20, 3, 4, 2);
+  });
+
+  add(scene, 'gun-rockets', 34, 14, (ctx) => {
+    ctx.fillStyle = '#3b4a2a';
+    ctx.fillRect(0, 2, 30, 9);
+    ctx.fillStyle = '#5c7340';
+    ctx.fillRect(1, 3, 28, 3);
+    ctx.fillStyle = '#14111c';
+    ctx.fillRect(28, 1, 6, 11);
+    ctx.fillRect(10, 10, 5, 4);
+    ctx.fillStyle = '#ff4f4f';
+    ctx.fillRect(30, 4, 3, 5);
+  });
+
+  add(scene, 'gun-railgun', 38, 14, (ctx) => {
+    ctx.fillStyle = '#14111c';
+    ctx.fillRect(0, 3, 34, 8);
+    ctx.fillRect(5, 9, 5, 5);
+    ctx.fillStyle = '#d7dbe8';
+    ctx.fillRect(10, 1, 26, 3);
+    ctx.fillRect(10, 10, 26, 3);
+    ctx.fillStyle = '#ff4fd8';
+    for (let x = 12; x < 34; x += 5) ctx.fillRect(x, 5, 3, 4);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(34, 6, 4, 2);
+  });
+
+  for (const item of ['boomstick', 'bombs', 'smg', 'rockets', 'railgun', 'shield', 'heal'] as const) {
     add(scene, `icon-${item}`, 32, 32, (ctx) => drawIcon(ctx, item));
   }
   add(scene, 'icon-pistol', 32, 32, (ctx) => drawIcon(ctx, 'pistol'));
@@ -358,7 +418,56 @@ function drawCrate(ctx: CanvasRenderingContext2D): void {
   ctx.fillText('?', 14, 15);
 }
 
-function drawIcon(ctx: CanvasRenderingContext2D, item: 'boomstick' | 'bombs' | 'shield' | 'heal' | 'pistol'): void {
+function drawIcon(
+  ctx: CanvasRenderingContext2D,
+  item: 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun' | 'shield' | 'heal' | 'pistol'
+): void {
+  if (item === 'smg') {
+    ctx.fillStyle = '#14111c';
+    ctx.fillRect(3, 9, 24, 8);
+    ctx.fillRect(7, 16, 5, 10);
+    ctx.fillRect(16, 16, 5, 9);
+    ctx.fillStyle = '#3df2ff';
+    ctx.fillRect(4, 10, 22, 3);
+    ctx.fillStyle = '#5d6275';
+    ctx.fillRect(26, 11, 5, 3);
+    return;
+  }
+  if (item === 'rockets') {
+    ctx.save();
+    ctx.translate(16, 16);
+    ctx.rotate(-0.6);
+    ctx.fillStyle = '#7a8094';
+    ctx.fillRect(-11, -4, 16, 8);
+    ctx.fillStyle = '#ff4f4f';
+    ctx.beginPath();
+    ctx.moveTo(5, -5);
+    ctx.lineTo(14, 0);
+    ctx.lineTo(5, 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#c0392b';
+    ctx.fillRect(-13, -8, 6, 4);
+    ctx.fillRect(-13, 4, 6, 4);
+    ctx.fillStyle = '#ffd34d';
+    ctx.fillRect(-15, -2, 4, 4);
+    ctx.restore();
+    return;
+  }
+  if (item === 'railgun') {
+    ctx.save();
+    ctx.translate(16, 16);
+    ctx.rotate(-0.45);
+    ctx.fillStyle = '#14111c';
+    ctx.fillRect(-15, -5, 26, 10);
+    ctx.fillStyle = '#d7dbe8';
+    ctx.fillRect(-8, -8, 24, 3);
+    ctx.fillRect(-8, 5, 24, 3);
+    ctx.fillStyle = '#ff4fd8';
+    for (let x = -6; x < 12; x += 5) ctx.fillRect(x, -3, 3, 6);
+    ctx.restore();
+    return;
+  }
   if (item === 'bombs') {
     drawBomb(ctx, 15, 19, 10);
   } else if (item === 'shield') {

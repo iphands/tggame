@@ -68,6 +68,10 @@ export const COMBAT = {
   aimAssist: { maxDeg: 25, range: 900 },
   boomstick: { pellets: 5, spreadDeg: 18, dmg: 5, base: 230, growth: 3.4, speed: 1350, ttlMs: 250, cooldownMs: 650, ammo: 4, angleDeg: 22, recoil: 380 },
   bomb: { fuseMs: 1500, throwVx: 640, throwVy: -640, gravity: 1800, radius: 125, dmg: 16, base: 480, growth: 6.4, ammo: 3, cooldownMs: 450, minAngleDeg: 28, armMs: 90 },
+  smg: { dmg: 3, base: 130, growth: 1.6, speed: 1700, ttlMs: 450, cooldownMs: 70, ammo: 30, angleDeg: 15, spreadDeg: 5 },
+  rocket: { speed: 520, accel: 900, maxSpeed: 1250, ttlMs: 1600, radius: 115, dmg: 15, base: 520, growth: 6.6, ammo: 3, cooldownMs: 600, minAngleDeg: 25, recoil: 160 },
+  /** The big one: rare, 2 shots, short telegraphed charge, screen-wide piercing beam. */
+  railgun: { chargeMs: 320, dmg: 30, base: 820, growth: 9.5, range: 1500, ammo: 2, cooldownMs: 900, angleDeg: 20, recoil: 520, width: 14 },
   shieldMs: 6000,
   heal: 40,
 } as const;
