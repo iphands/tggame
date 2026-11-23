@@ -37,6 +37,8 @@ export const PHYS = {
   descendGravity: 750,
   descendMaxFall: 340,
   dropThroughMs: 160,
+  /** Pressing down in the air snaps your fall to at least this speed. */
+  fastFallVel: 950,
   /** Bounce pads. */
   bounceVel: 1500,
   /** Ice: multipliers on grounded accel / friction. */

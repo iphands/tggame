@@ -229,13 +229,24 @@ describe('drop-through', () => {
     expect(P(g, a).y + PHYS.playerH).toBeCloseTo(590, 5);
   });
 
-  it('is refused while airborne', () => {
+  it('in the air it fast-falls instead (and still lands on the platform below)', () => {
     const { g, a } = setup();
     place(g, a, 640, 300);
     run(g, 30);
     g.drop(a);
+    expect(P(g, a).vy).toBeGreaterThanOrEqual(PHYS.fastFallVel);
     run(g, 800);
     expect(P(g, a).y + PHYS.playerH).toBeCloseTo(440, 5);
+  });
+
+  it('no fast-fall while still rising', () => {
+    const { g, a } = setup();
+    place(g, a, 640, 440);
+    run(g, 100);
+    hold(g, a, { jump: true });
+    run(g, 50);
+    g.drop(a);
+    expect(P(g, a).vy).toBeLessThan(0);
   });
 });
 

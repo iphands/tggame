@@ -135,11 +135,19 @@ export function stepPlayer(w: World, p: Player, dtMs: number): void {
 }
 
 /**
- * Drop through the platform you're standing on. Refused unless another
- * platform is somewhere below you (never a free fall into the pit).
+ * Down: on a platform, drop through it — refused unless another platform is
+ * somewhere below you (never a free fall into the pit). In the air past the
+ * top of a jump, fast-fall instead.
  */
 export function tryDrop(w: World, p: Player): boolean {
-  if (p.life !== 'alive' || !p.grounded || p.platIdx < 0) return false;
+  if (p.life !== 'alive') return false;
+  if (!p.grounded) {
+    if (p.vy < -150 || w.t < p.launchUntil) return false; // still rising / in hitstun
+    p.vy = Math.max(p.vy, PHYS.fastFallVel);
+    p.cuttable = false;
+    return true;
+  }
+  if (p.platIdx < 0) return false;
   const feet = p.y + PHYS.playerH;
   let hasBelow = false;
   for (let i = 0; i < w.plats.length; i++) {

@@ -41,7 +41,7 @@ press **+ BOT** a few times, then **START**.
 | --- | --- | --- |
 | Move | `A` `D` / `←` `→` | ◀ ▶ |
 | Jump (press again in the air to double jump) | `W` / `Space` / `↑` | JUMP |
-| Drop through a platform | `S` / `↓` | ▼ |
+| Drop through a platform (fast-fall in the air) | `S` / `↓` | ▼ |
 | Punch | `J` / `X` / `Z` / right-click | 👊 |
 | Shoot / throw (hold to keep firing) | `K` / `C` / `F` / left-click | 🔫 |
 | Skip the results screen | `R` or ↻ | ↻ |
@@ -74,6 +74,9 @@ press **+ BOT** a few times, then **START**.
   jump back. A grounded victim is popped up and an airborne one is spiked
   down. 9% damage.
 - **Pistol:** the default weapon. Long range, light knockback, 4%.
+- **Down:** on a platform, drop through to the one below. You can't drop if
+  there's nothing underneath. In the air, past the top of a jump, it
+  fast-falls.
 
 ### `?` crates
 
