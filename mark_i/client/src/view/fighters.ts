@@ -20,6 +20,16 @@ export function dmgColor(dmg: number): string {
 /** Render text at device resolution (capped) so it stays crisp on high-DPI phones. */
 export const TEXT_RES = Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1);
 
+/**
+ * Update a Text only when something actually changed. In Phaser, setColor()
+ * always re-renders the text canvas and re-uploads it to the GPU, so calling
+ * it every frame for every player is a big, player-count-scaling cost.
+ */
+export function setTextIf(t: Phaser.GameObjects.Text, text: string, color?: string): void {
+  if (t.text !== text) t.setText(text);
+  if (color !== undefined && t.style.color !== color) t.setColor(color);
+}
+
 const TEXT_FONT = '"Trebuchet MS", "Segoe UI", system-ui, sans-serif';
 
 export class FighterView {
@@ -172,7 +182,8 @@ export class FighterView {
 
     // ---- name + damage tag
     const top = p.y - 6;
-    this.dmg.setPosition(cx, top).setText(`${Math.floor(p.dmg)}%`).setColor(dmgColor(p.dmg));
+    this.dmg.setPosition(cx, top);
+    setTextIf(this.dmg, `${Math.floor(p.dmg)}%`, dmgColor(p.dmg));
     this.name.setPosition(cx, top - 13);
     if (this.marker) this.marker.setPosition(cx, top - 38 + Math.sin(simNow / 160) * 2);
   }

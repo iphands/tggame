@@ -6,7 +6,7 @@ import type { SnapshotMessage } from '../../../shared/src/protocol';
 import type { FeedEntry, PlayerState } from '../../../shared/src/types';
 import { fighterTexture } from '../art/sprites';
 import { hexNum } from '../art/color';
-import { dmgColor, TEXT_RES } from './fighters';
+import { dmgColor, setTextIf, TEXT_RES } from './fighters';
 
 const FONT = '"Trebuchet MS", "Segoe UI", system-ui, sans-serif';
 const HOW_LABEL: Record<FeedEntry['how'], string> = {
@@ -24,10 +24,12 @@ const HOW_LABEL: Record<FeedEntry['how'], string> = {
 type Card = {
   id: string;
   root: Phaser.GameObjects.Container;
-  bg: Phaser.GameObjects.Graphics;
+  bg: Phaser.GameObjects.Image;
   dmg: Phaser.GameObjects.Text;
   name: Phaser.GameObjects.Text;
-  pips: Phaser.GameObjects.Arc[];
+  pips: Phaser.GameObjects.Image[];
+  /** Last applied pip state (stocks), to avoid redundant updates. */
+  pipStocks: number;
   icon: Phaser.GameObjects.Image;
   ammo: Phaser.GameObjects.Text;
   portrait: Phaser.GameObjects.Sprite;
@@ -104,9 +106,10 @@ export class Hud {
     // ---- timer
     if (snap.phase === 'playing' && snap.timeLeftMs !== null) {
       const total = Math.ceil(snap.timeLeftMs / 1000);
-      this.timer.setText(`${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`);
+      setTextIf(this.timer, `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`);
       const hurry = total <= 15;
-      this.timer.setColor(hurry ? '#ff7b7b' : '#ffe9b0').setScale(hurry ? 1 + 0.08 * Math.abs(Math.sin(snap.simTimeMs / 160)) : 1);
+      setTextIf(this.timer, this.timer.text, hurry ? '#ff7b7b' : '#ffe9b0');
+      this.timer.setScale(hurry ? 1 + 0.08 * Math.abs(Math.sin(snap.simTimeMs / 160)) : 1);
       this.timer.setVisible(true);
     } else this.timer.setVisible(false);
 
@@ -118,9 +121,11 @@ export class Hud {
         tick = n;
         this.center.setScale(1.8);
       }
-      this.center.setText(String(Math.max(1, n))).setColor('#ffd166').setVisible(true);
+      setTextIf(this.center, String(Math.max(1, n)), '#ffd166');
+      this.center.setVisible(true);
       this.center.setScale(Math.max(1, this.center.scale - dtMs / 300));
-      this.sub.setText(levelAt(snap.level).name.toUpperCase()).setVisible(true);
+      setTextIf(this.sub, levelAt(snap.level).name.toUpperCase());
+      this.sub.setVisible(true);
     } else if (this.lastCount > 0 && snap.phase === 'playing') {
       this.lastCount = -1;
       tick = 0;
@@ -146,7 +151,8 @@ export class Hud {
       else if (me.life === 'out') status = 'Out of lives: spectating';
       else if (me.life === 'waiting') status = 'You joined mid-round: you play next round';
     }
-    this.status.setText(status).setVisible(!!status);
+    setTextIf(this.status, status);
+    this.status.setVisible(!!status);
 
     this.updateFeed(snap.feed);
     this.updateCards(players, selfId, snap.simTimeMs);
@@ -200,16 +206,16 @@ export class Hud {
         c.lastDmg = Math.floor(p.dmg);
       }
       c.bump *= 0.88;
-      c.dmg
-        .setText(out ? 'OUT' : `${Math.floor(p.dmg)}%`)
-        .setColor(out ? '#8a7fa0' : dmgColor(p.dmg))
-        .setScale(1 + c.bump * 0.35)
-        .setX(c.dmg.getData('x') + (c.bump > 0.2 ? (Math.random() - 0.5) * 4 * c.bump : 0));
-      c.pips.forEach((pip, i) => pip.setFillStyle(i < p.stocks ? hexNum(p.color) : 0x2a2140, 1));
+      setTextIf(c.dmg, out ? 'OUT' : `${Math.floor(p.dmg)}%`, out ? '#8a7fa0' : dmgColor(p.dmg));
+      c.dmg.setScale(1 + c.bump * 0.35).setX(c.dmg.getData('x') + (c.bump > 0.2 ? (Math.random() - 0.5) * 4 * c.bump : 0));
+      if (c.pipStocks !== p.stocks) {
+        c.pipStocks = p.stocks;
+        c.pips.forEach((pip, i) => pip.setTint(i < p.stocks ? hexNum(p.color) : 0x2a2140));
+      }
       c.root.setAlpha(out ? 0.5 : p.life === 'respawning' ? 0.75 : 1);
       const iconKey = `icon-${p.weapon}`;
       if (c.icon.texture.key !== iconKey) c.icon.setTexture(iconKey);
-      c.ammo.setText(p.ammo > 0 ? `×${p.ammo}` : '');
+      setTextIf(c.ammo, p.ammo > 0 ? `×${p.ammo}` : '');
       c.portrait.setFrame(p.life === 'alive' && p.launched ? 8 : Math.floor(simNow / 450) % 2);
     }
   }
@@ -242,10 +248,17 @@ export class Hud {
   private makeCard(p: PlayerState, x: number, y: number, w: number, h: number, self: boolean, compact: boolean): Card {
     const s = this.scene;
     const root = s.add.container(x, y).setDepth(100);
-    const bg = s.add.graphics();
-    bg.fillStyle(0x0d0820, 0.78).fillRoundedRect(0, 0, w, h, 8);
-    bg.fillStyle(hexNum(p.color), 1).fillRoundedRect(0, 0, 6, h, { tl: 8, bl: 8, tr: 0, br: 0 });
-    bg.lineStyle(2, self ? 0xffe066 : 0x3a2c58, 1).strokeRoundedRect(0, 0, w, h, 8);
+    // bake the card frame once: Graphics would be re-tessellated every frame
+    const bgKey = `card-${p.color}-${self ? 1 : 0}-${Math.round(w)}x${h}`;
+    if (!s.textures.exists(bgKey)) {
+      const g = s.make.graphics({}, false);
+      g.fillStyle(0x0d0820, 0.78).fillRoundedRect(1, 1, w - 2, h - 2, 8);
+      g.fillStyle(hexNum(p.color), 1).fillRoundedRect(1, 1, 6, h - 2, { tl: 8, bl: 8, tr: 0, br: 0 });
+      g.lineStyle(2, self ? 0xffe066 : 0x3a2c58, 1).strokeRoundedRect(1, 1, w - 2, h - 2, 8);
+      g.generateTexture(bgKey, Math.ceil(w), h);
+      g.destroy();
+    }
+    const bg = s.add.image(-1, -1, bgKey).setOrigin(0);
     root.add(bg);
     const portrait = s.add.sprite(compact ? 22 : 26, h / 2 + 2, fighterTexture(s, p.color), 0).setScale(compact ? 0.75 : 0.95);
     root.add(portrait);
@@ -256,17 +269,17 @@ export class Hud {
     const dmgX = compact ? 40 : 48;
     const dmg = text(s, dmgX, compact ? 17 : 22, '0%', compact ? 20 : 26, '#ffffff', 5).setData('x', dmgX);
     root.add(dmg);
-    const pips: Phaser.GameObjects.Arc[] = [];
+    const pips: Phaser.GameObjects.Image[] = [];
     for (let i = 0; i < MATCH.stocks; i++) {
-      // compact pips so 5 lives fit beside the damage number
-      const pip = s.add.circle(w - 10 - i * 8.5, h - 8, 3.2, hexNum(p.color)).setStrokeStyle(1.2, 0x120a20);
+      // compact pips so 5 lives fit beside the damage number (tinted images, not shapes)
+      const pip = s.add.image(w - 10 - i * 8.5, h - 8, 'pip').setTint(hexNum(p.color));
       pips.push(pip);
       root.add(pip);
     }
     const icon = s.add.image(w - 18, compact ? 16 : 20, 'icon-pistol').setScale(compact ? 0.55 : 0.7);
     const ammo = text(s, w - 34, compact ? 9 : 12, '', 11, '#ffe9b0', 3).setOrigin(1, 0);
     root.add([icon, ammo]);
-    return { id: p.id, root, bg, dmg, name, pips, icon, ammo, portrait, lastDmg: 0, bump: 0 };
+    return { id: p.id, root, bg, dmg, name, pips, pipStocks: MATCH.stocks, icon, ammo, portrait, lastDmg: 0, bump: 0 };
   }
 
   // ------------------------------------------------------------ off-screen markers

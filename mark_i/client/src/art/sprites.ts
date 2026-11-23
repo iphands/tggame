@@ -184,6 +184,18 @@ export function makeCommonTextures(scene: Phaser.Scene): void {
     ctx.fillRect(0, 0, 64, 64);
   });
 
+  // HUD life pip: white disc with a dark rim (tinted per player)
+  add(scene, 'pip', 8, 8, (ctx) => {
+    ctx.fillStyle = '#120a20';
+    ctx.beginPath();
+    ctx.arc(4, 4, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(4, 4, 2.9, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
   add(scene, 'vignette', 1280, 720, (ctx) => {
     const g = ctx.createRadialGradient(640, 340, 260, 640, 360, 820);
     g.addColorStop(0, 'rgba(6,2,18,0)');
