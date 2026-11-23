@@ -34,6 +34,7 @@ export class GameClient {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private disposed = false;
   private lastInput = '';
+  private lastInputAt = 0;
 
   constructor(private readonly opts: GameClientOptions) {
     this.url = opts.url ?? defaultWsUrl(window.location);
@@ -102,11 +103,16 @@ export class GameClient {
     if (this.connected) this.ws!.send(JSON.stringify(msg));
   }
 
-  /** Send held-button state; unchanged state is only re-sent as a periodic heartbeat. */
-  sendInput(input: { left: boolean; right: boolean; jump: boolean }, force = false): void {
+  /**
+   * Send held-button state when it changes, plus a heartbeat every 400 ms so
+   * a held key survives server-side resets (new round) and dropped messages.
+   */
+  sendInput(input: { left: boolean; right: boolean; jump: boolean }): void {
     const key = `${+input.left}${+input.right}${+input.jump}`;
-    if (!force && key === this.lastInput) return;
+    const now = performance.now();
+    if (key === this.lastInput && now - this.lastInputAt < 400) return;
     this.lastInput = key;
+    this.lastInputAt = now;
     this.send({ type: 'input', ...input });
   }
 

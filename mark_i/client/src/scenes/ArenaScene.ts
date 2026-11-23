@@ -10,7 +10,7 @@ import { LevelView } from '../view/levelView';
 import { FighterView } from '../view/fighters';
 import { Particles } from '../view/particles';
 import { Hud } from '../view/hud';
-import { showScreen, syncMuteButton } from '../lobby';
+import { showScreen, syncMuteButton, syncRestartButton } from '../lobby';
 
 type KeyName = 'left' | 'right' | 'jump' | 'down' | 'punch' | 'fire';
 
@@ -128,6 +128,7 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     this.handleInput();
+    syncRestartButton(true);
 
     // ---- interpolated world state
     const now = performance.now();

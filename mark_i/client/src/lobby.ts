@@ -16,8 +16,16 @@ export function showScreen(screen: Screen): void {
   $('join')?.classList.toggle('hidden', screen !== 'join');
   $('lobby')?.classList.toggle('hidden', screen !== 'lobby');
   $('game-buttons')?.classList.toggle('hidden', screen === 'join');
-  $('restart-btn')?.classList.toggle('hidden', screen !== 'game');
+  syncRestartButton(screen === 'game');
   syncMuteButton();
+}
+
+/** ↻ only where the server honors it: results screen, countdown, or solo vs bots. */
+export function syncRestartButton(inGame: boolean): void {
+  const snap = store.snapshot;
+  const humans = snap ? snap.players.filter((p) => !p.bot).length : 0;
+  const ok = inGame && !!snap && (snap.phase !== 'playing' || humans <= 1);
+  $('restart-btn')?.classList.toggle('hidden', !ok);
 }
 
 export function syncMuteButton(): void {
