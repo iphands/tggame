@@ -1,13 +1,17 @@
 # ⚔️ Last Survivor Arena
 
-A multiplayer 2D arena platformer. Everyone lands on a hand-crafted set of
-floating islands. Shove, stomp, and shoot each other off, and the last player
+A multiplayer 2D platform brawler for up to **16 players**. Punch, stomp,
+shoot and bomb each other off five themed floating arenas. **The more damage
+you take, the farther you fly.** Everyone gets 3 lives, and the last one
 standing wins.
 
+Phones and desktops play together. The game is built for phones first
+(landscape, on-screen buttons) and also supports keyboard and mouse. Bots
+fill out a small game or keep you company solo.
+
 Built with **Phaser 3 + TypeScript** on the client and a **Node + TypeScript
-server-authoritative** world simulation over WebSockets. The client is built
-for phones first (landscape, on-screen controls) and also supports keyboard
-and mouse.
+server-authoritative** simulation over WebSockets. Every sprite, background
+and sound is generated in code, so there are no asset files.
 
 ## Quick start
 
@@ -16,138 +20,168 @@ npm install
 npm run dev
 ```
 
-Then open **http://localhost:5173**. Type your name and hit **Join arena**.
+Open **http://localhost:5173**, pick a name and hit **PLAY**. In the lobby,
+press **+ BOT** a few times, then **START**.
 
-- `npm run dev` runs the game server on **:8080** (`tsx watch`) and the Vite
-  client on **:5173**. The client always opens its WebSocket to port **8080**
-  on the same host it was loaded from.
-- `npm run build && npm start` builds the server and client, then serves
-  both from one Node process on port **8080**. Use this setup for LAN play:
-  open `http://<your-lan-ip>:8080` on each device. (The Vite dev server only
-  listens on localhost.)
-- `npm test` runs the vitest suites (lifecycle, physics, push, stomp, pistol,
-  jump, drop-through, restart, input merge).
-- `npm run typecheck` checks both the client and server TypeScript configs.
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Game server on **:8080** (`tsx watch`) + Vite client on **:5173** (also reachable from the LAN) |
+| `npm run build && npm start` | Builds both, then one Node process serves the client **and** the WebSocket on **:8080** |
+| `npm test` | Vitest: physics, combat, match flow, bots, levels, interpolation, protocol |
+| `npm run typecheck` | Client + server TypeScript configs |
+| `node scripts/smoke.mjs [ws://host:port]` | Protocol smoke test against a running server |
+| `node scripts/round-smoke.mjs [ws://host:port]` | Plays a full bot round to the results screen |
+
+**LAN party:** run `npm run build && npm start`, then open
+`http://<your-ip>:8080` on every phone and laptop.
 
 ## How to play
 
 | Action | Keyboard / mouse | Touch |
 | --- | --- | --- |
-| Move | `←` `→` or `A` `D` | ◀ ▶ |
-| Jump | `Space`, `W` or `↑` | JUMP |
-| Drop through a platform | `↓` or `S` | ▼ |
-| Fire pistol | `F` (hold) or click the canvas | FIRE |
-| Force restart (in the arena) | `R` or the **↻ Restart** button | ↻ Restart |
-| Force start (in the lobby) | `Enter` or the **▶ GO** button | ▶ GO |
+| Move | `A` `D` / `←` `→` | ◀ ▶ |
+| Jump (press again in the air to double jump) | `W` / `Space` / `↑` | JUMP |
+| Drop through a platform | `S` / `↓` | ▼ |
+| Punch | `J` / `X` / `Z` / right-click | 👊 |
+| Shoot / throw (hold to keep firing) | `K` / `C` / `F` / left-click | 🔫 |
+| Skip the results screen | `R` or ↻ | ↻ |
+| Start from the lobby | `Enter` or **START** | **START** |
+| Mute | `M` or 🔊 | 🔊 |
 
-- **Jump:** tap for a short hop, hold for a high jump. Holding jump while
-  falling slows your descent. Coyote time and input buffering make jumps
-  forgiving.
-- **Drop-through:** platforms are one-way. You can only drop through one
-  while standing on it and when another platform is below you, never
-  straight into the pit.
-- **Push:** when two players touch, both get shoved apart.
-- **Head stomp:** landing on someone's head bounces you high, shoves them
-  away, and deals **15** damage.
-- **Pistol:** fires a horizontal bullet in the direction you're facing. Each
-  hit deals **50** damage, so two hits kill. It has a short cooldown, shown by
-  the bar under the timer.
-- Every player has **100 HP**. You're eliminated by falling into the pit or
-  by dropping to 0 HP. The kill feed at bottom-left shows who fell off, was
-  stomped, was shot, or left.
+### The rules
 
-### Match flow
+- **Damage %** goes up with every hit you take. Knockback grows with it, so
+  at 0% a punch barely moves you and at 150% it can send you off-screen.
+- Leave the arena past the bottom, the sides or the top and you lose a life.
+  The last player who hit you within 5 s gets credit for the **KO**.
+- You get **3 lives**. After a KO you drop back in at 0% with 2 s of
+  invulnerability. Attacking ends the invulnerability early.
+- The round ends when one player has lives left, or after **3:00**. On
+  time-out, the player with the most lives wins (then the lowest damage); a
+  dead heat is a draw.
+- The results screen shows places, KOs, falls and damage dealt. After 9 s the
+  next arena loads. Wins and KOs are kept for the whole session, and the
+  current leader wears a 👑.
 
-- The arena holds up to **16** players.
-- **Lobby:** a match starts on its own **10 s** after there are 2 or more
-  players, or right away once **10** have joined. Anyone can skip the wait
-  with **▶ GO** / `Enter`. That works even solo, as a sandbox.
-- **Countdown:** 3 seconds, then players spawn at fixed points spread across
-  the islands.
-- **Match:** lasts up to **3:00**. It ends as soon as only one player is
-  alive, and that player wins. If time runs out with more than one player
-  alive, the round is a draw ("TIME'S UP").
-- **End:** the winner banner stays for 8 s, then everyone goes back to the
-  lobby for the next round. **↻ Restart** skips the wait.
-- Players who join mid-round watch the current round and play in the next one.
+### Moves
 
-All of these numbers are set in `WORLD` in `shared/src/constants.ts`.
+- **Jump:** tap for a hop, hold for a full jump. You get one **double
+  jump** in the air. Holding jump while falling slows your fall, which
+  helps you get back to the stage. Coyote time and input buffering keep
+  jumps forgiving.
+- **Punch:** a quick lunge that sends the target up and away. 7% damage.
+- **Stomp:** land on someone's head. You bounce high and get your double
+  jump back. A grounded victim is popped up and an airborne one is spiked
+  down. 9% damage.
+- **Pistol:** the default weapon. Long range, light knockback, 4%.
+
+### `?` crates
+
+Crates fall from the sky every 7–11 s, and faster in the last 45 s. Walk
+into one to open it.
+
+| Item | Effect |
+| --- | --- |
+| **Boomstick** | 4 shotgun blasts: a wide 5-pellet spread with big knockback and recoil |
+| **Bombs** | 3 lobbed bombs that bounce and explode on a fuse or on contact. They can hurt you too |
+| **Shield** | 6 s of immunity to hits |
+| **Heal** | −40% damage |
+
+### The arenas
+
+Pick the next arena in the lobby with ◀ ▶. Arenas rotate after every round.
+
+| Arena | Twist |
+| --- | --- |
+| **Sky Isles** | Grassy islands and two vertical lifts. The classic. |
+| **Frostbite Peaks** | Slippery **ice** (you slide and can't stop quickly), a gliding platform, snowfall and aurora |
+| **Crumbling Temple** | Stones that **crumble** a moment after you step on them and come back 4.5 s later |
+| **Magma Forge** | **Spring pads** that launch you skyward, shuttling platforms, a lava lake below |
+| **Neon Void** | **Low gravity**, orbiting platforms, a bounce pad and big air |
+
+### Lobby and bots
+
+- Anyone can change the arena, add or remove bots, or press **START**. Solo
+  practice works too.
+- The round starts on its own 10 s after 2 or more players are in, or right
+  away at 10 players.
+- Players who join mid-round watch it and play the next one.
+- Bots play by the same rules as humans: same inputs, no cheats. They chase,
+  punch, stomp, grab crates, shoot and recover back to the stage, and they
+  avoid all piling onto one target. A human joining a full arena replaces a
+  bot. When the last human leaves, the bots go too.
 
 ## Architecture
 
 ```
-shared/src/protocol.ts    wire message types + isClientMessage() guard
-shared/src/constants.ts   game tuning (physics, HP, pistol, match timing, colors), TICK_HZ, SNAP_HZ
-server/src/level.ts       hand-crafted platforms (two of them move) + spawn points
-server/src/game.ts        authoritative sim: phases, physics, one-way platforms, drop-through,
-                          push, stomp, bullets, elimination, win/draw
-server/src/index.ts       HTTP (static client + /health) and WebSocket entrypoint, game loop
-client/src/main.ts        Phaser bootstrap, join flow, restart/GO button wiring
-client/src/net.ts         WebSocket client (auto-reconnect with backoff, typed senders)
-client/src/store.ts       shared mutable state between the net client, scenes and DOM overlay
-client/src/controls.ts    touch controls, keyboard+touch input merge, fire/drop flags
-client/src/ui.ts          DOM overlay helpers
-client/src/art.ts         procedurally drawn pixel-art-style textures
-client/src/scenes/        Boot → Lobby → Arena Phaser scenes
-client/index.html         DOM overlay: name form, roster, buttons, touch bar, rotate-device gate
-tests/*.test.ts           vitest suites (game, jump, gun, drop, restart, controls)
-scripts/smoke.mjs         WebSocket smoke test (join/roster/disconnect)
-scripts/round-smoke.mjs   end-to-end check that two clients reach the playing phase
+shared/src/constants.ts   ALL gameplay tuning (PHYS, COMBAT, MATCH, ITEMS, ARENA, colors, bot names)
+shared/src/levels.ts      the five arena definitions + platformPos()
+shared/src/types.ts       snapshot entity types (players, platforms, projectiles, crates, fx, feed, results)
+shared/src/protocol.ts    client/server messages + isClientMessage()
+server/src/index.ts       HTTP (static client, /health) + WebSocket + 60 Hz loop / 30 Hz broadcast
+server/src/sim/game.ts    Game: roster, lobby → starting → playing → ended, stocks, KOs, snapshot
+server/src/sim/physics.ts movement, jumps, one-way landing, drop-through, ice, bounce pads
+server/src/sim/combat.ts  knockback, punch, stomp, pistol/boomstick/bombs, explosions
+server/src/sim/items.ts   crate spawning, falling, pickup, item effects
+server/src/sim/platforms.ts moving + crumbling platforms, landing test
+server/src/sim/bots.ts    bot brains (targeting, edge safety, recovery, attacks)
+client/src/main.ts        bootstrap: Phaser game, join flow, touch wiring
+client/src/net.ts         WebSocket client (reconnect, input de-dupe, origin-aware URL)
+client/src/interp.ts      snapshot buffer + server-clock sync for smooth interpolation
+client/src/store.ts       shared client state + fx queue
+client/src/lobby.ts       DOM: join screen, lobby panels, in-game buttons
+client/src/controls.ts    touch buttons + keyboard/touch merge
+client/src/audio.ts       WebAudio synthesized sound effects
+client/src/art/           procedural pixel-art fighters, items, themed backdrops + platforms
+client/src/view/          LevelView, FighterView, Hud, Particles
+client/src/scenes/        Boot → Lobby (live arena preview) → Arena
+tests/                    vitest suites (tests/sim/* drive the Game directly)
 ```
 
-### Game loop (server, authoritative)
+### Netcode
 
-The server runs the simulation at **60 Hz** and broadcasts a `snapshot` to
-every client at **30 Hz**. Clients never simulate physics. They send their
-input and render the snapshots, interpolated about 110 ms behind for
-smoothness.
+The server is authoritative. It runs the simulation in **fixed 60 Hz ticks**,
+which makes it deterministic for a given seed and inputs. Every 2 ticks it
+broadcasts a full snapshot (30 Hz). Clients send held-button state when it
+changes, plus one-shot actions (`punch`, `shoot`, `drop`).
 
-### Protocol (one JSON message per WebSocket frame)
+Clients draw about 75 ms behind the server clock and interpolate between
+snapshots by **server sim time**, so network jitter doesn't cause stutter.
+One-shot effects (hits, KOs, explosions…) are queued and played when the
+render clock reaches them, so sounds and particles line up with what's on
+screen.
+
+### Protocol (JSON, one message per WebSocket frame)
 
 Client → server:
 
 | Message | Payload | Notes |
 | --- | --- | --- |
-| `join` | `name?` | Name is cleaned up and capped at 18 characters. A re-join replaces your old player. |
-| `input` | `left`, `right`, `jump` (booleans) | Sent when your input changes, plus every 20 frames as a heartbeat. |
-| `shoot` | — | Fire the pistol. The server enforces the cooldown. |
-| `drop` | — | Drop through the current platform. Ignored if nothing is below. |
-| `restart` | — | Force-restart: reset the round and start a new countdown. |
-| `leave` | — | Leave the match. |
+| `join` | `name?` | Letters, digits, space, `-` and `_`; max 16 chars; de-duplicated |
+| `input` | `left`, `right`, `jump` | Held state; sent on change |
+| `punch` / `shoot` / `drop` | — | One-shot actions; the server enforces cooldowns |
+| `restart` | — | Start a fresh round now (lobby START, ↻) |
+| `addBot` / `removeBot` | — | Manage bots |
+| `pickLevel` | `dir: 1 \| -1` | Change the next arena (lobby / results only) |
+| `leave` | — | Leave the game |
 
-Server → client:
+Server → client: `welcome` (`selfId`, `capacity`), `full` (the arena has 16
+humans), and `snapshot`. A snapshot carries the phase, timers, current and
+next arena, players, platforms, projectiles, crates, one-shot `fx`, the KO
+`feed` and the final `results`. See `shared/src/protocol.ts` for the full
+shape.
 
-- `welcome`: `selfId`, `capacity`, `serverTimeMs`
-- `snapshot`: `tick`, `phase` (`lobby` / `starting` / `playing` / `ended`),
-  `selfId`, `countdownMs`, `timeLeftMs`, `winnerId`, `players`
-  (position, velocity, `alive`, `waiting`, `hp`/`maxHp`, `lastShotAtMs`),
-  `platforms`, `bullets`, `events` (recent eliminations, newest first),
-  `simTimeMs`, `serverTimeMs`
+## Deploying
 
-## Deploying / sharing
+`npm run build && npm start` serves everything from one port. The client
+connects its WebSocket to the **same origin it was loaded from**, so this
+works behind a reverse proxy or TLS (`wss://`). The Vite dev server is the
+one exception: from port 5173 it targets `:8080`. To point a client at a
+different server, add `?ws=ws://host:port` to the URL.
 
-In production (`npm run build && npm start`), the server serves the built
-client from `client/dist` on the same port it uses for WebSockets, so a
-single machine or VPS is all you need.
-
-- `PORT`: the server port. Default `8080`. **Note:** the client always
-  connects its WebSocket to port 8080, so changing `PORT` (or putting the
-  game behind a proxy on a different port) also means changing
-  `defaultWsUrl()` in `client/src/net.ts`.
-- `STATIC_DIR`: where to find the built client. Default `client/dist`.
-- `GET /health` returns `{ ok, phase, players }`.
-- Caching is tuned for LAN play. `index.html` is never cached, and other
-  files revalidate on every load (a cheap 304 when unchanged).
-
-## Known notes
-
-- **Art:** the pixel-art textures are drawn in code (`client/src/art.ts`) and
-  baked into textures in `BootScene`. There are no image files. To use real
-  art, add files under `client/public/` and load them in `BootScene`.
-- **Mobile:** landscape only. Portrait shows a "rotate your device" screen,
-  and the stage is locked to 16:9.
-- **Scope:** one shared arena per server (no rooms). No chat, rankings,
-  respawn, or gamepad support.
+- `PORT`: listen port (default `8080`)
+- `STATIC_DIR`: built client directory (default `client/dist`)
+- `GET /health` returns `{ ok, phase, players, bots }`
 
 ## License
 
