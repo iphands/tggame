@@ -721,8 +721,14 @@ export function backdropCanvas(theme: ThemeId): HTMLCanvasElement {
   return c;
 }
 
+/** Scrolling layers are painted three times (shifted by ±W) so the tile wraps without a seam. */
 export function layerCanvas(layer: ThemeLayer): HTMLCanvasElement {
   const [c, ctx] = canvas(W, H);
-  layer.paint(ctx, W, H);
+  for (const dx of [-W, 0, W]) {
+    ctx.save();
+    ctx.translate(dx, 0);
+    layer.paint(ctx, W, H);
+    ctx.restore();
+  }
   return c;
 }

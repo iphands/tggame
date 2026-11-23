@@ -27,6 +27,9 @@ export class FighterView {
   private readonly fist: Phaser.GameObjects.Image;
   private readonly shield: Phaser.GameObjects.Image;
   private readonly glow: Phaser.GameObjects.Image;
+  private readonly crown: Phaser.GameObjects.Image;
+  /** Set by the scene: this player leads the session in wins. */
+  leader = false;
   private runDist = 0;
   private squash = 0; // >0 squash (landing), <0 stretch (jumping)
   private flashUntil = 0;
@@ -40,6 +43,7 @@ export class FighterView {
     this.gun = scene.add.image(0, 0, 'gun-pistol').setDepth(13).setOrigin(0.2, 0.5);
     this.fist = scene.add.image(0, 0, 'fist').setDepth(14).setVisible(false).setBlendMode(Phaser.BlendModes.ADD);
     this.shield = scene.add.image(0, 0, 'shield').setDepth(15).setVisible(false);
+    this.crown = scene.add.image(0, 0, 'crown').setDepth(13).setOrigin(0.5, 1).setVisible(false);
     this.name = scene.add
       .text(0, 0, p.name, {
         fontFamily: TEXT_FONT,
@@ -115,6 +119,10 @@ export class FighterView {
     this.sprite.setAlpha(p.invuln ? (Math.floor(simNow / 90) % 2 ? 0.35 : 0.9) : 1);
 
     this.glow.setPosition(cx, feet - 2).setVisible(p.grounded);
+    this.crown
+      .setVisible(this.leader)
+      .setPosition(cx + p.face * -2, p.y + H * (1 - this.sprite.scaleY) + 4 + Math.sin(simNow / 200) * 1)
+      .setRotation(this.sprite.rotation - p.face * 0.15);
 
     // ---- weapon in hand
     const gunKey = `gun-${p.weapon}`;
@@ -150,6 +158,7 @@ export class FighterView {
 
   setVisible(v: boolean): void {
     for (const o of [this.sprite, this.name, this.dmg, this.gun, this.glow]) o.setVisible(v);
+    this.crown.setVisible(v && this.leader);
     this.marker?.setVisible(v);
     if (!v) {
       this.fist.setVisible(false);
@@ -158,7 +167,7 @@ export class FighterView {
   }
 
   destroy(): void {
-    for (const o of [this.sprite, this.name, this.dmg, this.gun, this.fist, this.shield, this.glow]) o.destroy();
+    for (const o of [this.sprite, this.name, this.dmg, this.gun, this.fist, this.shield, this.glow, this.crown]) o.destroy();
     this.marker?.destroy();
   }
 }

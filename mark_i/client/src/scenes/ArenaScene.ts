@@ -60,34 +60,42 @@ export class ArenaScene extends Phaser.Scene {
     this.hud = new Hud(this, store.touchMode);
 
     const kb = this.input.keyboard;
+    const onRestart = () => {
+      if (store.snapshot?.phase === 'ended') store.client?.send({ type: 'restart' });
+    };
+    const onMute = () => {
+      setMuted(!isMuted());
+      syncMuteButton();
+    };
     if (kb) {
       for (const name of Object.keys(KEYMAP) as KeyName[]) this.keys[name] = KEYMAP[name].map((c) => kb.addKey(c, true));
-      kb.on('keydown-R', () => {
-        if (store.snapshot?.phase === 'ended') store.client?.send({ type: 'restart' });
-      });
-      kb.on('keydown-M', () => {
-        setMuted(!isMuted());
-        syncMuteButton();
-      });
+      kb.on('keydown-R', onRestart);
+      kb.on('keydown-M', onMute);
     }
     this.input.mouse?.disableContextMenu();
-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+    const onDown = (p: Phaser.Input.Pointer) => {
       if (store.touchMode) return; // touch uses the on-screen buttons
       if (p.rightButtonDown()) requests.punch = true;
       else fireHeld.mouse = true;
-    });
+    };
     const release = () => (fireHeld.mouse = false);
+    this.input.on('pointerdown', onDown);
     this.input.on('pointerup', release);
     this.input.on('pointerupoutside', release);
 
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      kb?.off('keydown-R', onRestart);
+      kb?.off('keydown-M', onMute);
+      this.input.off('pointerdown', onDown);
+      this.input.off('pointerup', release);
+      this.input.off('pointerupoutside', release);
+      this.teardown();
+    });
   }
 
   private teardown(): void {
     this.input.keyboard?.removeAllKeys(true);
     this.input.keyboard?.clearCaptures();
-    this.input.keyboard?.removeAllListeners();
-    this.input.removeAllListeners();
     for (const f of this.fighters.values()) f.destroy();
     this.fighters.clear();
     this.level?.destroy();
@@ -179,6 +187,7 @@ export class ArenaScene extends Phaser.Scene {
 
   private renderFighters(players: PlayerState[], simNow: number, delta: number): void {
     const seen = new Set<string>();
+    const topWins = Math.max(0, ...players.map((p) => p.wins));
     for (const p of players) {
       if (p.life === 'waiting') continue;
       seen.add(p.id);
@@ -187,6 +196,7 @@ export class ArenaScene extends Phaser.Scene {
         v = new FighterView(this, p, p.id === store.selfId);
         this.fighters.set(p.id, v);
       }
+      v.leader = topWins > 0 && p.wins === topWins;
       v.update(p, simNow, delta);
       if (p.life === 'alive' && p.launched && Math.hypot(p.vx, p.vy) > 850 && Math.random() < 0.7) {
         this.particles.burst(p.x + PHYS.playerW / 2, p.y + PHYS.playerH / 2, {

@@ -255,14 +255,45 @@ export function makeCommonTextures(scene: Phaser.Scene): void {
 
   add(scene, 'crate', 28, 28, drawCrate);
 
-  add(scene, 'gun-pistol', 18, 10, (ctx) => {
-    ctx.fillStyle = '#20202a';
-    ctx.fillRect(0, 0, 16, 5);
-    ctx.fillRect(2, 4, 5, 6);
-    ctx.fillStyle = '#7b7f92';
-    ctx.fillRect(1, 1, 14, 2);
-    ctx.fillStyle = '#ffcf5a';
-    ctx.fillRect(15, 1, 3, 2);
+  add(scene, 'gun-pistol', 16, 12, (ctx) => {
+    ctx.fillStyle = '#14111c';
+    ctx.fillRect(0, 0, 16, 7);
+    ctx.fillRect(1, 5, 6, 7);
+    ctx.fillStyle = '#5d6275';
+    ctx.fillRect(1, 1, 14, 3);
+    ctx.fillStyle = '#9aa1b8';
+    ctx.fillRect(2, 1, 12, 1);
+    ctx.fillStyle = '#7a4a2a';
+    ctx.fillRect(2, 6, 4, 5);
+  });
+
+  add(scene, 'crown', 20, 14, (ctx) => {
+    ctx.fillStyle = '#7a4a00';
+    ctx.beginPath();
+    ctx.moveTo(0, 14);
+    ctx.lineTo(0, 3);
+    ctx.lineTo(5, 7);
+    ctx.lineTo(10, 0);
+    ctx.lineTo(15, 7);
+    ctx.lineTo(20, 3);
+    ctx.lineTo(20, 14);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#ffd23f';
+    ctx.beginPath();
+    ctx.moveTo(2, 12);
+    ctx.lineTo(2, 6);
+    ctx.lineTo(5, 9);
+    ctx.lineTo(10, 3);
+    ctx.lineTo(15, 9);
+    ctx.lineTo(18, 6);
+    ctx.lineTo(18, 12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#ff4f7b';
+    ctx.fillRect(9, 8, 2, 2);
+    ctx.fillStyle = '#fff6c8';
+    ctx.fillRect(3, 10, 14, 1);
   });
 
   add(scene, 'gun-boomstick', 30, 12, (ctx) => {
@@ -370,13 +401,24 @@ function drawIcon(ctx: CanvasRenderingContext2D, item: 'boomstick' | 'bombs' | '
     ctx.fillRect(-4, -3, 17, 2);
     ctx.restore();
   } else {
-    ctx.save();
-    ctx.translate(16, 16);
-    ctx.fillStyle = '#2a2a36';
-    ctx.fillRect(-10, -6, 20, 7);
-    ctx.fillRect(-8, 0, 7, 10);
-    ctx.fillStyle = '#9aa0b5';
-    ctx.fillRect(-9, -5, 18, 2);
-    ctx.restore();
+    // pistol: slide, barrel, angled grip, trigger guard
+    ctx.fillStyle = '#14111c';
+    ctx.fillRect(4, 8, 24, 9);
+    ctx.beginPath();
+    ctx.moveTo(6, 15);
+    ctx.lineTo(14, 15);
+    ctx.lineTo(12, 28);
+    ctx.lineTo(4, 28);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#8d93a8';
+    ctx.fillRect(5, 9, 22, 3);
+    ctx.fillStyle = '#5d6275';
+    ctx.fillRect(5, 12, 22, 3);
+    ctx.fillStyle = '#7a4a2a';
+    ctx.fillRect(7, 18, 5, 8);
+    ctx.strokeStyle = '#14111c';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(14, 16, 6, 5);
   }
 }

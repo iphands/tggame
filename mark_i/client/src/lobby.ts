@@ -49,8 +49,16 @@ export function initLobbyDom(onJoin: (name: string) => void): void {
       play('click');
       fn();
     });
-  click('lvl-prev', () => store.client?.send({ type: 'pickLevel', dir: -1 }));
-  click('lvl-next', () => store.client?.send({ type: 'pickLevel', dir: 1 }));
+  // optimistic: show the new arena immediately; the next snapshot confirms it
+  const pick = (dir: 1 | -1) => {
+    store.client?.send({ type: 'pickLevel', dir });
+    if (store.snapshot) {
+      store.snapshot.nextLevel = (store.snapshot.nextLevel + dir + LEVELS.length) % LEVELS.length;
+      renderLobby();
+    }
+  };
+  click('lvl-prev', () => pick(-1));
+  click('lvl-next', () => pick(1));
   click('bot-add', () => store.client?.send({ type: 'addBot' }));
   click('bot-remove', () => store.client?.send({ type: 'removeBot' }));
   click('go-btn', () => store.client?.send({ type: 'restart' }));

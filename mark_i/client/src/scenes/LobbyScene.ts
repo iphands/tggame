@@ -28,7 +28,7 @@ export class LobbyScene extends Phaser.Scene {
     this.view = null;
     this.shownIndex = -1;
     this.dancers = [];
-    this.add.rectangle(0, 0, 1280, 720, 0x07041a, 0.35).setOrigin(0).setDepth(90);
+    this.add.rectangle(0, 0, 1280, 720, 0x07041a, 0.18).setOrigin(0).setDepth(90);
     this.showLevel(store.snapshot?.nextLevel ?? 0);
     showScreen(store.joined ? 'lobby' : 'join');
     renderLobby();
