@@ -7,7 +7,7 @@ import { isClientMessage, type ClientMessage, type ServerMessage } from '../../s
 import { WORLD, SNAP_HZ, TICK_HZ } from '../../shared/src/constants.js';
 
 const PORT = Number(process.env.PORT ?? 8080);
-const STATIC_DIR = process.env.STATIC_DIR ?? path.resolve(process.cwd(), 'client', 'dist');
+const STATIC_DIR = path.resolve(process.cwd(), process.env.STATIC_DIR ?? path.join('client', 'dist'));
 
 const game = new Game();
 const peers = new Map<WebSocket, { id: string }>();
@@ -41,7 +41,7 @@ const server = http.createServer((req, res) => {
   // static client (only present in prod builds, not in dev)
   const staticDir = STATIC_DIR;
   if (!fs.existsSync(staticDir)) {
-    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
     res.end(`<!doctype html><html><head><meta charset="utf-8"><title>Last Survivor Arena</title></head>
 <body style="background:#0b0e1a;color:#e8edf5;font-family:sans-serif;padding:40px;max-width:640px">
 <h1>⚔️ Last Survivor Arena — server online</h1>
@@ -58,21 +58,52 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  fs.readFile(filePath, (err, buf) => {
-    if (err) {
-      // SPA fallback: serve index.html for unknown routes
-      fs.readFile(path.join(staticDir, 'index.html'), (err2, html) => {
-        if (err2) {
-          res.writeHead(404).end('not found');
-          return;
-        }
-        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-        res.end(html);
+  // Refresh-fast caching (LAN): the shell (index.html) is never stored, so
+  // phones always load the latest build, and hashed assets revalidate every
+  // load — unchanged files answer with a cheap 304 instead of re-downloading.
+  const isHtml = rel === 'index.html' || rel.toLowerCase().endsWith('.html');
+  const cacheControl = isHtml ? 'no-store' : 'no-cache, must-revalidate';
+
+  const sendHtml = (html: Buffer | string) => {
+    res.writeHead(200, {
+      'content-type': 'text/html; charset=utf-8',
+      'cache-control': 'no-store',
+    });
+    res.end(html);
+  };
+
+  fs.stat(filePath, (statErr, st) => {
+    // 304 fast path — unchanged assets reload instantly
+    const ims = req.headers['if-modified-since'];
+    if (!statErr && st && ims && Math.floor(st.mtime.getTime() / 1000) <= Math.floor(Date.parse(ims) / 1000)) {
+      res.writeHead(304, {
+        'cache-control': cacheControl,
+        'last-modified': st.mtime.toUTCString(),
       });
+      res.end();
       return;
     }
-    res.writeHead(200, { 'content-type': MIME[path.extname(filePath).toLowerCase()] ?? 'application/octet-stream' });
-    res.end(buf);
+
+    fs.readFile(filePath, (err, buf) => {
+      if (err) {
+        // SPA fallback: serve index.html for unknown routes
+        fs.readFile(path.join(staticDir, 'index.html'), (err2, html) => {
+          if (err2) {
+            res.writeHead(404).end('not found');
+            return;
+          }
+          sendHtml(html);
+        });
+        return;
+      }
+      const headers: Record<string, string> = {
+        'content-type': MIME[path.extname(filePath).toLowerCase()] ?? 'application/octet-stream',
+        'cache-control': cacheControl,
+      };
+      if (st) headers['last-modified'] = st.mtime.toUTCString();
+      res.writeHead(200, headers);
+      res.end(buf);
+    });
   });
 });
 
@@ -110,6 +141,10 @@ wss.on('connection', (ws) => {
       game.setInput(playerId, { left: msg.left, right: msg.right, jump: msg.jump });
     } else if (msg.type === 'restart') {
       game.restart();
+    } else if (msg.type === 'shoot') {
+      game.shoot(playerId);
+    } else if (msg.type === 'drop') {
+      game.drop(playerId);
     } else if (msg.type === 'leave') {
       game.leave(playerId);
       playerId = null;
@@ -162,7 +197,9 @@ function loop(): void {
         winnerId: snap.winnerId,
         players: snap.players,
         platforms: snap.platforms,
+        bullets: snap.bullets,
         events: snap.events,
+        simTimeMs: snap.simTimeMs,
         serverTimeMs: snap.serverTimeMs,
       };
       ws.send(JSON.stringify(msg));
