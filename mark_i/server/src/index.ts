@@ -32,11 +32,24 @@ const MIME: Record<string, string> = {
 };
 
 const server = http.createServer((req, res) => {
-  const url = new URL(req.url ?? '/', 'http://localhost');
+  try {
+    serveHttp(req, res);
+  } catch {
+    // never let one bad request take the game down
+    if (!res.headersSent) res.writeHead(400);
+    res.end();
+  }
+});
+
+function serveHttp(req: http.IncomingMessage, res: http.ServerResponse): void {
   let route: string;
   try {
-    route = decodeURIComponent(url.pathname);
+    route = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
   } catch {
+    res.writeHead(400).end();
+    return;
+  }
+  if (route.includes('\0')) {
     res.writeHead(400).end();
     return;
   }
@@ -103,7 +116,7 @@ const server = http.createServer((req, res) => {
       res.end(buf);
     });
   });
-});
+}
 
 // Snapshots are repetitive JSON: deflate cuts bandwidth ~4-5x (matters for many phones on Wi-Fi).
 const wss = new WebSocketServer({
