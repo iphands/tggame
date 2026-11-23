@@ -9,8 +9,11 @@ import { hexNum } from '../art/color';
 import { LevelView } from '../view/levelView';
 import { FighterView } from '../view/fighters';
 import { Particles } from '../view/particles';
-import { Hud } from '../view/hud';
+import { view as camView } from './HudScene';
 import { showScreen, syncMuteButton, syncRestartButton } from '../lobby';
+
+/** Camera zoom on phone-sized screens (the HUD is unaffected). */
+const SMALL_SCREEN_ZOOM = 1.45;
 
 type KeyName = 'left' | 'right' | 'jump' | 'down' | 'punch' | 'fire';
 
@@ -37,7 +40,9 @@ export class ArenaScene extends Phaser.Scene {
   private shots = new Map<number, Phaser.GameObjects.Image>();
   private crates = new Map<number, Phaser.GameObjects.Image>();
   private particles!: Particles;
-  private hud!: Hud;
+  private camX = 640;
+  private camY = 360;
+  private zoom = 1;
   private keys = {} as Record<KeyName, Phaser.Input.Keyboard.Key[]>;
   private prevDown = false;
   private prevPunch = false;
@@ -57,7 +62,13 @@ export class ArenaScene extends Phaser.Scene {
     this.level = null;
     this.levelIndex = -1;
     this.particles = new Particles(this);
-    this.hud = new Hud(this, store.touchMode);
+    // small screens: the arena camera zooms in and follows you; the HUD is its own overlay scene
+    camView.small = this.scale.displaySize.height < 560;
+    this.zoom = 1;
+    this.camX = 640;
+    this.camY = 360;
+    this.cameras.main.setBounds(0, 0, 1280, 720).setZoom(1).centerOn(640, 360);
+    this.scene.launch('Hud');
 
     const kb = this.input.keyboard;
     const onRestart = () => {
@@ -99,7 +110,8 @@ export class ArenaScene extends Phaser.Scene {
     for (const f of this.fighters.values()) f.destroy();
     this.fighters.clear();
     this.level?.destroy();
-    this.hud.destroy();
+    this.scene.stop('Hud');
+    Object.assign(camView, { x: 0, y: 0, w: 1280, h: 720 });
     fireHeld.mouse = false;
   }
 
@@ -153,9 +165,37 @@ export class ArenaScene extends Phaser.Scene {
       this.handleFx(store.fxQueue.shift()!.fx);
     }
     this.particles.update(delta);
+    this.updateCamera(players, snap.phase, delta);
+  }
 
-    const tick = this.hud.update(snap, snap.players, store.selfId, delta);
-    if (tick !== null) play(tick > 0 ? 'tick' : 'go');
+  /** Zoom in and follow yourself on small screens; full view otherwise. */
+  private updateCamera(players: PlayerState[], phase: string, delta: number): void {
+    camView.small = this.scale.displaySize.height < 560;
+    const me = players.find((p) => p.id === store.selfId);
+    const follow = camView.small && !!me && me.life === 'alive' && (phase === 'playing' || phase === 'starting');
+    const targetZoom = follow ? SMALL_SCREEN_ZOOM : 1;
+    const s = Math.min(delta, 50) / 1000;
+    this.zoom += (targetZoom - this.zoom) * (1 - Math.exp(-3.5 * s));
+    let tx = 640;
+    let ty = 360;
+    if (follow && me) {
+      // look a little ahead of where you're moving
+      tx = me.x + PHYS.playerW / 2 + Phaser.Math.Clamp(me.vx * 0.18, -90, 90);
+      ty = me.y + PHYS.playerH / 2 - 30;
+    }
+    const f = 1 - Math.exp(-6 * s);
+    this.camX += (tx - this.camX) * f;
+    this.camY += (ty - this.camY) * f;
+    const cam = this.cameras.main;
+    cam.setZoom(this.zoom);
+    cam.centerOn(this.camX, this.camY);
+    // what the HUD needs to place off-screen markers (bounds-clamped like the camera)
+    const w = 1280 / this.zoom;
+    const h = 720 / this.zoom;
+    camView.w = w;
+    camView.h = h;
+    camView.x = Phaser.Math.Clamp(this.camX - w / 2, 0, 1280 - w);
+    camView.y = Phaser.Math.Clamp(this.camY - h / 2, 0, 720 - h);
   }
 
   // ------------------------------------------------------------ input
@@ -381,7 +421,13 @@ export class ArenaScene extends Phaser.Scene {
         this.ring(f.x, f.y, c, 150, 600);
         this.particles.burst(f.x, f.y, { count: 46, colors: [c, 0xffffff, 0xffe066], speed: [300, 900], angle: [ang - spread, ang + spread], life: [400, 900], size: [3, 6], add: true, drag: 2.5 });
         this.cameras.main.shake(380, 0.02);
-        this.popup(Phaser.Math.Clamp(f.x + f.dirX * 60, 80, 1200), Phaser.Math.Clamp(f.y + f.dirY * 60, 80, 640), 'KO!', '#ffd166', 46);
+        this.popup(
+          Phaser.Math.Clamp(f.x + f.dirX * 60, camView.x + 80, camView.x + camView.w - 80),
+          Phaser.Math.Clamp(f.y + f.dirY * 60, camView.y + 80, camView.y + camView.h - 80),
+          'KO!',
+          '#ffd166',
+          46
+        );
         play('ko', self ? 1.2 : 0.9);
         break;
       }

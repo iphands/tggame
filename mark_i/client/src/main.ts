@@ -7,6 +7,7 @@ import { unlockAudio } from './audio';
 import { BootScene } from './scenes/BootScene';
 import { LobbyScene } from './scenes/LobbyScene';
 import { ArenaScene } from './scenes/ArenaScene';
+import { HudScene } from './scenes/HudScene';
 
 store.touchMode = isTouchDevice();
 document.body.classList.toggle('touch-mode', store.touchMode);
@@ -60,5 +61,5 @@ new Phaser.Game({
   render: { pixelArt: true, antialias: false },
   audio: { noAudio: true },
   input: { activePointers: 4 },
-  scene: [BootScene, LobbyScene, ArenaScene],
+  scene: [BootScene, LobbyScene, ArenaScene, HudScene], // Hud renders above Arena
 });

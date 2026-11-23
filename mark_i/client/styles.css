@@ -439,8 +439,8 @@ body.touch-mode .desktop-only {
 }
 
 body.touch-mode .game-buttons {
-  top: auto;
-  bottom: 48%;
+  /* below the HUD cards, above the right thumb cluster */
+  top: 24%;
 }
 
 /* ---------------------------------------------------------------- touch controls */
@@ -625,5 +625,44 @@ body.touch-mode .game-buttons {
 @media (orientation: portrait) and (max-width: 900px) {
   .rotate-gate {
     display: flex;
+  }
+}
+
+/* ---------------------------------------------------------------- phones (short screens) */
+
+@media (max-height: 500px) {
+  :root {
+    /* everything DOM-side scales off --u: make it ~25% bigger on phones */
+    --u: min(1.25vw, 2.2222vh);
+    --u: min(1.25vw, 2.2222dvh);
+  }
+
+  .lobby-main {
+    left: 2%;
+    top: 3%;
+    width: 55%;
+    padding: calc(var(--u) * 1.2);
+    gap: calc(var(--u) * 0.8);
+  }
+
+  .lobby-roster {
+    right: 2%;
+    top: 3%;
+    width: 39%;
+    max-height: 64%;
+  }
+
+  .howto {
+    left: 2%;
+    right: 2%;
+    bottom: 3%;
+  }
+
+  .howto-tip {
+    display: none;
+  }
+
+  .arena-name {
+    font-size: calc(var(--u) * 3);
   }
 }

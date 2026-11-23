@@ -58,14 +58,27 @@ export class Hud {
   private lastCount = -1;
   private centerPunch = 0;
   private readonly cardsTop: boolean;
+  /** Top edge of the free area below the cards (touch layout) for timer + feed. */
+  private topY = 14;
 
-  constructor(private scene: Phaser.Scene, touchMode: boolean) {
+  /**
+   * @param k UI scale: >1 on small screens so text and cards stay readable.
+   */
+  constructor(private scene: Phaser.Scene, touchMode: boolean, private readonly k = 1) {
     this.cardsTop = touchMode;
-    const timerY = touchMode ? 64 : 12;
-    this.timer = text(scene, 640, timerY, '', 30, '#ffe9b0', 6).setOrigin(0.5, 0).setDepth(100);
-    this.center = text(scene, 640, 290, '', 84, '#ffd166', 10).setOrigin(0.5).setDepth(110);
-    this.sub = text(scene, 640, 360, '', 26, '#ffffff', 6).setOrigin(0.5).setDepth(110);
-    this.status = text(scene, 640, touchMode ? 108 : 56, '', 18, '#cfe9ff', 5).setOrigin(0.5, 0).setDepth(100);
+    this.timer = text(scene, 640, 12, '', 30 * k, '#ffe9b0', 6).setOrigin(0.5, 0).setDepth(100);
+    this.center = text(scene, 640, 290, '', 84 * k, '#ffd166', 10).setOrigin(0.5).setDepth(110);
+    this.sub = text(scene, 640, 290 + 70 * k, '', 26 * k, '#ffffff', 6).setOrigin(0.5).setDepth(110);
+    this.status = text(scene, 640, 56, '', 18 * k, '#cfe9ff', 5).setOrigin(0.5, 0).setDepth(100);
+    this.placeTop(14);
+  }
+
+  /** Lay out timer / status / feed from a top y (below the cards in touch mode). */
+  private placeTop(y: number): void {
+    this.topY = y;
+    this.timer.setY(y - 2);
+    this.status.setY(y + 40 * this.k);
+    this.feedKey = ''; // re-layout the feed
   }
 
   /** Big transient center text ("KO!", "FIGHT!"). */
@@ -75,7 +88,14 @@ export class Hud {
     this.centerPunch = 900;
   }
 
-  update(snap: SnapshotMessage, players: PlayerState[], selfId: string | null, dtMs: number): number | null {
+  /** `view` is the visible world rectangle (the arena camera may be zoomed in). */
+  update(
+    snap: SnapshotMessage,
+    players: PlayerState[],
+    selfId: string | null,
+    dtMs: number,
+    view: { x: number; y: number; w: number; h: number }
+  ): number | null {
     let tick: number | null = null;
     // ---- timer
     if (snap.phase === 'playing' && snap.timeLeftMs !== null) {
@@ -126,7 +146,7 @@ export class Hud {
 
     this.updateFeed(snap.feed);
     this.updateCards(players, selfId, snap.simTimeMs);
-    this.updateArrows(players, snap.phase);
+    this.updateArrows(players, snap.phase, view);
     this.updateResults(snap, selfId);
     return tick;
   }
@@ -139,9 +159,9 @@ export class Hud {
     this.feedKey = key;
     for (const r of this.feedRows) r.destroy();
     this.feedRows = [];
-    const y0 = this.cardsTop ? 96 : 14;
+    const y0 = this.cardsTop ? this.topY : 14;
     feed.slice(0, 5).forEach((f, i) => {
-      const row = this.scene.add.container(14, y0 + i * 24).setDepth(100);
+      const row = this.scene.add.container(14, y0 + i * 24 * this.k).setDepth(100).setScale(this.k);
       const parts: [string, string][] = [];
       if (f.killer) parts.push([f.killer, f.killerColor ?? '#fff'], [` ${HOW_LABEL[f.how]} `, '#c9b8e6'], [f.victim, f.victimColor]);
       else parts.push([f.victim, f.victimColor], [` ${HOW_LABEL[f.how]}`, '#c9b8e6']);
@@ -196,18 +216,23 @@ export class Hud {
     const perRow = n > 8 ? Math.ceil(n / 2) : n;
     const rows = Math.ceil(n / perRow);
     const compact = rows > 1 || this.cardsTop;
-    const ch = compact ? 44 : 58;
+    const k = this.k;
+    const ch = compact ? 44 : 58; // card-local units (the card is scaled by k)
     const gap = 8;
-    const cw = Math.min(compact ? 138 : 168, (ARENA.width - 40 - gap * (perRow - 1)) / perRow);
+    const cw = Math.min((compact ? 138 : 168) * k, (ARENA.width - 24 - gap * (perRow - 1)) / perRow); // screen px
+    const chS = ch * k;
     active.forEach((p, i) => {
       const row = Math.floor(i / perRow);
       const col = i % perRow;
       const inRow = Math.min(perRow, n - row * perRow);
       const total = inRow * cw + (inRow - 1) * gap;
       const x = (ARENA.width - total) / 2 + col * (cw + gap);
-      const y = this.cardsTop ? 6 + row * (ch + 4) : ARENA.height - (rows - row) * (ch + 6) - 2;
-      this.cards.set(p.id, this.makeCard(p, x, y, cw, ch, p.id === selfId, compact));
+      const y = this.cardsTop ? 6 + row * (chS + 4) : ARENA.height - (rows - row) * (chS + 6) - 2;
+      const card = this.makeCard(p, x, y, cw / k, ch, p.id === selfId, compact);
+      card.root.setScale(k);
+      this.cards.set(p.id, card);
     });
+    if (this.cardsTop) this.placeTop(6 + rows * (chS + 4) + 6);
   }
 
   private makeCard(p: PlayerState, x: number, y: number, w: number, h: number, self: boolean, compact: boolean): Card {
@@ -241,14 +266,19 @@ export class Hud {
 
   // ------------------------------------------------------------ off-screen markers
 
-  private updateArrows(players: PlayerState[], phase: SnapshotMessage['phase']): void {
+  private updateArrows(
+    players: PlayerState[],
+    phase: SnapshotMessage['phase'],
+    view: { x: number; y: number; w: number; h: number }
+  ): void {
     const seen = new Set<string>();
     if (phase === 'playing' || phase === 'ended') {
       for (const p of players) {
         if (p.life !== 'alive') continue;
-        const cx = p.x + PHYS.playerW / 2;
-        const cy = p.y + PHYS.playerH / 2;
-        const off = cx < -4 || cx > ARENA.width + 4 || cy < -4;
+        // world → screen through the (possibly zoomed) arena camera
+        const cx = ((p.x + PHYS.playerW / 2 - view.x) / view.w) * ARENA.width;
+        const cy = ((p.y + PHYS.playerH / 2 - view.y) / view.h) * ARENA.height;
+        const off = cx < -4 || cx > ARENA.width + 4 || cy < -4 || cy > ARENA.height + 4;
         if (!off) continue;
         seen.add(p.id);
         let a = this.arrows.get(p.id);
@@ -261,13 +291,14 @@ export class Hud {
           this.arrows.set(p.id, a);
         }
         const x = Phaser.Math.Clamp(cx, 22, ARENA.width - 22);
-        const y = Phaser.Math.Clamp(cy, 26, ARENA.height - 22);
+        const minY = (this.cardsTop ? this.topY : 0) + 26 * this.k;
+        const y = Phaser.Math.Clamp(cy, minY, ARENA.height - 22);
         a.setPosition(x, y);
         const tri = a.list[2] as Phaser.GameObjects.Triangle;
         tri.setRotation(Math.atan2(cy - y, cx - x) + Math.PI / 2);
         tri.setPosition(Math.cos(Math.atan2(cy - y, cx - x)) * 22, Math.sin(Math.atan2(cy - y, cx - x)) * 22);
         const dist = Math.hypot(cx - x, cy - y);
-        a.setScale(Phaser.Math.Clamp(1.1 - dist / 900, 0.6, 1.1));
+        a.setScale(Phaser.Math.Clamp(1.1 - dist / 900, 0.6, 1.1) * this.k);
       }
     }
     for (const [id, a] of this.arrows) {
@@ -295,7 +326,11 @@ export class Hud {
       return;
     }
     const s = this.scene;
-    const root = s.add.container(0, 0).setDepth(120);
+    // scaled around the screen center on small screens
+    const root = s.add
+      .container(640 * (1 - this.k), 360 * (1 - this.k))
+      .setDepth(120)
+      .setScale(this.k);
     this.results = root;
     const rows = snap.results.slice(0, 8);
     const ph = 150 + rows.length * 34;
