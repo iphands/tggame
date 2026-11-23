@@ -174,3 +174,24 @@ export function makeCharacterTexture(): HTMLCanvasElement {
 
   return canvas;
 }
+
+/** Small bright capsule, pointing right — tinted by the shooter via flip/scale. */
+export function makeBulletTexture(): HTMLCanvasElement {
+  const W = 22, H = 6;
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d')!;
+  // glow
+  ctx.fillStyle = 'rgba(255, 226, 150, 0.35)';
+  ctx.fillRect(0, 0, W, H);
+  // core
+  ctx.fillStyle = '#ffe291';
+  ctx.fillRect(1, 1, W - 3, 4);
+  ctx.fillStyle = '#fff7dd';
+  ctx.fillRect(1, 2, W - 4, 2);
+  // tip
+  ctx.fillStyle = '#ffd166';
+  ctx.fillRect(W - 3, 1, 2, 4);
+  return canvas;
+}

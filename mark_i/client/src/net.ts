@@ -101,6 +101,11 @@ export class GameClient {
     this.send({ type: 'restart' });
   }
 
+  /** Fire the pistol once (server enforces the cooldown). */
+  sendShoot(): void {
+    this.send({ type: 'shoot' });
+  }
+
   setName(name: string): void {
     this.name = name;
   }

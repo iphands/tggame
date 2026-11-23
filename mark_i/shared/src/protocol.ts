@@ -2,7 +2,7 @@
 
 export type Phase = 'lobby' | 'starting' | 'playing' | 'ended';
 
-export type Cause = 'pit' | 'left' | 'timeout' | 'knockdown' | 'stomp';
+export type Cause = 'pit' | 'left' | 'timeout' | 'knockdown' | 'stomp' | 'gun';
 
 export type PlayerInput = {
   left: boolean;
@@ -14,7 +14,8 @@ export type ClientMessage =
   | { type: 'join'; name?: string }
   | { type: 'input'; left: boolean; right: boolean; jump: boolean }
   | { type: 'leave' }
-  | { type: 'restart' };
+  | { type: 'restart' }
+  | { type: 'shoot' };
 
 export type PlayerSnapshot = {
   id: string;
@@ -29,6 +30,8 @@ export type PlayerSnapshot = {
   waiting: boolean;
   hp: number;
   maxHp: number;
+  /** sim ms of the last pistol shot (-1 if never) — client renders readiness */
+  lastShotAtMs: number;
 };
 
 export type PlatformSnapshot = {
@@ -37,6 +40,15 @@ export type PlatformSnapshot = {
   w: number;
   h: number;
   moving: boolean;
+};
+
+/** A live bullet in flight (horizontal shot, facing direction). */
+export type BulletSnapshot = {
+  id: string;
+  ownerId: string;
+  x: number; // center x
+  y: number; // center y
+  vx: number; // px/s (sign = facing)
 };
 
 export type EventItem = {
@@ -63,7 +75,9 @@ export type ServerMessage =
       winnerId: string | null; // during 'ended'
       players: PlayerSnapshot[];
       platforms: PlatformSnapshot[];
+      bullets: BulletSnapshot[];
       events: EventItem[]; // most recent elimination events (newest first)
+      simTimeMs: number; // sim clock in ms (for per-client HUD timing)
       serverTimeMs: number;
     };
 
@@ -77,5 +91,6 @@ export function isClientMessage(v: unknown): v is ClientMessage {
   }
   if (m.type === 'leave') return true;
   if (m.type === 'restart') return true;
+  if (m.type === 'shoot') return true;
   return false;
 }

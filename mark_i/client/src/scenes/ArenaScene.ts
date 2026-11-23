@@ -1,11 +1,22 @@
 import Phaser from 'phaser';
 import { store } from '../store';
 import { hideChrome, syncRestartButton, syncGoButton } from '../ui';
-import { touchInput, mergeInput, setTouchControlsVisible } from '../controls';
+import {
+  touchInput,
+  mergeInput,
+  setTouchControlsVisible,
+  fireInput,
+  setFireHeld,
+} from '../controls';
 import type { Snapshot } from '../net';
 import { WORLD } from '../../../shared/src/constants';
 
 type Views = Map<string, PlayerView>;
+
+type BulletView = {
+  id: string;
+  image: Phaser.GameObjects.Image;
+};
 
 type PlayerView = {
   image: Phaser.GameObjects.Image;
@@ -31,6 +42,11 @@ export class ArenaScene extends Phaser.Scene {
   private eventsKey = '';
   private lastInputSent = { left: false, right: false, jump: false };
   private keys: Record<string, Phaser.Input.Keyboard.Key[]> = { left: [], right: [], jump: [] };
+  private bulletViews: BulletView[] = [];
+  private gunBar: Phaser.GameObjects.Rectangle | null = null;
+  private gunBarBg: Phaser.GameObjects.Rectangle | null = null;
+  private fireLabel: Phaser.GameObjects.Text | null = null;
+  private lastFireSent = 0;
   private frame = 0;
 
   constructor() {
@@ -62,6 +78,9 @@ export class ArenaScene extends Phaser.Scene {
       .text(640, 300, '', { fontFamily: 'Courier New, monospace', fontSize: '60px', fontStyle: 'bold', color: '#ffd166', stroke: '#1d0f0b', strokeThickness: 8 })
       .setOrigin(0.5);
 
+    this.bulletViews = [];
+    this.lastFireSent = 0;
+
     const kb = this.input.keyboard;
     if (kb) {
       this.keys = {
@@ -71,8 +90,34 @@ export class ArenaScene extends Phaser.Scene {
       };
       kb.on('keydown', (e: KeyboardEvent) => {
         if (e.code === 'KeyR' && !e.repeat) store.client?.sendRestart();
+        if (e.code === 'KeyF' && !e.repeat) setFireHeld(true);
+      });
+      kb.on('keyup', (e: KeyboardEvent) => {
+        if (e.code === 'KeyF') setFireHeld(false);
       });
     }
+    this.input.on('pointerdown', () => {
+      setFireHeld(true);
+    });
+    this.input.on('pointerup', () => {
+        setFireHeld(false);
+    });
+    this.input.on('pointerupoutside', () => {
+        setFireHeld(false);
+    });
+
+    this.gunBarBg = this.add
+      .rectangle(640, 58, 96, 7, 0x101024, 0.9)
+      .setStrokeStyle(1, 0x3d2c5a);
+    this.gunBar = this.add.rectangle(640 - 48 + 1, 58, 94, 5, 0xffb347).setOrigin(0, 0.5);
+    this.fireLabel = this.add
+      .text(640, 50, '🔫', { fontFamily: 'Courier New, monospace', fontSize: '13px', color: '#c9b8e6' })
+      .setOrigin(0.5, 1);
+
+    // start hidden until we know the gun isn't spam-firing
+    if (this.gunBar) this.gunBar.setVisible(false);
+    if (this.fireLabel) this.fireLabel.setVisible(false);
+    if (this.gunBarBg) this.gunBarBg.setVisible(false);
   }
 
   private anyKeyDown(name: 'left' | 'right' | 'jump'): boolean {
@@ -87,6 +132,12 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     syncRestartButton(true, snap.phase === 'ended');
+    // ---- fire (mouse / F key / FIRE button), throttled to ~8/s client-side
+    const fireNow = performance.now();
+    if (fireInput.held && fireNow - this.lastFireSent >= 125) {
+      this.lastFireSent = fireNow;
+      store.client?.sendShoot();
+    }
 
     // ---- input (keyboard OR touch)
     const input = mergeInput(
@@ -227,7 +278,50 @@ export class ArenaScene extends Phaser.Scene {
       }
     }
 
+    this.renderBullets(snap);
+    this.renderGunBar(snap);
     this.renderHUD(snap, players);
+  }
+
+  private renderBullets(snap: Snapshot): void {
+    const seen = new Set<string>();
+    for (const b of snap.bullets) {
+      seen.add(b.id);
+      let view = this.bulletViews.find((v) => v.id === b.id);
+      if (!view) {
+        const image = this.add.image(0, 0, 'bullet').setOrigin(0.5, 0.5);
+        view = { id: b.id, image };
+        this.bulletViews.push(view);
+      }
+      view.image.setPosition(b.x, b.y).setVisible(true);
+      view.image.setFlipX(b.vx < 0);
+      view.image.setScale(Math.max(0.4, Math.abs(b.vx) / 1400));
+    }
+    // drop views whose bullets are gone (expired / hit something)
+    this.bulletViews = this.bulletViews.filter((v) => {
+      if (seen.has(v.id)) return true;
+      v.image.destroy();
+      return false;
+    });
+  }
+
+  private renderGunBar(snap: Snapshot): void {
+    const self = snap.players.find((p) => p.id === store.selfId);
+    if (!this.gunBar || !this.gunBarBg || !this.fireLabel) return;
+    // never shoot mid-lobby / pre-start: hide until there's an in-match self player
+    if (!self || snap.phase !== 'playing') {
+      this.gunBar.setVisible(false);
+      this.gunBarBg.setVisible(false);
+      this.fireLabel.setVisible(false);
+      return;
+    }
+    this.gunBar.setVisible(true);
+    this.gunBarBg.setVisible(true);
+    this.fireLabel.setVisible(true);
+    const elapsed = self.lastShotAtMs < 0 ? WORLD.shootCooldownMs : snap.simTimeMs - self.lastShotAtMs;
+    const frac = Math.max(0, Math.min(1, elapsed / WORLD.shootCooldownMs));
+    this.gunBar.setSize(94 * frac, 5);
+    this.fireLabel.setText(frac >= 1 ? '🔫 READY' : '🔫…');
   }
 
   private createView(p: { id: string; name: string; color: string }): PlayerView {
@@ -306,6 +400,7 @@ function causeLabel(c: string): string {
     case 'timeout': return 'time expired';
     case 'knockdown': return 'knocked out';
     case 'stomp': return 'was stomped';
+    case 'gun': return 'was shot';
     default: return c;
   }
 }

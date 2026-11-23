@@ -1,5 +1,5 @@
 import { WORLD, TICK_HZ, PLAYER_COLORS, nextPlayerId } from '../../shared/src/constants.js';
-import type { Phase, Cause, EventItem, PlayerSnapshot, PlatformSnapshot } from '../../shared/src/protocol.js';
+import type { Phase, Cause, EventItem, PlayerSnapshot, PlatformSnapshot, BulletSnapshot } from '../../shared/src/protocol.js';
 import { PLATFORMS, SPAWNS, KILL_Y } from './level.js';
 
 export type PlayerInputMsg = { left: boolean; right: boolean; jump: boolean };
@@ -25,10 +25,22 @@ type Player = {
   maxHp: number;
   prevBottom: number; // bottom of the feet at the start of the tick (px)
   boostUntil: number; // sim ms — while active, the max-speed clamp is skipped (stomp shoves)
+  lastShotAt: number; // sim ms — last pistol shot
   input: { left: boolean; right: boolean; jump: boolean };
 };
 
 const PLAYERS = WORLD.capacity;
+
+type Bullet = {
+  id: string;
+  ownerId: string;
+  x: number; // center x
+  y: number; // center y
+  vx: number; // px/s, sign = facing
+  ttlMs: number; // remaining lifetime in sim ms
+};
+
+let bulletSeq = 1;
 
 export class Game {
   phase: Phase = 'lobby';
@@ -39,6 +51,7 @@ export class Game {
   players = new Map<string, Player>();
   events: EventItem[] = [];
   private endHoldMs: number | null = null;
+  private bullets: Bullet[] = [];
   private secondPlayerJoinedAt: number | null = null;
   private _simTimeMs = 0;
   private matchStartAtMs = 0;
@@ -75,6 +88,7 @@ export class Game {
       maxHp: WORLD.maxHp,
       prevBottom: -1e9,
       boostUntil: 0,
+      lastShotAt: 0,
       input: { left: false, right: false, jump: false },
     };
     this.players.set(id, p);
@@ -106,6 +120,25 @@ export class Game {
       this.countdownMs = WORLD.countdownMs;
       this.secondPlayerJoinedAt = null; // the restart is explicit — no grace period
     }
+  }
+
+  /** Default pistol: fire a horizontal shot in the player's facing direction. */
+  shoot(id: string): void {
+    const p = this.players.get(id);
+    if (!p || !p.alive || p.waiting) return;
+    if (this.phase !== 'playing') return;
+    const now = this._simTimeMs;
+    if (now - p.lastShotAt < WORLD.shootCooldownMs) return;
+    p.lastShotAt = now;
+    const dir = p.facing;
+    this.bullets.push({
+      id: `b_${bulletSeq++}`,
+      ownerId: p.id,
+      x: p.x + WORLD.playerW / 2 + dir * (WORLD.playerW / 2 + 4),
+      y: p.y + WORLD.playerH * 0.45,
+      vx: dir * WORLD.bulletSpeed,
+      ttlMs: WORLD.bulletTtlMs,
+    });
   }
 
   setInput(id: string, input: PlayerInputMsg): void {
@@ -182,6 +215,7 @@ export class Game {
       p.maxHp = WORLD.maxHp;
       p.prevBottom = -1e9;
       p.boostUntil = 0;
+      p.lastShotAt = 0;
       i++;
     }
   }
@@ -193,6 +227,7 @@ export class Game {
     this.winnerId = null;
     this.events = [];
     this.endHoldMs = null;
+    this.bullets = [];
     this.secondPlayerJoinedAt =
       this.activeCount() >= WORLD.fallbackStartPlayers ? this._simTimeMs : null;
     for (const p of this.players.values()) {
@@ -206,6 +241,7 @@ export class Game {
       p.platIdx = -1;
       p.prevBottom = -1e9;
       p.boostUntil = 0;
+      p.lastShotAt = 0;
       p.hp = WORLD.maxHp;
       p.maxHp = WORLD.maxHp;
       p.input = { left: false, right: false, jump: false };
@@ -251,6 +287,9 @@ export class Game {
       }
     }
 
+    // pistol bullets
+    this.updateBullets(dt);
+
     // pit elimination
     for (const p of this.players.values()) {
       if (p.alive && !p.waiting && p.y > KILL_Y) {
@@ -259,6 +298,40 @@ export class Game {
         this.emitEvent(p, 'pit');
       }
     }
+  }
+
+  private updateBullets(dt: number): void {
+    if (this.bullets.length === 0) return;
+    const next: Bullet[] = [];
+    for (const b of this.bullets) {
+      const prevX = b.x;
+      const nx = b.x + b.vx * dt;
+      const ttl = b.ttlMs - dt * 1000;
+      if (nx < -60 || nx > WORLD.width + 60 || ttl <= 0) continue; // expired / off-world
+      const x0 = Math.min(prevX, nx);
+      const x1 = Math.max(prevX, nx);
+      let hit: Player | null = null;
+      for (const p of this.players.values()) {
+        if (!p.alive || p.waiting || p.id === b.ownerId) continue;
+        const overlapX = x1 >= p.x && x0 <= p.x + WORLD.playerW;
+        const overlapY = b.y >= p.y - 6 && b.y <= p.y + WORLD.playerH + 6;
+        if (overlapX && overlapY) {
+          hit = p;
+          break;
+        }
+      }
+      if (hit) {
+        hit.hp = Math.max(0, hit.hp - WORLD.pistolDamage);
+        if (hit.hp <= 0) {
+          hit.alive = false;
+          hit.platIdx = -1;
+          this.emitEvent(hit, 'gun');
+        }
+        continue; // bullet consumed
+      }
+      next.push({ ...b, x: nx, ttlMs: ttl });
+    }
+    this.bullets = next;
   }
 
   private updatePlayer(
@@ -477,9 +550,14 @@ export class Game {
         waiting: p.waiting,
         hp: p.hp,
         maxHp: p.maxHp,
+        lastShotAtMs: p.lastShotAt || -1,
       })),
       platforms: this.platformsAt(this._simTimeMs),
+      bullets: this.bullets.map(
+        (b): BulletSnapshot => ({ id: b.id, ownerId: b.ownerId, x: b.x, y: b.y, vx: b.vx })
+      ),
       events: this.events.slice(0, 8),
+      simTimeMs: this._simTimeMs,
       serverTimeMs,
     };
   }

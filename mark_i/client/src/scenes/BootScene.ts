@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { makeBackground, makePlatformTexture, makeCharacterTexture } from '../art';
+import { makeBackground, makePlatformTexture, makeCharacterTexture, makeBulletTexture } from '../art';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -12,6 +12,7 @@ export class BootScene extends Phaser.Scene {
     if (!this.textures.exists('bg')) this.textures.addCanvas('bg', makeBackground(W, H));
     if (!this.textures.exists('platform')) this.textures.addCanvas('platform', makePlatformTexture());
     if (!this.textures.exists('character')) this.textures.addCanvas('character', makeCharacterTexture());
+    if (!this.textures.exists('bullet')) this.textures.addCanvas('bullet', makeBulletTexture());
     this.scene.start('Lobby');
   }
 }

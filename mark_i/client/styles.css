@@ -358,6 +358,15 @@ body.touch-mode .roster {
 
 .ctrl-left { left: 2.4%; width: 17%; height: 26%; }
 .ctrl-right { left: 21.5%; width: 17%; height: 26%; }
+.ctrl-fire {
+  right: 31.8%;
+  width: 12.8%;
+  height: 34%;
+  font-size: clamp(13px, 3.4vmin, 26px);
+  color: #ffc4cd;
+  border-color: #7d2f45;
+  background: rgba(66, 24, 36, 0.82);
+}
 .ctrl-jump { right: 2.4%; width: 27%; height: 34%; font-size: clamp(20px, 6.2vmin, 52px); background: rgba(38, 30, 66, 0.82); }
 
 /* ------- rotate-to-landscape gate ------- */

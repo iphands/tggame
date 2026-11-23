@@ -19,6 +19,13 @@ export function mergeInput(keyboard: InputState, touch: InputState): InputState 
   };
 }
 
+/** Held fire state (mouse / F key / FIRE button). ArenaScene samples it. */
+export const fireInput = { held: false };
+
+export function setFireHeld(value: boolean): void {
+  fireInput.held = value;
+}
+
 export function isTouchDevice(): boolean {
   if (typeof window === 'undefined') return false;
   const coarse = window.matchMedia?.('(pointer: coarse)').matches ?? false;
@@ -56,6 +63,26 @@ export function initTouchControls(): void {
   bind('ctrl-left', 'left');
   bind('ctrl-right', 'right');
   bind('ctrl-jump', 'jump');
+
+  // FIRE: held-state button (one shot per press feels faster)
+  const fire = document.getElementById('ctrl-fire');
+  if (fire) {
+    const down = (e: Event) => {
+      e.preventDefault();
+      setFireHeld(true);
+      fire.classList.add('pressed');
+    };
+    const up = (e: Event) => {
+      e.preventDefault();
+      setFireHeld(false);
+      fire.classList.remove('pressed');
+    };
+    fire.addEventListener('pointerdown', down);
+    fire.addEventListener('pointerup', up);
+    fire.addEventListener('pointercancel', up);
+    fire.addEventListener('pointerleave', up);
+    fire.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
 }
 
 /** Show or hide the on-screen control bar. */

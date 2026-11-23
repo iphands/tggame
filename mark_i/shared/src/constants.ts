@@ -30,6 +30,11 @@ export const WORLD = {
   jumpCutGravity: 6200, // extra px/s^2 added to gravity while rising and jump is NOT held (cuts the jump short)
   descendGravity: 750, // px/s^2 while falling and jump IS held (floaty descent)
   descendMaxFallSpeed: 340, // px/s fall cap while falling and held (soft landing)
+  /** Pistol (default weapon) tuning. */
+  pistolDamage: 50, // hit deals half of maxHp (100)
+  shootCooldownMs: 360,
+  bulletSpeed: 1500, // px/s
+  bulletTtlMs: 700,
   /** Match tuning. */
   capacity: 16,
   quickStartPlayers: 10, // start quickly once this many are connected
