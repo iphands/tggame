@@ -87,7 +87,10 @@ press **+ BOT** a few times, then **START**.
 - **Stomp:** land on someone's head. You bounce high and get your double
   jump back. A grounded victim is popped up and an airborne one is spiked
   down. 9% damage.
-- **Pistol:** the default weapon. Long range, light knockback, 4%.
+- **Pistol:** the default weapon. Long range, solid knockback, 6%. **Aim
+  assist** bends shots toward the nearest foe in front of you (within ±25°),
+  so you can hit people on other platforms without jumping. It's a big help
+  on touch screens. The boomstick spread is assisted too.
 - **Down:** on a platform, drop through to the one below. You can't drop if
   there's nothing underneath. In the air, past the top of a jump, it
   fast-falls.

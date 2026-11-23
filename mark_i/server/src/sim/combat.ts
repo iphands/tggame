@@ -176,13 +176,14 @@ export function fire(w: World, p: Player): boolean {
   const muzzleY = p.y + H * 0.45;
   const weapon = p.weapon;
 
+  const aim = assistAngle(w, p, muzzleX, muzzleY);
   if (weapon === 'pistol') {
     const P = COMBAT.pistol;
-    spawn(w, p, 'bullet', muzzleX, muzzleY, p.face * P.speed, 0, P.ttlMs, P.angleDeg);
+    spawn(w, p, 'bullet', muzzleX, muzzleY, p.face * Math.cos(aim) * P.speed, Math.sin(aim) * P.speed, P.ttlMs, P.angleDeg);
   } else if (weapon === 'boomstick') {
     const B = COMBAT.boomstick;
     for (let i = 0; i < B.pellets; i++) {
-      const a = (-B.spreadDeg / 2 + (B.spreadDeg * i) / (B.pellets - 1)) * RAD;
+      const a = aim + (-B.spreadDeg / 2 + (B.spreadDeg * i) / (B.pellets - 1)) * RAD;
       spawn(w, p, 'pellet', muzzleX, muzzleY, p.face * Math.cos(a) * B.speed, Math.sin(a) * B.speed, B.ttlMs, B.angleDeg);
     }
     // recoil kicks the shooter backwards
@@ -198,6 +199,31 @@ export function fire(w: World, p: Player): boolean {
   }
   w.fx.push({ k: 'shot', x: muzzleX, y: muzzleY, id: p.id, weapon, face: p.face });
   return true;
+}
+
+/**
+ * Aim assist: angle (radians, +down, relative to facing) toward the nearest
+ * on-stage foe in front of the shooter within the assist cone, else 0.
+ */
+export function assistAngle(w: World, p: Player, mx: number, my: number): number {
+  const A = COMBAT.aimAssist;
+  let best = 0;
+  let bestDist = Infinity;
+  for (const q of w.players.values()) {
+    if (q === p || q.life !== 'alive') continue;
+    const dx = (q.x + W / 2 - mx) * p.face;
+    const dy = q.y + H / 2 - my;
+    if (dx <= 0) continue; // behind
+    const dist = Math.hypot(dx, dy);
+    if (dist > A.range) continue;
+    const a = Math.atan2(dy, dx);
+    if (Math.abs(a) > A.maxDeg * RAD) continue;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = a;
+    }
+  }
+  return best;
 }
 
 function spawn(

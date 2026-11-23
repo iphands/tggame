@@ -230,3 +230,29 @@ describe('outside of play', () => {
     expect(P(g, a).punchAt).toBeLessThan(0);
   });
 });
+
+describe('pistol aim assist', () => {
+  it('bends shots toward a foe on a different level in front of you', () => {
+    const g = newGame('sky');
+    const [a, b] = startMatch(g);
+    // shooter on the main island (top 440); target up on the right island (top 390)
+    place(g, a, 800, 440);
+    place(g, b, 1060, 390);
+    run(g, 100);
+    P(g, a).face = 1;
+    g.shoot(a);
+    expect(g.w.projectiles[0].vy).toBeLessThan(0);
+    run(g, 500);
+    expect(P(g, b).dmg).toBe(COMBAT.pistol.dmg);
+  });
+
+  it('ignores foes behind you or outside the cone', () => {
+    const g = newGame('sky');
+    const [a, b] = startMatch(g);
+    place(g, a, 640, 440);
+    place(g, b, 640, 205); // straight above: way outside the cone
+    run(g, 100);
+    g.shoot(a);
+    expect(g.w.projectiles[0].vy).toBe(0);
+  });
+});
