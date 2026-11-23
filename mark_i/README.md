@@ -83,12 +83,12 @@ press **+ BOT** a few times, then **START**.
   jump** in the air. Holding jump while falling slows your fall, which
   helps you get back to the stage. Coyote time and input buffering keep
   jumps forgiving.
-- **Punch:** a quick lunge that sends the target up and away. 9% damage,
+- **Punch:** a quick lunge that sends the target up and away. 11% damage,
   and the hardest-hitting move up close.
 - **Stomp:** land on someone's head. You bounce high and get your double
   jump back. A grounded victim is popped up and an airborne one is spiked
   down. 9% damage.
-- **Pistol:** the default weapon. Long range, hard-hitting, 8% with big knockback. **Aim
+- **Pistol:** the default weapon. Long range, hard-hitting, 10% with big knockback. **Aim
   assist** bends shots toward the nearest foe in front of you (within ±25°),
   so you can hit people on other platforms without jumping. It's a big help
   on touch screens. The boomstick spread is assisted too.
