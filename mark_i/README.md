@@ -83,7 +83,8 @@ press **+ BOT** a few times, then **START**.
   jump** in the air. Holding jump while falling slows your fall, which
   helps you get back to the stage. Coyote time and input buffering keep
   jumps forgiving.
-- **Punch:** a quick lunge that sends the target up and away. 7% damage.
+- **Punch:** a quick lunge that sends the target up and away. 9% damage,
+  and the hardest-hitting move up close.
 - **Stomp:** land on someone's head. You bounce high and get your double
   jump back. A grounded victim is popped up and an airborne one is spiked
   down. 9% damage.
