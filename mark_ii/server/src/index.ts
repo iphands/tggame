@@ -7,7 +7,7 @@ import { Game } from './sim/game.js';
 import { isClientMessage, type ClientMessage, type ServerMessage } from '../../shared/src/protocol.js';
 import { MATCH, SNAP_EVERY_TICKS, TICK_MS } from '../../shared/src/constants.js';
 
-const PORT = Number(process.env.PORT ?? 8080);
+const PORT = Number(process.env.PORT ?? 8081);
 const STATIC_DIR = path.resolve(process.cwd(), process.env.STATIC_DIR ?? path.join('client', 'dist'));
 /** Max messages a socket may send per second before extras are dropped. */
 const MSG_BUDGET_PER_SEC = 240;
@@ -63,12 +63,12 @@ function serveHttp(req: http.IncomingMessage, res: http.ServerResponse): void {
 
   if (!fs.existsSync(STATIC_DIR)) {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
-    res.end(`<!doctype html><html><head><meta charset="utf-8"><title>Last Survivor Arena</title></head>
+    res.end(`<!doctype html><html><head><meta charset="utf-8"><title>Last Survivor Run</title></head>
 <body style="background:#0b0e1a;color:#e8edf5;font-family:sans-serif;padding:40px;max-width:640px">
-<h1>Last Survivor Arena: server online</h1>
+<h1>Last Survivor Run: server online</h1>
 <p>The game server is running and accepting WebSocket clients on port <b>${PORT}</b>.</p>
 <p><b>Static client not found</b> at <code>${STATIC_DIR}</code>. Run <code>npm run dev</code>
-(then open port 5173) or <code>npm run build</code> then <code>npm start</code>.</p>
+(then open port 5174) or <code>npm run build</code> then <code>npm start</code>.</p>
 </body></html>`);
     return;
   }
@@ -205,7 +205,7 @@ setInterval(() => {
 }, 1000);
 
 server.listen(PORT, () => {
-  console.log(`Last Survivor Arena: listening on http://0.0.0.0:${PORT} (static dir: ${STATIC_DIR})`);
+  console.log(`Last Survivor Run: listening on http://0.0.0.0:${PORT} (static dir: ${STATIC_DIR})`);
 });
 
 // -------------------------------------------------------------- game loop

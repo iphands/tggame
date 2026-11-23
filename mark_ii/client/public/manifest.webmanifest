@@ -1,6 +1,6 @@
 {
-  "name": "Last Survivor Arena",
-  "short_name": "Survivor",
+  "name": "Last Survivor Run",
+  "short_name": "Runner",
   "description": "Multiplayer platform brawler: knock everyone off the arena.",
   "start_url": "./",
   "scope": "./",

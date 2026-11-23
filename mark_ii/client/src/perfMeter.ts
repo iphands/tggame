@@ -20,9 +20,9 @@ let extra = '';
 export function perfEnabled(): boolean {
   const q = new URLSearchParams(location.search).get('fps');
   try {
-    if (q === '0') localStorage.removeItem('lsa-fps');
-    else if (q !== null) localStorage.setItem('lsa-fps', '1');
-    return localStorage.getItem('lsa-fps') === '1';
+    if (q === '0') localStorage.removeItem('lsr-fps');
+    else if (q !== null) localStorage.setItem('lsr-fps', '1');
+    return localStorage.getItem('lsr-fps') === '1';
   } catch {
     return q !== null && q !== '0';
   }

@@ -108,11 +108,11 @@ export class ArenaScene extends Phaser.Scene {
     this.vignette = this.add.image(640, 360, 'vignette').setScrollFactor(0).setDepth(95);
     this.createdAt = performance.now();
     const onQuality = () => this.applyQuality();
-    window.addEventListener('lsa-quality', onQuality);
+    window.addEventListener('lsr-quality', onQuality);
     this.applyQuality();
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      window.removeEventListener('lsa-quality', onQuality);
+      window.removeEventListener('lsr-quality', onQuality);
       kb?.off('keydown-R', onRestart);
       kb?.off('keydown-M', onMute);
       this.input.off('pointerdown', onDown);

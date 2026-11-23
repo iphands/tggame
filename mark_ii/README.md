@@ -1,4 +1,4 @@
-# ⚔️ Last Survivor Arena
+# ⚔️ Last Survivor Run
 
 A multiplayer 2D platform brawler for up to **16 players**. Shoot, stomp
 and bomb each other off five themed floating arenas. **The more damage
@@ -20,20 +20,20 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:5173**, pick a name and hit **PLAY**. In the lobby,
+Open **http://localhost:5174**, pick a name and hit **PLAY**. In the lobby,
 press **+ BOT** a few times, then **START**.
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | Game server on **:8080** (`tsx watch`) + Vite client on **:5173** (also reachable from the LAN) |
-| `npm run build && npm start` | Builds both, then one Node process serves the client **and** the WebSocket on **:8080** |
+| `npm run dev` | Game server on **:8081** (`tsx watch`) + Vite client on **:5174** (also reachable from the LAN) |
+| `npm run build && npm start` | Builds both, then one Node process serves the client **and** the WebSocket on **:8081** |
 | `npm test` | Vitest: physics, combat, match flow, bots, levels, interpolation, protocol |
 | `npm run typecheck` | Client + server TypeScript configs |
 | `node scripts/smoke.mjs [ws://host:port]` | Protocol smoke test against a running server |
 | `node scripts/round-smoke.mjs [ws://host:port]` | Plays a full bot round to the results screen |
 
 **LAN party:** run `npm run build && npm start`, then open
-`http://<your-ip>:8080` on every phone and laptop.
+`http://<your-ip>:8081` on every phone and laptop.
 
 ### Phones: full screen and size
 
@@ -205,10 +205,10 @@ shape.
 `npm run build && npm start` serves everything from one port. The client
 connects its WebSocket to the **same origin it was loaded from**, so this
 works behind a reverse proxy or TLS (`wss://`). The Vite dev server is the
-one exception: from port 5173 it targets `:8080`. To point a client at a
+one exception: from port 5174 it targets `:8081`. To point a client at a
 different server, add `?ws=ws://host:port` to the URL.
 
-- `PORT`: listen port (default `8080`)
+- `PORT`: listen port (default `8081`)
 - `STATIC_DIR`: built client directory (default `client/dist`)
 - `GET /health` returns `{ ok, phase, players, bots }`
 

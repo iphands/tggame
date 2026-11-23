@@ -12,7 +12,7 @@ const lastPlayed = new Map<string, number>();
 
 function readMuted(): boolean {
   try {
-    return localStorage.getItem('lsa-muted') === '1';
+    return localStorage.getItem('lsr-muted') === '1';
   } catch {
     return false;
   }
@@ -25,7 +25,7 @@ export function isMuted(): boolean {
 export function setMuted(m: boolean): void {
   muted = m;
   try {
-    localStorage.setItem('lsa-muted', m ? '1' : '0');
+    localStorage.setItem('lsr-muted', m ? '1' : '0');
   } catch {
     /* private mode */
   }

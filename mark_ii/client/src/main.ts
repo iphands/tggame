@@ -16,7 +16,7 @@ store.touchMode = isTouchDevice();
 {
   let saved: Setting = 'auto';
   try {
-    saved = (localStorage.getItem('lsa-gfx') as Setting | null) ?? 'auto';
+    saved = (localStorage.getItem('lsr-gfx') as Setting | null) ?? 'auto';
   } catch {
     /* private mode */
   }
@@ -42,7 +42,7 @@ function join(name: string): void {
   store.name = name;
   store.joined = true;
   try {
-    localStorage.setItem('lsa-name', name);
+    localStorage.setItem('lsr-name', name);
   } catch {
     /* private mode */
   }

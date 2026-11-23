@@ -2,7 +2,7 @@
 // round, inputs, and disconnect cleanup. Usage: node scripts/smoke.mjs [ws-url]
 import WebSocket from 'ws';
 
-const URL = process.argv[2] ?? process.env.WS_URL ?? 'ws://localhost:8080';
+const URL = process.argv[2] ?? process.env.WS_URL ?? 'ws://localhost:8081';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function connect(name) {

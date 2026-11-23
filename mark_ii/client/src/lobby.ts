@@ -46,7 +46,7 @@ export function syncMuteButton(): void {
 export function initLobbyDom(onJoin: (name: string) => void): void {
   const input = $('name-input') as HTMLInputElement | null;
   try {
-    const saved = localStorage.getItem('lsa-name');
+    const saved = localStorage.getItem('lsr-name');
     if (input && saved) input.value = saved;
   } catch {
     /* private mode */
@@ -86,12 +86,12 @@ export function initLobbyDom(onJoin: (name: string) => void): void {
     const next = nextSetting(store.quality.setting);
     store.quality.set(next);
     try {
-      localStorage.setItem('lsa-gfx', next);
+      localStorage.setItem('lsr-gfx', next);
     } catch {
       /* private mode */
     }
     syncGfxButton();
-    window.dispatchEvent(new Event('lsa-quality'));
+    window.dispatchEvent(new Event('lsr-quality'));
   });
   syncGfxButton();
   const syncFs = () => {
@@ -107,7 +107,7 @@ export function initLobbyDom(onJoin: (name: string) => void): void {
   // iPhone Safari can't go full screen: point people at "Add to Home Screen"
   let hintDismissed = false;
   try {
-    hintDismissed = localStorage.getItem('lsa-ios-hint') === '1';
+    hintDismissed = localStorage.getItem('lsr-ios-hint') === '1';
   } catch {
     /* private mode */
   }
@@ -115,7 +115,7 @@ export function initLobbyDom(onJoin: (name: string) => void): void {
   $('ios-hint-close')?.addEventListener('click', () => {
     $('ios-hint')?.classList.add('hidden');
     try {
-      localStorage.setItem('lsa-ios-hint', '1');
+      localStorage.setItem('lsr-ios-hint', '1');
     } catch {
       /* private mode */
     }
