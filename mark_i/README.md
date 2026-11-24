@@ -107,7 +107,7 @@ into one to open it.
 | Item | Effect |
 | --- | --- |
 | **Boomstick** | 4 shotgun blasts: a wide 5-pellet spread with big knockback and recoil |
-| **Bombs** | 3 lobbed bombs that bounce and explode on a fuse or on contact. They can hurt you too |
+| **Bombs** | 3 lobbed bombs that bounce and explode on a fuse or on contact. **Tap** for a short lob, **hold** for the full arc. They can hurt you too |
 | **SMG** | 30 rounds of hold-to-spray rapid fire: small hits that add up fast |
 | **Rockets** | 3 accelerating rockets that explode on contact: up to 30% and a huge blast that sends people flying |
 | **☢ Railgun** | *Rare and devastating.* 2 shots. A short charge shows a sight line, then a screen-wide beam pierces everyone in line: 30% damage and a launch that KOs at almost any damage. Big recoil |
