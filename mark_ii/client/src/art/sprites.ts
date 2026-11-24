@@ -387,8 +387,10 @@ export function makeCommonTextures(scene: Phaser.Scene): void {
   add(scene, 'icon-pistol', 32, 32, (ctx) => drawIcon(ctx, 'pistol'));
 
   // ---- course furniture
-  add(scene, 'box', 48, 48, (ctx) => drawBox(ctx, 48, false));
-  add(scene, 'box-cracked', 48, 48, (ctx) => drawBox(ctx, 48, true));
+  add(scene, 'box', 48, 48, (ctx) => drawBox(ctx, 48, false, WOOD));
+  add(scene, 'box-cracked', 48, 48, (ctx) => drawBox(ctx, 48, true, WOOD));
+  add(scene, 'box-arms', 48, 48, (ctx) => drawBox(ctx, 48, false, BLUE));
+  add(scene, 'box-arms-cracked', 48, 48, (ctx) => drawBox(ctx, 48, true, BLUE));
   add(scene, 'gate', 96, 96, (ctx) => drawGate(ctx, 96));
 
   // finish line: a checkered strip (tiled vertically)
@@ -411,23 +413,28 @@ export function makeCommonTextures(scene: Phaser.Scene): void {
   });
 }
 
-/** A wooden crate: shoot it. `cracked` once it has taken damage. */
-function drawBox(ctx: CanvasRenderingContext2D, s: number, cracked: boolean): void {
-  ctx.fillStyle = '#3a2210';
+type BoxPalette = { edge: string; face: [string, string]; plank: [string, string]; frame: string; nail: string; crack: string };
+const WOOD: BoxPalette = { edge: '#3a2210', face: ['#c08a4a', '#a8703c'], plank: ['#a8733a', '#8f5c30'], frame: '#7a4a22', nail: '#e8d2a8', crack: '#2a1608' };
+/** Weapon boxes: break one and everyone gets the same weapon. */
+const BLUE: BoxPalette = { edge: '#0c1c44', face: ['#3d8bff', '#2f6fd6'], plank: ['#2f74e0', '#255bb5'], frame: '#1b4396', nail: '#cfe6ff', crack: '#081230' };
+
+/** A crate: shoot it. `cracked` once it has taken damage. Blue ones are weapon boxes (marked with a star). */
+function drawBox(ctx: CanvasRenderingContext2D, s: number, cracked: boolean, pal: BoxPalette): void {
+  ctx.fillStyle = pal.edge;
   ctx.fillRect(0, 0, s, s);
-  ctx.fillStyle = cracked ? '#a8703c' : '#c08a4a';
+  ctx.fillStyle = pal.face[cracked ? 1 : 0];
   ctx.fillRect(2, 2, s - 4, s - 4);
   // planks
-  ctx.fillStyle = cracked ? '#8f5c30' : '#a8733a';
+  ctx.fillStyle = pal.plank[cracked ? 1 : 0];
   for (let y = 2; y < s - 2; y += 11) ctx.fillRect(2, y + 9, s - 4, 2);
   // frame
-  ctx.fillStyle = '#7a4a22';
+  ctx.fillStyle = pal.frame;
   ctx.fillRect(2, 2, s - 4, 6);
   ctx.fillRect(2, s - 8, s - 4, 6);
   ctx.fillRect(2, 2, 6, s - 4);
   ctx.fillRect(s - 8, 2, 6, s - 4);
   // cross brace
-  ctx.strokeStyle = '#7a4a22';
+  ctx.strokeStyle = pal.frame;
   ctx.lineWidth = 5;
   ctx.beginPath();
   ctx.moveTo(8, 8);
@@ -437,10 +444,22 @@ function drawBox(ctx: CanvasRenderingContext2D, s: number, cracked: boolean): vo
   ctx.fillStyle = 'rgba(255,230,180,0.35)';
   ctx.fillRect(2, 2, s - 4, 2);
   ctx.fillRect(2, 2, 2, s - 4);
-  ctx.fillStyle = '#e8d2a8';
+  ctx.fillStyle = pal.nail;
   for (const [x, y] of [[4, 4], [s - 7, 4], [4, s - 7], [s - 7, s - 7]]) ctx.fillRect(x, y, 3, 3);
+  if (pal === BLUE) {
+    // a white star in the middle
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 ? s * 0.11 : s * 0.25;
+      const a = -Math.PI / 2 + (i * Math.PI) / 5;
+      ctx.lineTo(s / 2 + Math.cos(a) * r, s / 2 + Math.sin(a) * r);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
   if (cracked) {
-    ctx.strokeStyle = '#2a1608';
+    ctx.strokeStyle = pal.crack;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(s * 0.3, 3);

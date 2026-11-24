@@ -81,6 +81,8 @@ export type Fx =
   /** A shot stopped on a box or gate. */
   | { k: 'boxhit'; x: number; y: number }
   | { k: 'boxbreak'; x: number; y: number; w: number; h: number }
+  /** A blue weapon box broke: every runner now holds `item`. */
+  | { k: 'arms'; x: number; y: number; item: ItemKind }
   | { k: 'gatebreak'; x: number; w: number }
   | { k: 'finish'; x: number; y: number; id: string; place: number };
 

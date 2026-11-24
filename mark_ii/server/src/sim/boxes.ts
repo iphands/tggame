@@ -1,5 +1,6 @@
 /** Damage to boxes and gates. */
 import { BOX, RUN } from '../../../shared/src/constants.js';
+import { armEveryone } from './items.js';
 import { isSolid } from './platforms.js';
 import { breakGate, scrollLimit } from './scroll.js';
 import { activeGate, type Plat, type Player, type World } from './model.js';
@@ -30,6 +31,7 @@ function breakBox(w: World, i: number): void {
   pl.box!.hp = 0;
   pl.state = 'gone';
   w.fx.push({ k: 'boxbreak', x: pl.x, y: pl.y, w: pl.w, h: pl.h });
+  if (pl.box!.arms) armEveryone(w, pl.x + pl.w / 2, pl.y + pl.h / 2);
   for (const p of w.players.values()) {
     if (p.platIdx === i) {
       p.grounded = false;

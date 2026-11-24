@@ -353,7 +353,7 @@ export class LevelView {
       const breakable = def.hp !== undefined;
       const hp = breakable ? this.boxHp.get(i) ?? def.hp! : Infinity;
       if (!sp) {
-        const key = breakable ? 'box' : blockTexture(this.scene, def.w, def.h);
+        const key = breakable ? (def.arms ? 'box-arms' : 'box') : blockTexture(this.scene, def.w, def.h);
         const img = this.scene.add.image(def.x, def.y, key).setOrigin(0).setDepth(4);
         if (breakable) img.setDisplaySize(def.w, def.h);
         sp = { img, hp, flash: 0 };
@@ -362,7 +362,7 @@ export class LevelView {
       if (!breakable) return;
       if (hp < sp.hp) {
         sp.flash = 90;
-        sp.img.setTexture('box-cracked');
+        sp.img.setTexture(def.arms ? 'box-arms-cracked' : 'box-cracked');
       }
       sp.hp = hp;
       if (sp.flash > 0) {

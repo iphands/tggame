@@ -107,6 +107,38 @@ describe('boxes', () => {
     expect(P(g, ids[0]).vx).toBe(0);
   });
 
+  it('blue weapon boxes hand every runner the same weapon when they break', () => {
+    const { g, ids } = course({ boxes: [{ ...crate(700), arms: true }] }, ['Alice', 'Bob', 'Cara']);
+    const [a, b, c] = ids;
+    place(g, a, 600, FLOOR);
+    place(g, b, 400, FLOOR);
+    place(g, c, 300, FLOOR);
+    g.w.plats[g.w.solids[0]].box!.hp = BOX.dmg.bullet; // one shot left
+    P(g, a).face = 1;
+    run(g, 50);
+    g.shoot(a);
+    run(g, 200);
+    const weapon = P(g, a).weapon;
+    expect(weapon).not.toBe('pistol');
+    for (const id of ids) {
+      expect(P(g, id).weapon).toBe(weapon);
+      expect(P(g, id).ammo).toBeGreaterThan(0);
+    }
+  });
+
+  it('plain boxes arm nobody', () => {
+    const { g, ids } = course({ boxes: [crate(700)] });
+    place(g, ids[0], 600, FLOOR);
+    place(g, ids[1], 400, FLOOR);
+    g.w.plats[g.w.solids[0]].box!.hp = BOX.dmg.bullet;
+    P(g, ids[0]).face = 1;
+    run(g, 50);
+    g.shoot(ids[0]);
+    run(g, 200);
+    expect(g.w.plats[g.w.solids[0]].state).toBe('gone');
+    for (const id of ids) expect(P(g, id).weapon).toBe('pistol');
+  });
+
   it('can be jumped onto and stood on', () => {
     const { g, ids } = course({ boxes: [crate(700)] });
     place(g, ids[0], 724, 420);

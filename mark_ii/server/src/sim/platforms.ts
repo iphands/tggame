@@ -33,7 +33,7 @@ export function buildPlats(level: LevelDef, t: number): Plat[] {
       h: b.h,
       state: 'solid',
       timer: 0,
-      box: { idx, hp, max: hp },
+      box: { idx, hp, max: hp, arms: b.arms === true },
     });
   });
   return plats;

@@ -110,8 +110,8 @@ export type Plat = {
   state: 'solid' | 'shaking' | 'gone';
   /** ms spent in the current crumble state. */
   timer: number;
-  /** Set for boxes: solid on every side. `idx` is the index into level.boxes; hp Infinity = unbreakable. */
-  box?: { idx: number; hp: number; max: number };
+  /** Set for boxes: solid on every side. `idx` is the index into level.boxes; hp Infinity = unbreakable; `arms` = blue weapon box. */
+  box?: { idx: number; hp: number; max: number; arms: boolean };
 };
 
 export type Projectile = {

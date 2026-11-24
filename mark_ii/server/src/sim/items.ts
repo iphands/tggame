@@ -25,6 +25,24 @@ export function rollItem(rng: () => number): ItemKind {
   return 'life';
 }
 
+/** A weapon (never a shield or a life), weighted like the crates. */
+export function rollWeapon(rng: () => number): ItemKind {
+  const weapons = ITEM_WEIGHTS.filter(([item]) => item !== 'shield' && item !== 'life');
+  const total = weapons.reduce((s, [, n]) => s + n, 0);
+  let r = rng() * total;
+  for (const [item, n] of weapons) {
+    r -= n;
+    if (r < 0) return item;
+  }
+  return 'boomstick';
+}
+
+/** A blue weapon box broke at (x, y): every runner still racing gets the same weapon, fully loaded. */
+export function armEveryone(w: World, x: number, y: number, item: ItemKind = rollWeapon(w.rng)): void {
+  for (const p of w.players.values()) if (p.life === 'alive' && p.finishMs < 0) grantItem(w, p, item);
+  w.fx.push({ k: 'arms', x, y, item });
+}
+
 export function scheduleFirstCrate(w: World): void {
   w.nextCrateAt = w.t + randRange(w.rng, ITEMS.firstCrateMinMs, ITEMS.firstCrateMaxMs);
 }

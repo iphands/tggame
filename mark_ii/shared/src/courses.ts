@@ -61,6 +61,12 @@ class Course {
     return this;
   }
 
+  /** A blue weapon box on the last floor, `at` px from its start: break it and every runner gets the same weapon. */
+  armory(at: number, hp: number = BOX.hp): this {
+    this.boxes.push({ x: this.g0 + at, y: this.gy - B, w: B, h: B, hp, arms: true });
+    return this;
+  }
+
   /** A permanent block on the last floor, `wTiles` x `hTiles` boxes big. Jump it. */
   block(at: number, wTiles = 1, hTiles = 1): this {
     this.boxes.push({ x: this.g0 + at, y: this.gy - B * hTiles, w: B * wTiles, h: B * hTiles });
@@ -133,7 +139,7 @@ function skySprint(): LevelDef {
   c.ground(480);
   c.gap(140).rise(70);
   // gate 1
-  c.ground(1150).crates(300, 1).gate(820);
+  c.ground(1150).crates(300, 1).armory(520).gate(820);
   // a lazy lift carries you over the wide pit
   c.air(95, 0, 120, { move: { ay: 46, periodMs: 2600 } });
   c.gap(310).rise(-70);
@@ -147,7 +153,7 @@ function skySprint(): LevelDef {
   c.ground(300).block(130, 1, 1);
   c.gap(200);
   // gate 2
-  c.ground(1250).crates(280, 2).crates(328, 2).ledge(430, 130, 200).gate(900);
+  c.ground(1250).crates(280, 2).crates(328, 2).ledge(430, 130, 200).armory(660).gate(900);
   c.gap(170).rise(60);
   c.ground(520).block(260, 1, 2);
   c.air(100, 20, 130, { move: { ax: 60, periodMs: 3000 } });
@@ -175,7 +181,7 @@ function frostDash(): LevelDef {
   c.ground(360);
   c.gap(150).rise(60);
   // gate 1 on firm ground
-  c.ground(1200).block(260, 1, 1).gate(860);
+  c.ground(1200).block(260, 1, 1).armory(540).gate(860);
   // a glider crosses the crevasse
   c.air(170, 10, 150, { move: { ax: 90, periodMs: 3600 } });
   c.gap(480).rise(-60);
@@ -192,7 +198,7 @@ function frostDash(): LevelDef {
   c.ground(1000, 'ice').crates(560, 4, 10).crates(608, 4, 10).ledge(120, 120, 170, { kind: 'ice' });
   c.gap(180);
   // gate 2
-  c.ground(1200).crates(240, 1).crates(500, 2).gate(880);
+  c.ground(1200).crates(240, 1).crates(500, 2).armory(680).gate(880);
   c.gap(190).rise(70);
   c.ground(420, 'ice').block(210, 1, 1);
   c.gap(200).rise(-70);
@@ -217,7 +223,7 @@ function templeTumble(): LevelDef {
   c.ground(420).crates(200, 1);
   c.gap(160).rise(70);
   // gate 1
-  c.ground(1200).crates(300, 3, 7).gate(860);
+  c.ground(1200).crates(300, 3, 7).armory(560).gate(860);
   c.gap(180).rise(-70);
   c.ground(360);
   // crumbling stairs down, then up
@@ -233,7 +239,7 @@ function templeTumble(): LevelDef {
   c.ground(200);
   c.gap(170);
   // gate 2
-  c.ground(1250).crates(260, 1).crates(308, 2).crates(356, 1).gate(900);
+  c.ground(1250).crates(260, 1).crates(308, 2).crates(356, 1).armory(620).gate(900);
   c.gap(160).rise(-70);
   // long crumbling causeway
   c.ground(300);
@@ -263,7 +269,7 @@ function forgeRun(): LevelDef {
   c.ground(420).block(200, 1, 1);
   c.gap(170).rise(-80);
   // gate 1
-  c.ground(1200).crates(260, 2).gate(860);
+  c.ground(1200).crates(260, 2).armory(540).gate(860);
   // shuttle ride
   c.air(120, 0, 140, { move: { ax: 80, periodMs: 3200 } });
   c.gap(440);
@@ -278,7 +284,7 @@ function forgeRun(): LevelDef {
   c.ground(360);
   c.gap(190);
   // gate 2
-  c.ground(1250).block(250, 1, 1).crates(480, 2).crates(528, 2).gate(900);
+  c.ground(1250).block(250, 1, 1).crates(480, 2).crates(528, 2).armory(700).gate(900);
   c.gap(180);
   c.ground(420).block(210, 1, 2);
   c.air(110, 10, 130, { move: { ax: 70, periodMs: 2800, phase: 0.5 } });
@@ -306,7 +312,7 @@ function neonRush(): LevelDef {
   c.ground(420);
   c.gap(250).rise(110);
   // gate 1 up high
-  c.ground(1200).crates(280, 2).crates(328, 3, 7).gate(860);
+  c.ground(1200).crates(280, 2).crates(328, 3, 7).armory(580).gate(860);
   c.gap(280).rise(-110);
   c.ground(300);
   c.gap(260).rise(-110);
@@ -321,7 +327,7 @@ function neonRush(): LevelDef {
   c.ground(220);
   c.gap(250);
   // gate 2
-  c.ground(1250).block(250, 2, 2).crates(520, 2).gate(900);
+  c.ground(1250).block(250, 2, 2).crates(520, 2).armory(700).gate(900);
   c.air(160, 30, 130, { move: { ax: 60, ay: 60, periodMs: 4200, phase: 0.5, circle: true } });
   c.gap(460);
   c.ground(520).block(240, 1, 3);

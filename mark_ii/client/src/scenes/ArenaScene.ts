@@ -540,6 +540,16 @@ export class ArenaScene extends Phaser.Scene {
         play('pickup', vol);
         break;
       }
+      case 'arms': {
+        // a blue weapon box broke: everyone is holding the same thing now
+        const [label, color] = ITEM_LABEL[f.item] ?? [f.item, '#ffffff'];
+        this.popup(f.x, f.y - 60, `EVERYONE: ${label}`, color, 34);
+        this.ring(f.x, f.y, 0x3d8bff, 220, 500);
+        this.glow(f.x, f.y, 0x7fb6ff, 180, 320);
+        this.particles.burst(f.x, f.y, { count: 30, colors: [0x3d8bff, 0xcfe6ff, 0xffffff], speed: [120, 520], life: [350, 800], size: [2, 5], add: true, drag: 1.5 });
+        play('pickup', 1.1);
+        break;
+      }
       case 'crate':
         play('crate', 0.5);
         break;

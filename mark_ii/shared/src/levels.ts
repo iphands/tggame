@@ -51,8 +51,11 @@ export type LevelDef = {
   spawns: { x: number; y: number }[];
 };
 
-/** A solid block. With `hp` it can be shot apart; without, it's a permanent obstacle. */
-export type BoxDef = { x: number; y: number; w: number; h: number; hp?: number };
+/**
+ * A solid block. With `hp` it can be shot apart; without, it's a permanent obstacle.
+ * `arms` marks a blue weapon box: breaking it hands every runner the same weapon.
+ */
+export type BoxDef = { x: number; y: number; w: number; h: number; hp?: number; arms?: true };
 
 /** A wall across the whole screen height with one pooled health bar: everyone shoots it down together. */
 export type GateDef = { x: number; w: number };

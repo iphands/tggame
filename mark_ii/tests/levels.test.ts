@@ -74,6 +74,12 @@ describe('courses', () => {
         expect(pit.w, `pit at x=${pit.at}`).toBeLessThanOrEqual(limit);
       });
 
+      it('has blue weapon boxes, all breakable', () => {
+        const arms = level.boxes.filter((b) => b.arms);
+        expect(arms.length).toBeGreaterThanOrEqual(2);
+        for (const b of arms) expect(b.hp).toBeGreaterThan(0);
+      });
+
       it('sits its boxes on something solid, clear of the start', () => {
         for (const b of level.boxes) {
           expect(b.x).toBeGreaterThan(ARENA.width * 0.55);
