@@ -6,7 +6,7 @@ import type { PlayerState } from '../shared/src/types.js';
 function player(x: number, y = 100, life: PlayerState['life'] = 'alive'): PlayerState {
   return {
     id: 'p1', name: 'A', color: '#fff', bot: false, x, y, vx: 0, vy: 0, face: 1, grounded: true, life,
-    lives: 3, place: 0, finishMs: -1, weapon: 'pistol', ammo: -1, invuln: false, shield: false, launched: false,
+    lives: 3, place: 0, finishMs: -1, weapon: 'pistol', ammo: -1, invuln: false, shield: false, shoes: false, launched: false, dmg: 0,
     charging: false, shotAt: -1, airJumps: 1, wins: 0, kos: 0,
   };
 }

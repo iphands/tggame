@@ -1,5 +1,5 @@
 /** Player movement: gravity, running, jumping, landing, drop-through, body push. */
-import { ARENA, BOX, PHYS, RUN } from '../../../shared/src/constants.js';
+import { ARENA, BOX, ITEMS, PHYS, RUN } from '../../../shared/src/constants.js';
 import { findLanding, isSolid } from './platforms.js';
 import { activeGate, type Input, type Player, type World } from './model.js';
 
@@ -13,9 +13,10 @@ export function applyInput(p: Player, input: Input): void {
 /** Advance one living player by one tick. */
 /**
  * Sets every runner's max-speed multiplier for this tick: damage taken slows
- * you, and so does running ahead of the rest of the pack (RUN.dmgSlow, RUN.leadSlow).
+ * you, and so does running ahead of the rest of the pack (RUN.dmgSlow,
+ * RUN.leadSlow); speed shoes make you faster (ITEMS.shoesSpeed).
  */
-export function updatePace(alive: Player[]): void {
+export function updatePace(alive: Player[], now: number): void {
   let n = 0;
   let sum = 0;
   for (const p of alive) {
@@ -26,13 +27,13 @@ export function updatePace(alive: Player[]): void {
   const span = RUN.leadSlowFull - RUN.leadSlowFrom;
   for (const p of alive) {
     if (p.finishMs >= 0) {
-      p.speedMul = 1;
+      p.speedMul = now < p.shoesUntil ? ITEMS.shoesSpeed : 1;
       continue;
     }
     const hurt = Math.min(1, p.dmg / RUN.dmgSlowFull);
     const lead = n > 1 ? p.x - (sum - p.x) / (n - 1) : 0;
     const ahead = Math.min(1, Math.max(0, (lead - RUN.leadSlowFrom) / span));
-    p.speedMul = (1 - RUN.dmgSlow * hurt) * (1 - RUN.leadSlow * ahead);
+    p.speedMul = (1 - RUN.dmgSlow * hurt) * (1 - RUN.leadSlow * ahead) * (now < p.shoesUntil ? ITEMS.shoesSpeed : 1);
   }
 }
 

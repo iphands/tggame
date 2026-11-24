@@ -152,6 +152,9 @@ export const ITEMS = {
   blinkMs: 3000,
   gravity: 1800,
   maxFall: 900,
+  /** Speed shoes: max run speed (ground and air) is multiplied by this for `shoesMs`. Lost with a life. */
+  shoesSpeed: 1.3,
+  shoesMs: 8000,
 } as const;
 
 /** Player palette (assigned first-free, so colors stay unique). */

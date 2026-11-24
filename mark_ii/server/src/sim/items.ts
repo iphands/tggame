@@ -13,6 +13,7 @@ const ITEM_WEIGHTS: [ItemKind, number][] = [
   ['railgun', 1], // rare and devastating
   ['shield', 2],
   ['life', 2],
+  ['shoes', 3],
 ];
 
 export function rollItem(rng: () => number): ItemKind {
@@ -25,9 +26,9 @@ export function rollItem(rng: () => number): ItemKind {
   return 'life';
 }
 
-/** A weapon (never a shield or a life), weighted like the crates. */
+/** A weapon (never a shield, a life or shoes), weighted like the crates. */
 export function rollWeapon(rng: () => number): ItemKind {
-  const weapons = ITEM_WEIGHTS.filter(([item]) => item !== 'shield' && item !== 'life');
+  const weapons = ITEM_WEIGHTS.filter(([item]) => item !== 'shield' && item !== 'life' && item !== 'shoes');
   const total = weapons.reduce((s, [, n]) => s + n, 0);
   let r = rng() * total;
   for (const [item, n] of weapons) {
@@ -105,6 +106,8 @@ export function grantItem(w: World, p: Player, item: ItemKind): void {
     p.chargeUntil = 0;
   } else if (item === 'shield') {
     p.shieldUntil = w.t + COMBAT.shieldMs;
+  } else if (item === 'shoes') {
+    p.shoesUntil = w.t + ITEMS.shoesMs;
   } else {
     p.lives = Math.min(RUN.lives, p.lives + 1);
   }

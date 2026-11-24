@@ -2,7 +2,7 @@
 export type Phase = 'lobby' | 'starting' | 'playing' | 'ended';
 
 export type WeaponKind = 'pistol' | 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun';
-export type ItemKind = 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun' | 'shield' | 'life';
+export type ItemKind = 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun' | 'shield' | 'life' | 'shoes';
 export type HitHow = 'stomp' | 'pistol' | 'boomstick' | 'bomb' | 'smg' | 'rocket' | 'railgun';
 
 /**
@@ -34,6 +34,8 @@ export type PlayerState = {
   ammo: number; // -1 = infinite
   invuln: boolean;
   shield: boolean;
+  /** Wearing speed shoes. */
+  shoes: boolean;
   launched: boolean;
   /** Damage percent taken this life (slows the runner; resets with each life). */
   dmg: number;

@@ -381,7 +381,7 @@ export function makeCommonTextures(scene: Phaser.Scene): void {
     ctx.fillRect(34, 6, 4, 2);
   });
 
-  for (const item of ['boomstick', 'bombs', 'smg', 'rockets', 'railgun', 'shield', 'life'] as const) {
+  for (const item of ['boomstick', 'bombs', 'smg', 'rockets', 'railgun', 'shield', 'life', 'shoes'] as const) {
     add(scene, `icon-${item}`, 32, 32, (ctx) => drawIcon(ctx, item));
   }
   add(scene, 'icon-pistol', 32, 32, (ctx) => drawIcon(ctx, 'pistol'));
@@ -594,7 +594,7 @@ function drawCrate(ctx: CanvasRenderingContext2D): void {
 
 function drawIcon(
   ctx: CanvasRenderingContext2D,
-  item: 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun' | 'shield' | 'life' | 'pistol'
+  item: 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun' | 'shield' | 'life' | 'shoes' | 'pistol'
 ): void {
   if (item === 'smg') {
     ctx.fillStyle = '#14111c';
@@ -671,6 +671,35 @@ function drawIcon(
     ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,0.75)';
     ctx.fillRect(9, 10, 4, 3);
+  } else if (item === 'shoes') {
+    // a winged sneaker
+    ctx.fillStyle = '#14111c';
+    ctx.fillRect(3, 23, 26, 4); // sole
+    ctx.fillStyle = '#3ddc84';
+    ctx.beginPath();
+    ctx.moveTo(5, 23);
+    ctx.lineTo(5, 12);
+    ctx.lineTo(13, 12);
+    ctx.lineTo(18, 17);
+    ctx.quadraticCurveTo(28, 17, 28, 23);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#eafff2';
+    ctx.fillRect(3, 21, 26, 2); // midsole
+    ctx.fillRect(13, 15, 2, 5); // laces
+    ctx.fillRect(16, 17, 2, 4);
+    // wing at the heel
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(8, 13);
+    ctx.lineTo(1, 4);
+    ctx.lineTo(6, 7);
+    ctx.lineTo(5, 2);
+    ctx.lineTo(10, 7);
+    ctx.lineTo(11, 3);
+    ctx.lineTo(13, 13);
+    ctx.closePath();
+    ctx.fill();
   } else if (item === 'boomstick') {
     ctx.save();
     ctx.translate(16, 16);

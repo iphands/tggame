@@ -62,6 +62,8 @@ export type Player = {
   respawnAt: number;
   invulnUntil: number;
   shieldUntil: number;
+  /** Speed shoes last until this sim ms. */
+  shoesUntil: number;
   /** In hitstun until this sim ms (reduced control, no speed clamp). */
   launchUntil: number;
   /** Speed clamp skipped until this sim ms (lunges, recoil, launches). */
@@ -200,6 +202,7 @@ export function createPlayer(id: string, name: string, color: string, bot: boole
     respawnAt: 0,
     invulnUntil: 0,
     shieldUntil: 0,
+    shoesUntil: 0,
     launchUntil: 0,
     boostUntil: 0,
     dmg: 0,
@@ -237,6 +240,7 @@ export function resetBody(p: Player): void {
   p.prevBottom = -1e9;
   p.invulnUntil = 0;
   p.shieldUntil = 0;
+  p.shoesUntil = 0;
   p.launchUntil = 0;
   p.boostUntil = 0;
   p.dmg = 0;

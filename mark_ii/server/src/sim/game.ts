@@ -335,7 +335,7 @@ export class Game {
     if (combat) this.respawnDue();
 
     const alive = [...w.players.values()].filter((p) => p.life === 'alive');
-    updatePace(alive);
+    updatePace(alive, w.t);
     for (const p of alive) stepPlayer(w, p, TICK_MS);
 
     if (combat) {
@@ -588,6 +588,7 @@ export class Game {
         ammo: p.ammo,
         invuln: t < p.invulnUntil,
         shield: t < p.shieldUntil,
+        shoes: t < p.shoesUntil,
         launched: t < p.launchUntil,
         dmg: Math.round(p.dmg),
         charging: p.chargeUntil > 0,

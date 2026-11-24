@@ -36,6 +36,7 @@ const ITEM_LABEL: Record<string, [string, string]> = {
   boomstick: ['BOOMSTICK!', '#ffb02e'],
   bombs: ['BOMBS!', '#ff7a5c'],
   shield: ['SHIELD!', '#7fd3ff'],
+  shoes: ['SPEED SHOES!', '#3ddc84'],
   life: ['+1 LIFE!', '#ff7fa0'],
   smg: ['SMG!', '#3df2ff'],
   rockets: ['ROCKETS!', '#ff6b4f'],
@@ -289,6 +290,18 @@ export class ArenaScene extends Phaser.Scene {
       }
       v.leader = topWins > 0 && p.wins === topWins;
       v.update(p, simNow, delta, groundBelow);
+      if (p.life === 'alive' && p.shoes && Math.abs(p.vx) > 120 && Math.random() < 0.6) {
+        // speed shoes: a green streak off the heels
+        this.particles.burst(p.x + PHYS.playerW / 2 - Math.sign(p.vx) * 10, p.y + PHYS.playerH - 4, {
+          count: 1,
+          colors: [0x3ddc84, 0xeafff2],
+          speed: [0, 30],
+          life: [180, 340],
+          size: [2, 4],
+          add: true,
+          depth: 8,
+        });
+      }
       if (p.life === 'alive' && p.launched && Math.hypot(p.vx, p.vy) > 850 && Math.random() < 0.7) {
         this.particles.burst(p.x + PHYS.playerW / 2, p.y + PHYS.playerH / 2, {
           count: 1,

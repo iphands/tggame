@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { PHYS, RUN } from '../../shared/src/constants.js';
+import { ITEMS, PHYS, RUN } from '../../shared/src/constants.js';
+import { grantItem } from '../../server/src/sim/items.js';
 import { applyHit } from '../../server/src/sim/combat.js';
 import { newGame, newCustom, flatWorld, startMatch, run, place, park, hold, P, TICK_MS } from './helpers.js';
 
@@ -302,6 +303,27 @@ describe('pace', () => {
     expect(P(g, b).vx).toBeCloseTo(PHYS.maxSpeed, 0);
     expect(P(g, a).vx).toBeLessThan(PHYS.maxSpeed * (1 - RUN.leadSlow / 2));
     expect(P(g, a).vx).toBeGreaterThanOrEqual(PHYS.maxSpeed * (1 - RUN.leadSlow) - 1);
+  });
+
+  it('speed shoes make you faster for a while, then wear off', () => {
+    const g = newCustom(flatWorld());
+    const [a, b] = startMatch(g);
+    const p = place(g, a, 300, 540);
+    place(g, b, 250, 540);
+    g.w.scrollX = 0;
+    grantItem(g.w, p, 'shoes');
+    expect(g.snapshot().players.find((s) => s.id === a)!.shoes).toBe(true);
+    run(g, 50);
+    hold(g, a, { right: true });
+    hold(g, b, { right: true });
+    run(g, 400);
+    expect(p.vx).toBeGreaterThan(PHYS.maxSpeed * 1.1);
+    expect(p.vx).toBeLessThanOrEqual(PHYS.maxSpeed * ITEMS.shoesSpeed + 1);
+    expect(P(g, b).vx).toBeCloseTo(PHYS.maxSpeed, 0);
+    p.shoesUntil = g.w.t; // worn out
+    run(g, 300);
+    expect(p.vx).toBeLessThanOrEqual(PHYS.maxSpeed + 1);
+    expect(g.snapshot().players.find((s) => s.id === a)!.shoes).toBe(false);
   });
 
   it('hits add damage, and a new life starts clean', () => {
