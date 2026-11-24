@@ -35,6 +35,8 @@ export type PlayerState = {
   invuln: boolean;
   shield: boolean;
   launched: boolean;
+  /** Damage percent taken this life (slows the runner; resets with each life). */
+  dmg: number;
   /** Charging a railgun shot (draw the sight line). */
   charging: boolean;
   /** Sim ms of the last shot (-1 if never). */

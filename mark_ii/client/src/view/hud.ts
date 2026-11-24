@@ -6,7 +6,7 @@ import type { SnapshotMessage } from '../../../shared/src/protocol';
 import type { FeedEntry, PlayerState } from '../../../shared/src/types';
 import { fighterTexture } from '../art/sprites';
 import { hexNum } from '../art/color';
-import { ordinal, placeColor, setTextIf, TEXT_RES } from './fighters';
+import { dmgColor, ordinal, placeColor, setTextIf, TEXT_RES } from './fighters';
 
 const FONT = '"Trebuchet MS", "Segoe UI", system-ui, sans-serif';
 const HOW_LABEL: Record<FeedEntry['how'], string> = {
@@ -48,6 +48,7 @@ type Card = {
   ammo: Phaser.GameObjects.Text;
   portrait: Phaser.GameObjects.Sprite;
   bump: number;
+  lastDmg: number;
 };
 
 function text(scene: Phaser.Scene, x: number, y: number, s: string, size: number, color = '#ffffff', stroke = 5) {
@@ -217,7 +218,6 @@ export class Hud {
 
   private updateCards(players: PlayerState[], selfId: string | null, snap: SnapshotMessage): void {
     const simNow = snap.simTimeMs;
-    const finishX = levelAt(snap.level).finishX;
     const active = players.filter((p) => p.life !== 'waiting');
     const key = active.map((p) => p.id).join(',');
     if (key !== this.cardsKey) {
@@ -233,9 +233,12 @@ export class Hud {
       c.bump *= 0.88;
       if (p.place > 0) setTextIf(c.big, ordinal(p.place), placeColor(p.place));
       else if (out) setTextIf(c.big, 'OUT', '#8a7fa0');
-      else if (p.life === 'alive') {
-        const pct = Phaser.Math.Clamp(Math.floor(((p.x + PHYS.playerW / 2) / finishX) * 100), 0, 99);
-        setTextIf(c.big, `${pct}%`, '#ffffff');
+      else {
+        // damage taken this life (it slows you down); progress is on the track
+        const dmg = p.life === 'alive' ? p.dmg : 0;
+        if (dmg > c.lastDmg) c.bump = 1; // took a hit: shake the card
+        c.lastDmg = dmg;
+        setTextIf(c.big, `${dmg}%`, dmgColor(dmg));
       }
       c.big.setScale(1 + c.bump * 0.35).setX(c.big.getData('x') + (c.bump > 0.2 ? (Math.random() - 0.5) * 4 * c.bump : 0));
       if (c.pipLives !== p.lives) {
@@ -361,7 +364,7 @@ export class Hud {
     const icon = s.add.image(w - 18, compact ? 16 : 20, 'icon-pistol').setScale(compact ? 0.55 : 0.7);
     const ammo = text(s, w - 34, compact ? 9 : 12, '', 11, '#ffe9b0', 3).setOrigin(1, 0);
     root.add([icon, ammo]);
-    return { id: p.id, root, bg, big, name, pips, pipLives: RUN.lives, icon, ammo, portrait, bump: 0 };
+    return { id: p.id, root, bg, big, name, pips, pipLives: RUN.lives, icon, ammo, portrait, bump: 0, lastDmg: 0 };
   }
 
   // ------------------------------------------------------------ off-screen markers

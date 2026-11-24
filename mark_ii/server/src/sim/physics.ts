@@ -1,5 +1,5 @@
 /** Player movement: gravity, running, jumping, landing, drop-through, body push. */
-import { ARENA, BOX, PHYS } from '../../../shared/src/constants.js';
+import { ARENA, BOX, PHYS, RUN } from '../../../shared/src/constants.js';
 import { findLanding, isSolid } from './platforms.js';
 import { activeGate, type Input, type Player, type World } from './model.js';
 
@@ -11,6 +11,31 @@ export function applyInput(p: Player, input: Input): void {
 }
 
 /** Advance one living player by one tick. */
+/**
+ * Sets every runner's max-speed multiplier for this tick: damage taken slows
+ * you, and so does running ahead of the rest of the pack (RUN.dmgSlow, RUN.leadSlow).
+ */
+export function updatePace(alive: Player[]): void {
+  let n = 0;
+  let sum = 0;
+  for (const p of alive) {
+    if (p.finishMs >= 0) continue;
+    n++;
+    sum += p.x;
+  }
+  const span = RUN.leadSlowFull - RUN.leadSlowFrom;
+  for (const p of alive) {
+    if (p.finishMs >= 0) {
+      p.speedMul = 1;
+      continue;
+    }
+    const hurt = Math.min(1, p.dmg / RUN.dmgSlowFull);
+    const lead = n > 1 ? p.x - (sum - p.x) / (n - 1) : 0;
+    const ahead = Math.min(1, Math.max(0, (lead - RUN.leadSlowFrom) / span));
+    p.speedMul = (1 - RUN.dmgSlow * hurt) * (1 - RUN.leadSlow * ahead);
+  }
+}
+
 export function stepPlayer(w: World, p: Player, dtMs: number): void {
   const s = dtMs / 1000;
   const now = w.t;
@@ -52,6 +77,7 @@ export function stepPlayer(w: World, p: Player, dtMs: number): void {
   let accel: number = p.grounded ? PHYS.accel : PHYS.airAccel;
   let maxSpeed: number = p.grounded ? PHYS.maxSpeed : PHYS.airMaxSpeed;
   let friction: number = PHYS.friction;
+  maxSpeed *= p.speedMul;
   if (onIce) {
     accel *= PHYS.iceAccelMul;
     friction *= PHYS.iceFrictionMul;

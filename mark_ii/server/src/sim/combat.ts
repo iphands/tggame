@@ -43,6 +43,7 @@ export function applyHit(w: World, attacker: Player | null, victim: Player, spec
   if (victim.grounded && vy > 0) vy = -vy * 0.4;
   if (Math.abs(vx) < 1 && Math.abs(vy) < 1) vx = speed;
 
+  victim.dmg = Math.min(RUN.dmgMax, victim.dmg + RUN.dmg[spec.how]);
   victim.vx = vx;
   victim.vy = vy;
   victim.cuttable = false;

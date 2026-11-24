@@ -14,7 +14,7 @@ import { makeBrain, thinkBot } from './bots.js';
 import { fire, updateCharges, updateProjectiles, updateStomps } from './combat.js';
 import { scheduleFirstCrate, updateCrates } from './items.js';
 import { activeGate, centerX, createPlayer, isRacing, resetBody, resetForRound, type Input, type Player, type World } from './model.js';
-import { applyInput, resolveSolids, separateBodies, stepPlayer, tryDrop } from './physics.js';
+import { applyInput, resolveSolids, separateBodies, stepPlayer, tryDrop, updatePace } from './physics.js';
 import { buildPlats, solidIndices, updatePlats } from './platforms.js';
 import { makeRng } from './rng.js';
 import { armGate, updateScroll } from './scroll.js';
@@ -335,6 +335,7 @@ export class Game {
     if (combat) this.respawnDue();
 
     const alive = [...w.players.values()].filter((p) => p.life === 'alive');
+    updatePace(alive);
     for (const p of alive) stepPlayer(w, p, TICK_MS);
 
     if (combat) {
@@ -581,6 +582,7 @@ export class Game {
         invuln: t < p.invulnUntil,
         shield: t < p.shieldUntil,
         launched: t < p.launchUntil,
+        dmg: Math.round(p.dmg),
         charging: p.chargeUntil > 0,
         shotAt: p.shotAt < 0 ? -1 : Math.round(p.shotAt),
         airJumps: p.airJumpsLeft,

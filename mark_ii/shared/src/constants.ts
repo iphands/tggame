@@ -35,6 +35,21 @@ export const RUN = {
   finishGraceMs: 20_000,
   /** Every hit shoves as if the victim sat at this damage percent (no build-up). */
   shovePct: 40,
+  /** Damage percent a runner takes per hit (per life). It never changes the shove: it only slows them. */
+  dmg: { stomp: 8, pistol: 6, boomstick: 5, bomb: 18, smg: 3, rocket: 25, railgun: 30 },
+  /** Most the card will show. */
+  dmgMax: 999,
+  /** Damage trims max run speed: by `dmgSlow` at `dmgSlowFull` percent and beyond. */
+  dmgSlow: 0.15,
+  dmgSlowFull: 100,
+  /**
+   * Rubber band: a runner ahead of the rest of the pack (the mean x of the
+   * other runners on the course) loses up to `leadSlow` of their max speed,
+   * ramping from `leadSlowFrom` px of lead to `leadSlowFull` px.
+   */
+  leadSlow: 0.1,
+  leadSlowFrom: 150,
+  leadSlowFull: 650,
 } as const;
 
 /** Breakable boxes and co-op gates. */

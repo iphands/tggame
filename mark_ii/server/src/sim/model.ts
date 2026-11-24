@@ -66,6 +66,10 @@ export type Player = {
   launchUntil: number;
   /** Speed clamp skipped until this sim ms (lunges, recoil, launches). */
   boostUntil: number;
+  /** Damage percent taken this life: slows the runner (see RUN.dmgSlow). */
+  dmg: number;
+  /** Max-speed multiplier this tick (damage + lead over the pack): set by updatePace(). */
+  speedMul: number;
 
   lives: number;
   weapon: WeaponKind;
@@ -198,6 +202,8 @@ export function createPlayer(id: string, name: string, color: string, bot: boole
     shieldUntil: 0,
     launchUntil: 0,
     boostUntil: 0,
+    dmg: 0,
+    speedMul: 1,
     lives: RUN.lives,
     weapon: 'pistol',
     ammo: -1,
@@ -233,6 +239,8 @@ export function resetBody(p: Player): void {
   p.shieldUntil = 0;
   p.launchUntil = 0;
   p.boostUntil = 0;
+  p.dmg = 0;
+  p.speedMul = 1;
   p.weapon = 'pistol';
   p.ammo = -1;
   p.shotAt = -1e9;

@@ -16,6 +16,15 @@ export function ordinal(n: number): string {
   return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
 }
 
+/** Damage percent: white when fresh, hotter as it slows you down. */
+export function dmgColor(dmg: number): string {
+  if (dmg < 25) return '#ffffff';
+  if (dmg < 50) return '#ffe066';
+  if (dmg < 75) return '#ff9f43';
+  if (dmg < 100) return '#ff5d5d';
+  return '#d63c8a';
+}
+
 /** Gold, silver, bronze, then plain. */
 export function placeColor(place: number): string {
   return ['#ffd166', '#d7e1f0', '#e0a96d'][place - 1] ?? '#c9b8e6';

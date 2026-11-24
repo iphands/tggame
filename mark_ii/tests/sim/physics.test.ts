@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { PHYS } from '../../shared/src/constants.js';
-import { newGame, startMatch, run, place, park, hold, P, TICK_MS } from './helpers.js';
+import { PHYS, RUN } from '../../shared/src/constants.js';
+import { applyHit } from '../../server/src/sim/combat.js';
+import { newGame, newCustom, flatWorld, startMatch, run, place, park, hold, P, TICK_MS } from './helpers.js';
 
 function setup(level = 'sky') {
   const g = newGame(level);
@@ -34,8 +35,9 @@ describe('movement', () => {
   });
 
   it('running accelerates to the ground speed cap and faces the run direction', () => {
-    const { g, a } = setup();
+    const { g, a, b } = setup();
     place(g, a, 480, 440);
+    place(g, b, 430, 440); // close behind: no lead to slow the runner down
     run(g, 50);
     hold(g, a, { right: true });
     run(g, 300);
@@ -262,5 +264,58 @@ describe('low gravity arena', () => {
       return ground - peak(g, a, 1200, (i) => hold(g, a, { jump: i < 3 }));
     };
     expect(height('neon', 640, 460)).toBeGreaterThan(height('sky', 640, 440) * 1.2);
+  });
+});
+
+describe('pace', () => {
+  /** Top speed reached running right on a flat floor, with the other runner `gap` px behind. */
+  function topSpeed(dmg: number, gap: number): number {
+    const g = newCustom(flatWorld());
+    const [a, b] = startMatch(g);
+    const p = place(g, a, 300, 540);
+    place(g, b, 300 - gap, 540);
+    p.dmg = dmg;
+    run(g, 50);
+    hold(g, a, { right: true });
+    hold(g, b, { right: true });
+    run(g, 600);
+    return p.vx;
+  }
+
+  it('damage slows a runner down, but never by much', () => {
+    expect(topSpeed(0, 100)).toBeCloseTo(PHYS.maxSpeed, 0);
+    expect(topSpeed(RUN.dmgSlowFull / 2, 100)).toBeCloseTo(PHYS.maxSpeed * (1 - RUN.dmgSlow / 2), 0);
+    expect(topSpeed(RUN.dmgSlowFull, 100)).toBeCloseTo(PHYS.maxSpeed * (1 - RUN.dmgSlow), 0);
+    expect(topSpeed(RUN.dmgMax, 100)).toBeCloseTo(PHYS.maxSpeed * (1 - RUN.dmgSlow), 0);
+  });
+
+  it('a lead over the pack slows the leader, not the chaser', () => {
+    expect(topSpeed(0, RUN.leadSlowFrom)).toBeCloseTo(PHYS.maxSpeed, 0);
+    const g = newCustom(flatWorld());
+    const [a, b] = startMatch(g);
+    place(g, a, 300 + RUN.leadSlowFull, 540);
+    place(g, b, 300, 540);
+    run(g, 50);
+    hold(g, a, { right: true });
+    hold(g, b, { right: true });
+    run(g, 600);
+    expect(P(g, b).vx).toBeCloseTo(PHYS.maxSpeed, 0);
+    expect(P(g, a).vx).toBeLessThan(PHYS.maxSpeed * (1 - RUN.leadSlow / 2));
+    expect(P(g, a).vx).toBeGreaterThanOrEqual(PHYS.maxSpeed * (1 - RUN.leadSlow) - 1);
+  });
+
+  it('hits add damage, and a new life starts clean', () => {
+    const g = newCustom(flatWorld());
+    const [a, b] = startMatch(g);
+    const p = place(g, a, 300, 540);
+    place(g, b, 260, 540);
+    run(g, 50);
+    expect(applyHit(g.w, P(g, b), p, { base: 100, growth: 0, dirX: 1, dirY: -1, how: 'pistol' })).toBe(true);
+    expect(p.dmg).toBe(RUN.dmg.pistol);
+    expect(g.snapshot().players.find((s) => s.id === a)!.dmg).toBe(RUN.dmg.pistol);
+    p.y = 5000; // off the bottom: costs a life
+    run(g, 100);
+    expect(p.life).toBe('respawning');
+    expect(p.dmg).toBe(0);
   });
 });
