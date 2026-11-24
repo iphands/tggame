@@ -86,6 +86,9 @@ uses ports 8080/5173, so both games can run side by side.)
 - **Wooden boxes** block the way and break after five pistol shots (crate walls take ten or more). Shoot the
   bottom box of a stack and the whole stack comes down. You can also stand on
   them.
+- **Blue weapon boxes** (marked with a star) sit just before each gate.
+  Break one and every runner on the course gets the same random weapon,
+  fully loaded.
 - **Steel blocks** never break: jump over them (tall ones need the double
   jump).
 - **Gates** are walls across the whole screen with one shared health bar:

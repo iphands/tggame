@@ -39,7 +39,7 @@ start your own (`PORT=8191 npx tsx server/src/index.ts`, `npx vite --port 5199
 ```
 shared/src/constants.ts  ALL tuning: TICK_HZ/TICK_MS, ARENA (screen size), PHYS, COMBAT, RUN (scroll, lives, finish), BOX (boxes, gates), MATCH, ITEMS, COLORS, BOT_NAMES
 shared/src/levels.ts     LevelDef/BoxDef/GateDef, LEVELS, platformPos(), safeSpots() (respawn points)
-shared/src/courses.ts    the 5 hand-built courses + the Course cursor builder (ground/gap/rise/crates/block/ledge/air/gate/finish)
+shared/src/courses.ts    the 5 hand-built courses + the Course cursor builder (ground/gap/rise/crates/armory/block/ledge/air/gate/finish)
 shared/src/types.ts      snapshot entity types (PlayerState, Fx, FeedEntry, ResultRow…)
 shared/src/protocol.ts   ClientMessage / ServerMessage / SnapshotBody + isClientMessage()
 server/src/index.ts      HTTP static + /health, WebSocket dispatch, message budget, 60 Hz loop, 30 Hz broadcast
@@ -98,7 +98,10 @@ tests/*.test.ts          levels (course validation), interp, protocol, controls
   platforms (`World.solids` lists their indices). That is why landing, riding
   and crates work on them for free; only side and underside collision is
   extra. `hp: Infinity` is a permanent block. Never put `Infinity` in a
-  snapshot (it isn't JSON): only damaged boxes are sent.
+  snapshot (it isn't JSON): only damaged boxes are sent. A box with
+  `arms: true` is a blue weapon box: `breakBox()` calls `armEveryone()`
+  (`sim/items.ts`), which gives every racing runner the same weapon and
+  pushes an `arms` fx.
 - **Gates** are not entities: `World.gateIdx` is the next standing gate in
   `level.gates`, with one pooled `gateHp`. Everyone is always left of it.
 - **Fixed timestep, sim time only.** `Game.step(dt)` runs whole `TICK_MS`
