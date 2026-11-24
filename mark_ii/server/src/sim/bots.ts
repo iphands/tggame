@@ -127,7 +127,7 @@ export function thinkBot(w: World, p: Player, act: BotActions): void {
     if (gate && gate.x - (p.x + W) < 520) shoot = true;
 
     // ---- a box in the way: shoot it if it breaks, otherwise jump it
-    const box = boxAhead(w, p, 300);
+    const box = boxAhead(w, p, 460);
     if (box) {
       const dist = box.x - (p.x + W);
       const top = stackTop(w, box);

@@ -16,13 +16,13 @@ export const ARENA = {
 export const RUN = {
   lives: 3,
   /** The screen always creeps forward at least this fast (px/s). */
-  scrollBase: 120,
+  scrollBase: 190,
   /** Grace after GO before the screen starts moving. */
-  scrollDelayMs: 1500,
+  scrollDelayMs: 1000,
   /** The leader drags the screen along once past this fraction of its width. */
-  leadFrac: 0.65,
+  leadFrac: 0.58,
   /** Fastest the screen can chase the leader (px/s). */
-  catchup: 450,
+  catchup: 520,
   /** You're caught once fully this far past the left screen edge. */
   killMargin: 8,
   /** ...or this far below the bottom of the screen. */
@@ -40,12 +40,12 @@ export const RUN = {
 /** Breakable boxes and co-op gates. */
 export const BOX = {
   size: 48,
-  hp: 3,
+  hp: 5,
   /** Ledges this low are stepped onto instead of blocking. */
   stepUp: 8,
   gateW: 96,
   /** Gate hit points per racer still in the round. */
-  gateHpPerPlayer: 22,
+  gateHpPerPlayer: 36,
   /** A held gate crumbles on its own within this long (nobody gets stuck forever). */
   gateDecayMs: 45_000,
   /** Damage each weapon deals to boxes and gates. */

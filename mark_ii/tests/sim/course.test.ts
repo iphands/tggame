@@ -46,8 +46,10 @@ describe('the scrolling screen', () => {
     expect(g.w.scrollX).toBeGreaterThan(50);
     expect(g.w.scrollX).toBeLessThanOrEqual(RUN.catchup * 0.25);
     run(g, 800);
-    // settled with the leader at the lead line
-    expect(g.w.scrollX).toBeCloseTo(1200 - RUN.leadFrac * ARENA.width, 0);
+    // caught up to the lead line; from there it only creeps on at the base pace
+    const line = 1200 - RUN.leadFrac * ARENA.width;
+    expect(g.w.scrollX).toBeGreaterThanOrEqual(line);
+    expect(g.w.scrollX).toBeLessThan(line + RUN.scrollBase * 0.8);
   });
 
   it('never moves backwards and stops at the end of the course', () => {

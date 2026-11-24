@@ -83,13 +83,13 @@ uses ports 8080/5173, so both games can run side by side.)
   edge of the screen (the red glow). You get **3 lives**. After 1.3 s you drop
   back in a little ahead of the left edge with 2 s of invulnerability.
   Shooting ends the invulnerability early. Out of lives means spectating.
-- **Wooden boxes** block the way and break after a few shots. Shoot the
+- **Wooden boxes** block the way and break after five pistol shots (crate walls take ten or more). Shoot the
   bottom box of a stack and the whole stack comes down. You can also stand on
   them.
 - **Steel blocks** never break: jump over them (tall ones need the double
   jump).
 - **Gates** are walls across the whole screen with one shared health bar:
-  22 hit points per racer still in the round. The screen waits at a gate, so
+  36 hit points per racer still in the round. The screen waits at a gate, so
   nobody is caught while it stands. Everyone's shots count, and bullets pass
   through your teammates. A gate nobody shoots crumbles on its own after
   45 s.

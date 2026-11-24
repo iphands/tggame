@@ -137,7 +137,7 @@ function skySprint(): LevelDef {
   // a lazy lift carries you over the wide pit
   c.air(95, 0, 120, { move: { ay: 46, periodMs: 2600 } });
   c.gap(310).rise(-70);
-  c.ground(820).block(330, 2, 1).crates(600, 3, 4);
+  c.ground(820).block(330, 2, 1).crates(600, 3, 7);
   c.gap(180).rise(-70);
   // island hops
   c.ground(300);
@@ -153,7 +153,7 @@ function skySprint(): LevelDef {
   c.air(100, 20, 130, { move: { ax: 60, periodMs: 3000 } });
   c.gap(330).rise(-60);
   // last dash: a crate wall
-  c.ground(900).crates(380, 4, 6).crates(428, 4, 6).block(700, 1, 1);
+  c.ground(900).crates(380, 4, 10).crates(428, 4, 10).block(700, 1, 1);
   c.gap(190);
   c.finish();
   return c.build({ id: 'sky', name: 'Sky Sprint', tagline: 'Floating meadows and lazy lifts. A gentle first dash.', theme: 'sky' });
@@ -186,10 +186,10 @@ function frostDash(): LevelDef {
   c.gap(170);
   c.ground(280, 'ice');
   c.gap(170);
-  c.ground(520).crates(240, 3, 4);
+  c.ground(520).crates(240, 3, 7);
   c.gap(200);
   // slide into a crate wall: shoot early
-  c.ground(1000, 'ice').crates(560, 4, 6).crates(608, 4, 6).ledge(120, 120, 170, { kind: 'ice' });
+  c.ground(1000, 'ice').crates(560, 4, 10).crates(608, 4, 10).ledge(120, 120, 170, { kind: 'ice' });
   c.gap(180);
   // gate 2
   c.ground(1200).crates(240, 1).crates(500, 2).gate(880);
@@ -217,13 +217,13 @@ function templeTumble(): LevelDef {
   c.ground(420).crates(200, 1);
   c.gap(160).rise(70);
   // gate 1
-  c.ground(1200).crates(300, 3, 4).gate(860);
+  c.ground(1200).crates(300, 3, 7).gate(860);
   c.gap(180).rise(-70);
   c.ground(360);
   // crumbling stairs down, then up
   c.air(70, -30, 110, { kind: 'crumble' }).air(250, 20, 110, { kind: 'crumble' }).air(430, 70, 110, { kind: 'crumble' });
   c.gap(600).rise(70);
-  c.ground(760).block(260, 2, 1).crates(520, 2).crates(568, 3, 4);
+  c.ground(760).block(260, 2, 1).crates(520, 2).crates(568, 3, 7);
   c.gap(190);
   c.ground(300);
   c.gap(180);
@@ -242,7 +242,7 @@ function templeTumble(): LevelDef {
     .air(440, 0, 130, { kind: 'crumble' })
     .air(630, 0, 130, { kind: 'crumble' });
   c.gap(820);
-  c.ground(900).crates(330, 4, 6).crates(378, 4, 6).block(660, 1, 2);
+  c.ground(900).crates(330, 4, 10).crates(378, 4, 10).block(660, 1, 2);
   c.gap(190);
   c.finish();
   return c.build({ id: 'temple', name: 'Temple Tumble', tagline: 'Ancient stones give way underfoot. Keep moving!', theme: 'temple' });
@@ -273,7 +273,7 @@ function forgeRun(): LevelDef {
   // double spring
   c.air(170, -70, 90, { kind: 'bounce', h: 18 });
   c.gap(430).rise(90);
-  c.ground(700).crates(300, 3, 4).crates(560, 2);
+  c.ground(700).crates(300, 3, 7).crates(560, 2);
   c.gap(200).rise(-90);
   c.ground(360);
   c.gap(190);
@@ -283,7 +283,7 @@ function forgeRun(): LevelDef {
   c.ground(420).block(210, 1, 2);
   c.air(110, 10, 130, { move: { ax: 70, periodMs: 2800, phase: 0.5 } });
   c.gap(360);
-  c.ground(950).crates(330, 4, 6).crates(378, 4, 6).crates(426, 4, 6).block(720, 1, 1);
+  c.ground(950).crates(330, 4, 10).crates(378, 4, 10).crates(426, 4, 10).block(720, 1, 1);
   c.gap(200);
   c.finish();
   return c.build({ id: 'forge', name: 'Forge Run', tagline: 'Springs, shuttles and a lake of fire below.', theme: 'forge' });
@@ -296,7 +296,7 @@ function neonRush(): LevelDef {
   // low gravity: every jump is big air, so the pits are wide and the blocks tall
   c.ground(1100).block(840, 1, 2);
   c.gap(240);
-  c.ground(560).crates(260, 3, 4);
+  c.ground(560).crates(260, 3, 7);
   c.gap(260);
   c.ground(420);
   c.air(150, 40, 130, { move: { ax: 60, ay: 60, periodMs: 4200, circle: true } });
@@ -306,14 +306,14 @@ function neonRush(): LevelDef {
   c.ground(420);
   c.gap(250).rise(110);
   // gate 1 up high
-  c.ground(1200).crates(280, 2).crates(328, 3, 4).gate(860);
+  c.ground(1200).crates(280, 2).crates(328, 3, 7).gate(860);
   c.gap(280).rise(-110);
   c.ground(300);
   c.gap(260).rise(-110);
   c.ground(300).block(130, 1, 2);
   c.air(120, -50, 90, { kind: 'bounce', h: 18 });
   c.gap(520);
-  c.ground(700).crates(300, 4, 6).crates(348, 4, 6);
+  c.ground(700).crates(300, 4, 10).crates(348, 4, 10);
   c.gap(280);
   // stepping stones
   c.ground(220);
@@ -326,7 +326,7 @@ function neonRush(): LevelDef {
   c.gap(460);
   c.ground(520).block(240, 1, 3);
   c.gap(280);
-  c.ground(950).crates(330, 5, 8).crates(378, 5, 8).block(700, 1, 2);
+  c.ground(950).crates(330, 5, 13).crates(378, 5, 13).block(700, 1, 2);
   c.gap(260);
   c.finish();
   return c.build({ id: 'neon', name: 'Neon Rush', tagline: 'Low gravity, orbiting platforms, big air.', theme: 'neon', gravityScale: 0.72 });
