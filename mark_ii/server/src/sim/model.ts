@@ -17,10 +17,8 @@ export type Input = { left: boolean; right: boolean; jump: boolean };
 export const NO_INPUT: Input = { left: false, right: false, jump: false };
 
 export type BotBrain = {
-  /** 0..1 — scales aggression and aim. */
+  /** 0..1 — scales reaction time, steadiness and trigger speed. */
   skill: number;
-  targetId: string | null;
-  retargetAt: number;
   /** Ticks left to keep holding jump. */
   jumpHold: number;
   /** A jump press is queued (needs a released→pressed edge). */
@@ -28,7 +26,6 @@ export type BotBrain = {
   pressHold: number;
   /** Ticks before another jump decision. */
   jumpCd: number;
-  dropCd: number;
   /** Sim ms until the bot gets going again (reaction time, hesitation). */
   calmUntil: number;
   /** Stuck detector: where it stood at `stuckAt`. */

@@ -20,13 +20,10 @@ export type BotActions = {
 export function makeBrain(rng: () => number): BotBrain {
   return {
     skill: 0.55 + rng() * 0.45,
-    targetId: null,
-    retargetAt: 0,
     jumpHold: 0,
     pressQueued: false,
     pressHold: 0,
     jumpCd: 0,
-    dropCd: 0,
     calmUntil: 0,
     stuckX: 0,
     stuckAt: 0,
