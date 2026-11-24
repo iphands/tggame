@@ -42,6 +42,8 @@ export const RUN = {
   /** Damage trims max run speed: by `dmgSlow` at `dmgSlowFull` percent and beyond. */
   dmgSlow: 0.15,
   dmgSlowFull: 100,
+  /** Each shot that hits the gate while the screen waits at it heals the shooter this much damage percent. */
+  gateHeal: 2,
   /**
    * Rubber band: a runner ahead of the rest of the pack (the mean x of the
    * other runners on the course) loses up to `leadSlow` of their max speed,

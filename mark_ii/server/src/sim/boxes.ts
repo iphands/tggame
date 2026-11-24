@@ -1,7 +1,7 @@
 /** Damage to boxes and gates. */
-import { BOX } from '../../../shared/src/constants.js';
+import { BOX, RUN } from '../../../shared/src/constants.js';
 import { isSolid } from './platforms.js';
-import { breakGate } from './scroll.js';
+import { breakGate, scrollLimit } from './scroll.js';
 import { activeGate, type Plat, type Player, type World } from './model.js';
 
 export type ShotKind = keyof typeof BOX.dmg;
@@ -50,7 +50,11 @@ export function damageGate(w: World, dmg: number, by: Player | null): boolean {
   if (!activeGate(w)) return false;
   const dealt = Math.min(dmg, w.gateHp);
   w.gateHp -= dealt;
-  if (by) by.smash += dealt;
+  if (by) {
+    by.smash += dealt;
+    // working on the gate while the screen waits at it patches the shooter up
+    if (w.scrollX >= scrollLimit(w)) by.dmg = Math.max(0, by.dmg - RUN.gateHeal);
+  }
   if (w.gateHp > 0) return false;
   breakGate(w);
   return true;

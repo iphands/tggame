@@ -264,6 +264,34 @@ describe('gates', () => {
     expect(g.snapshot().gate).toMatchObject({ i: 0, max: BOX.gateHpPerPlayer * 2 });
   });
 
+  it('heal the shooter for each shot that lands while the screen waits at them', () => {
+    const { g, ids } = gated();
+    const [a, b] = ids;
+    // still scrolling up to the gate: shots hurt it but don't heal
+    g.w.scrollX = HOLD - 300;
+    place(g, a, GATE - 300, FLOOR);
+    place(g, b, GATE - 400, FLOOR);
+    P(g, a).dmg = 50;
+    P(g, a).face = 1;
+    g.shoot(a);
+    run(g, 250);
+    expect(P(g, a).smash).toBe(BOX.dmg.bullet);
+    expect(P(g, a).dmg).toBe(50);
+    // held at the gate: every shot that lands heals, never below zero
+    g.w.scrollX = HOLD;
+    run(g, 200);
+    g.shoot(a);
+    run(g, 300);
+    expect(P(g, a).smash).toBe(2 * BOX.dmg.bullet);
+    expect(P(g, a).dmg).toBe(50 - RUN.gateHeal);
+    expect(P(g, b).dmg).toBe(0);
+    P(g, a).dmg = RUN.gateHeal / 2;
+    run(g, 100); // pistol cooldown
+    g.shoot(a);
+    run(g, 300);
+    expect(P(g, a).dmg).toBe(0);
+  });
+
   it('come down when the health runs out; then the way is open and the screen moves on', () => {
     const { g, ids } = gated();
     const [a, b] = ids;
