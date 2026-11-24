@@ -80,7 +80,7 @@ uses ports 8080/5173, so both games can run side by side.)
   it faster once they pass about two thirds of the way across. It never
   moves back. The right edge is a wall: nobody outruns the screen.
 - **You lose a life** by falling into a pit or by being caught by the left
-  edge of the screen (the red glow). You get **3 lives**. After 1.3 s you drop
+  edge of the screen (the red glow). You get **8 lives**. After 1.3 s you drop
   back in a little ahead of the left edge with 2 s of invulnerability.
   Shooting ends the invulnerability early. Out of lives means spectating.
 - **Wooden boxes** block the way and break after five pistol shots (crate walls take ten or more). Shoot the

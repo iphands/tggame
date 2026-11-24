@@ -14,7 +14,7 @@ export const ARENA = {
 
 /** Runner rules: the scrolling screen, lives, the finish. */
 export const RUN = {
-  lives: 3,
+  lives: 8,
   /** The screen always creeps forward at least this fast (px/s). */
   scrollBase: 190,
   /** Grace after GO before the screen starts moving. */

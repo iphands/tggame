@@ -355,9 +355,11 @@ export class Hud {
     const big = text(s, bigX, compact ? 17 : 22, '0%', compact ? 20 : 26, '#ffffff', 5).setData('x', bigX);
     root.add(big);
     const pips: Phaser.GameObjects.Image[] = [];
+    // two rows once there are too many to sit beside the big number; the bottom row empties last
+    const pipCols = RUN.lives > 4 ? Math.ceil(RUN.lives / 2) : RUN.lives;
     for (let i = 0; i < RUN.lives; i++) {
       // lives: tinted images, not shapes (cheap to draw)
-      const pip = s.add.image(w - 10 - i * 9.5, h - 8, 'pip').setTint(hexNum(p.color));
+      const pip = s.add.image(w - 10 - (i % pipCols) * 9.5, h - 8 - Math.floor(i / pipCols) * 9, 'pip').setTint(hexNum(p.color));
       pips.push(pip);
       root.add(pip);
     }

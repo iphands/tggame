@@ -195,8 +195,7 @@ describe('defense', () => {
     pb.lives = 1;
     grantItem(g.w, pb, 'life');
     expect(pb.lives).toBe(2);
-    grantItem(g.w, pb, 'life');
-    grantItem(g.w, pb, 'life');
+    for (let i = 0; i < RUN.lives; i++) grantItem(g.w, pb, 'life');
     expect(pb.lives).toBe(RUN.lives);
   });
 
