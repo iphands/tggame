@@ -143,6 +143,7 @@ Walk into one to open it.
 | **Rockets** | 3 accelerating rockets that fly through runners and explode on the first box or gate | 12 to everything in the blast |
 | **☢ Railgun** | *Rare.* 2 shots. A short charge, then a beam that pierces every runner and box in line and stops at steel or the gate | 15 |
 | **Shield** | 6 s of immunity to shoves | |
+| **Speed shoes** | 8 s of running 30% faster (lost with a life) | |
 | **Extra life** | +1 life (never more than 3) | |
 
 Explosions shove everyone nearby, including whoever fired them.
