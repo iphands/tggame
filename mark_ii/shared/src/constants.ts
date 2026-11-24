@@ -33,6 +33,8 @@ export const RUN = {
   respawnAheadFrac: 0.3,
   /** After the first finisher, everyone else has this long to cross the line. */
   finishGraceMs: 20_000,
+  /** Every life lost adds this to your finishing time. */
+  deathPenaltyMs: 1000,
   /** Every hit shoves as if the victim sat at this damage percent (no build-up). */
   shovePct: 40,
   /** Damage percent a runner takes per hit (per life). It never changes the shove: it only slows them. */

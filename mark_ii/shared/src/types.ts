@@ -28,7 +28,7 @@ export type PlayerState = {
   lives: number;
   /** Finishing position this round (0 = hasn't finished). */
   place: number;
-  /** Run time in ms when they crossed the line (-1 = hasn't finished). */
+  /** Run time in ms when they crossed the line, plus the penalty for lives lost (-1 = hasn't finished). */
   finishMs: number;
   weapon: WeaponKind;
   ammo: number; // -1 = infinite

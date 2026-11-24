@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PHYS } from '../../../shared/src/constants';
+import { PHYS, RUN } from '../../../shared/src/constants';
 import type { Fx, PlayerState } from '../../../shared/src/types';
 import { store } from '../store';
 import { lerp, lerpPlayer, lerpScroll } from '../interp';
@@ -515,6 +515,14 @@ export class ArenaScene extends Phaser.Scene {
           f.dirX !== 0 ? 'CAUGHT!' : 'SPLAT!',
           '#ffd166',
           40
+        );
+        // every lost life costs time at the finish
+        this.popup(
+          Phaser.Math.Clamp(f.x + f.dirX * 60, camView.x + 80, camView.x + camView.w - 80),
+          Phaser.Math.Clamp(f.y + f.dirY * 60, camView.y + 80, camView.y + camView.h - 80) + 38,
+          `+${RUN.deathPenaltyMs / 1000}s`,
+          '#ff9d99',
+          24
         );
         play('ko', self ? 1.2 : 0.9);
         break;

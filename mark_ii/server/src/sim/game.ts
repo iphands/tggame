@@ -396,8 +396,13 @@ export class Game {
   /** A runner crossed the line. */
   private finish(p: Player): void {
     const w = this.w;
-    p.finishMs = w.t - w.roundStartT;
-    p.place = ++w.finishCount;
+    p.finishMs = w.t - w.roundStartT + p.deaths * RUN.deathPenaltyMs;
+    w.finishCount++;
+    // lost lives cost time, so a cleaner run can place ahead of an earlier finisher
+    [...w.players.values()]
+      .filter((q) => q.finishMs >= 0)
+      .sort((a, b) => a.finishMs - b.finishMs || (a.place || Infinity) - (b.place || Infinity))
+      .forEach((q, i) => (q.place = i + 1));
     p.chargeUntil = 0;
     p.invulnUntil = 0;
     if (w.firstFinishAt < 0) w.firstFinishAt = w.t;

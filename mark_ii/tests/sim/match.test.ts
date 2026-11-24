@@ -195,6 +195,30 @@ describe('the finish', () => {
     expect(g.results?.every((r) => r.progress === 100)).toBe(true);
   });
 
+  it('every life lost adds a time penalty, which can cost you your place', () => {
+    const { g, ids } = sprint(['Alice', 'Bob', 'Cara']);
+    const [a, b, c] = ids;
+    run(g, 1000);
+    P(g, b).deaths = 2;
+    finish(g, b);
+    const raw = g.w.t - g.w.roundStartT;
+    // crossed within the last two ticks
+    expect(P(g, b).finishMs).toBeLessThanOrEqual(raw + 2 * RUN.deathPenaltyMs);
+    expect(P(g, b).finishMs).toBeGreaterThan(raw + 2 * RUN.deathPenaltyMs - 3 * TICK_MS);
+    expect(P(g, b).place).toBe(1); // first across, for now
+    run(g, 500);
+    finish(g, a); // later, but a clean run
+    expect(P(g, a).place).toBe(1);
+    expect(P(g, b).place).toBe(2);
+    P(g, c).deaths = 1;
+    finish(g, c);
+    expect(g.phase).toBe('ended');
+    expect(g.results?.map((r) => r.name)).toEqual(['Alice', 'Cara', 'Bob']);
+    expect(g.winnerId).toBe(a);
+    expect(P(g, a).wins).toBe(1);
+    expect(P(g, b).wins).toBe(0);
+  });
+
   it('finished runners are done: no more shoves, shots, or lost lives', () => {
     const { g, ids } = sprint();
     const [a, b] = ids;

@@ -86,7 +86,7 @@ export type Player = {
   smash: number;
   /** Finishing position (0 = hasn't finished). */
   place: number;
-  /** Run time when they crossed the line (-1 = hasn't finished). */
+  /** Run time when they crossed the line, plus RUN.deathPenaltyMs per life lost (-1 = hasn't finished). */
   finishMs: number;
   /** Farthest x reached this round. */
   bestX: number;
