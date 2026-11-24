@@ -101,7 +101,9 @@ uses ports 8080/5173, so both games can run side by side.)
   heals 2%.
 - **Leading the pack slows you a little too**: up to 10% once you're well
   ahead of the other runners, so they can catch up.
-- **Cross the finish line** to lock in your place and time. Once the first
+- **Every life you lose adds 1 s to your finishing time**, so a clean run
+  can place ahead of someone who crossed the line first.
+- **Cross the finish line** to lock in your time. Once the first
   runner is across, everyone else has **20 s** to finish. The round also ends
   when nobody is left racing, or at the **3:00** cap.
 - The results screen ranks finishers by time, then everyone else by how far
