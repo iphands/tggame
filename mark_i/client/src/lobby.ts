@@ -4,6 +4,7 @@ import { LEVELS, levelAt } from '../../shared/src/levels';
 import { store } from './store';
 import { isMuted, play, setMuted, unlockAudio } from './audio';
 import { nextSetting } from './quality';
+import { applyTextEdit } from './textedit';
 import { canFullscreen, enterFullscreen, isFullscreen, isIOS, isStandalone, toggleFullscreen } from './fullscreen';
 
 export type Screen = 'join' | 'lobby' | 'game';
@@ -51,6 +52,28 @@ export function initLobbyDom(onJoin: (name: string) => void): void {
   } catch {
     /* private mode */
   }
+  // Typing natively would leave "Undo Typing" armed on iPadOS for the whole
+  // session (shake / three-finger gestures), so apply the edits ourselves.
+  input?.addEventListener('beforeinput', (e) => {
+    if (e.isComposing) return;
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? start;
+    const data = e.data ?? e.dataTransfer?.getData('text/plain') ?? null;
+    const edit = applyTextEdit(input.value, start, end, e.inputType, data, input.maxLength);
+    if (!edit) return;
+    e.preventDefault();
+    input.value = edit.value;
+    input.setSelectionRange(edit.caret, edit.caret);
+  });
+  // Belt and braces: keep iPadOS's three-finger editing gestures (undo / redo /
+  // cut / copy / paste) from firing while several thumbs are on the controls.
+  document.addEventListener(
+    'touchstart',
+    (e) => {
+      if (e.touches.length >= 3 && e.target !== input) e.preventDefault();
+    },
+    { passive: false },
+  );
   $('join-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
     unlockAudio();
