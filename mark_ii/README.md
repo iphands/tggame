@@ -93,8 +93,13 @@ uses ports 8080/5173, so both games can run side by side.)
   nobody is caught while it stands. Everyone's shots count, and bullets pass
   through your teammates. A gate nobody shoots crumbles on its own after
   45 s.
-- **Shots shove other runners** but do no damage, and the shove never grows.
-  Shoving someone into a pit is allowed (and credited in the feed).
+- **Shots shove other runners**, and the shove never grows. Shoving someone
+  into a pit is allowed (and credited in the feed).
+- **Getting hit raises your %** (the big number on your card). The higher it
+  is, the slower you run: up to 15% slower at 100%. It resets when you lose
+  a life.
+- **Leading the pack slows you a little too**: up to 10% once you're well
+  ahead of the other runners, so they can catch up.
 - **Cross the finish line** to lock in your place and time. Once the first
   runner is across, everyone else has **20 s** to finish. The round also ends
   when nobody is left racing, or at the **3:00** cap.

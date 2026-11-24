@@ -113,7 +113,9 @@ tests/*.test.ts          levels (course validation), interp, protocol, controls
   (per round). If clients need it, add it to `PlayerState` (`shared/src/types.ts`)
   and to `Game.snapshot()`.
 - **Hits go through `applyHit()`** (`sim/combat.ts`). It handles invulnerability,
-  shields, the shove (constant strength: `RUN.shovePct`), hitstun, credit and
+  shields, the shove (constant strength: `RUN.shovePct`), damage percent
+  (`RUN.dmg`: it only slows the runner, see `updatePace()` in `physics.ts`,
+  which also slows whoever leads the pack), hitstun, credit and
   the `hit` fx. A new attack kind needs a `HitHow` entry and a label in
   `client/src/view/hud.ts`, and a `BOX.dmg` entry for what it does to boxes.
 - **Lost lives** happen only in `Game.knockOut()`; **finishing** only in
