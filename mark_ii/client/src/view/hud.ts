@@ -442,8 +442,8 @@ export class Hud {
     const py = Math.max(70, (ARENA.height - ph) / 2 - 20);
     const panel = s.add.graphics();
     panel.fillStyle(0x07041a, 0.55).fillRect(0, 0, ARENA.width, ARENA.height);
-    panel.fillStyle(0x120a2a, 0.94).fillRoundedRect(340, py, 600, ph, 16);
-    panel.lineStyle(3, 0xffd166, 1).strokeRoundedRect(340, py, 600, ph, 16);
+    panel.fillStyle(0x120a2a, 0.94).fillRoundedRect(260, py, 760, ph, 16);
+    panel.lineStyle(3, 0xffd166, 1).strokeRoundedRect(260, py, 760, ph, 16);
     root.add(panel);
     root.setAlpha(0);
     s.tweens.add({ targets: root, alpha: 1, duration: 350, delay: 900 });
@@ -455,27 +455,41 @@ export class Hud {
     root.add(t);
     if (winner) root.add(s.add.sprite(640 - t.displayWidth / 2 - 30, py + 40, fighterTexture(s, winner.color), 0).setScale(1.2));
     const hdrY = py + 74;
-    root.add(text(s, 400, hdrY, 'PLAYER', 13, '#9d8cc4', 3));
-    root.add(text(s, 700, hdrY, 'TIME', 13, '#9d8cc4', 3).setOrigin(0.5, 0));
-    root.add(text(s, 800, hdrY, 'LIVES LOST', 13, '#9d8cc4', 3).setOrigin(0.5, 0));
-    root.add(text(s, 890, hdrY, 'SMASHED', 13, '#9d8cc4', 3).setOrigin(0.5, 0));
+    root.add(text(s, 320, hdrY, 'PLAYER', 13, '#9d8cc4', 3));
+    root.add(text(s, 590, hdrY, 'RUN', 13, '#9d8cc4', 3).setOrigin(0.5, 0));
+    root.add(text(s, 680, hdrY, 'PENALTY', 13, '#9d8cc4', 3).setOrigin(0.5, 0));
+    root.add(text(s, 770, hdrY, 'TOTAL', 13, '#9d8cc4', 3).setOrigin(0.5, 0));
+    root.add(text(s, 870, hdrY, 'LIVES LOST', 13, '#9d8cc4', 3).setOrigin(0.5, 0));
+    root.add(text(s, 965, hdrY, 'SMASHED', 13, '#9d8cc4', 3).setOrigin(0.5, 0));
+    // the quickest run on the clock, whatever the penalties did to the places
+    const fastest = Math.min(...snap.results.map((r) => r.rawMs ?? Infinity));
     rows.forEach((r, i) => {
       const y = hdrY + 24 + i * 34;
       if (r.id === selfId) {
         const hl = s.add.graphics();
-        hl.fillStyle(0xffe066, 0.12).fillRoundedRect(356, y - 4, 568, 30, 6);
+        hl.fillStyle(0xffe066, 0.12).fillRoundedRect(276, y - 4, 728, 30, 6);
         root.add(hl);
       }
-      root.add(text(s, 372, y, `${r.place}`, 18, r.timeMs !== null ? placeColor(r.place) : '#8a7fa0', 4).setOrigin(0.5, 0));
-      root.add(s.add.circle(400, y + 11, 7, hexNum(r.color)).setStrokeStyle(2, 0x120a20));
-      const nm = text(s, 414, y, r.name + (r.bot ? ' 🤖' : ''), 18, '#ffffff', 4);
-      if (nm.width > 230) nm.setScale(230 / nm.width);
+      root.add(text(s, 292, y, `${r.place}`, 18, r.timeMs !== null ? placeColor(r.place) : '#8a7fa0', 4).setOrigin(0.5, 0));
+      root.add(s.add.circle(320, y + 11, 7, hexNum(r.color)).setStrokeStyle(2, 0x120a20));
+      const nm = text(s, 334, y, r.name + (r.bot ? ' 🤖' : ''), 18, '#ffffff', 4);
+      if (nm.width > 200) nm.setScale(200 / nm.width);
       root.add(nm);
-      // finishers show their time; everyone else how far they got
-      const time = r.timeMs !== null ? raceTime(r.timeMs) : `${r.progress}%`;
-      root.add(text(s, 700, y, time, 18, r.timeMs !== null ? '#7dffb0' : '#8a7fa0', 4).setOrigin(0.5, 0));
-      root.add(text(s, 800, y, String(r.deaths), 18, '#ff9d99', 4).setOrigin(0.5, 0));
-      root.add(text(s, 890, y, String(r.smash), 18, '#ffe9b0', 4).setOrigin(0.5, 0));
+      if (r.timeMs !== null && r.rawMs !== null) {
+        // finishers: time on the clock, the penalty for lives lost, and the total they are ranked by
+        const quickest = r.rawMs === fastest;
+        root.add(text(s, 590, y, (quickest ? '⚡' : '') + raceTime(r.rawMs), 18, quickest ? '#ffe066' : '#e9e2ff', 4).setOrigin(0.5, 0));
+        const pen = r.timeMs - r.rawMs;
+        root.add(text(s, 680, y, pen > 0 ? `+${Math.round(pen / 1000)}s` : '—', 18, pen > 0 ? '#ff9d99' : '#8a7fa0', 4).setOrigin(0.5, 0));
+        root.add(text(s, 770, y, raceTime(r.timeMs), 18, '#7dffb0', 4).setOrigin(0.5, 0));
+      } else {
+        // everyone else: how far they got
+        root.add(text(s, 590, y, '—', 18, '#8a7fa0', 4).setOrigin(0.5, 0));
+        root.add(text(s, 680, y, '—', 18, '#8a7fa0', 4).setOrigin(0.5, 0));
+        root.add(text(s, 770, y, `${r.progress}%`, 18, '#8a7fa0', 4).setOrigin(0.5, 0));
+      }
+      root.add(text(s, 870, y, String(r.deaths), 18, '#ff9d99', 4).setOrigin(0.5, 0));
+      root.add(text(s, 965, y, String(r.smash), 18, '#ffe9b0', 4).setOrigin(0.5, 0));
     });
     root.add(text(s, 640, py + ph - 30, '', 15, '#c9b8e6', 3).setOrigin(0.5, 0).setName('foot'));
   }

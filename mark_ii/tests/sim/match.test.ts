@@ -214,6 +214,12 @@ describe('the finish', () => {
     finish(g, c);
     expect(g.phase).toBe('ended');
     expect(g.results?.map((r) => r.name)).toEqual(['Alice', 'Cara', 'Bob']);
+    // the results carry both: the time on the clock and the penalised total
+    const [ra, rc, rb] = g.results!;
+    expect(ra.timeMs).toBe(ra.rawMs);
+    expect(rc.timeMs! - rc.rawMs!).toBe(RUN.deathPenaltyMs);
+    expect(rb.timeMs! - rb.rawMs!).toBe(2 * RUN.deathPenaltyMs);
+    expect(rb.rawMs!).toBeLessThan(ra.rawMs!); // Bob was quickest on the clock
     expect(g.winnerId).toBe(a);
     expect(P(g, a).wins).toBe(1);
     expect(P(g, b).wins).toBe(0);

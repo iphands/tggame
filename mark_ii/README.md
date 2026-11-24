@@ -109,9 +109,10 @@ uses ports 8080/5173, so both games can run side by side.)
 - **Cross the finish line** to lock in your time. Once the first
   runner is across, everyone else has **20 s** to finish. The round also ends
   when nobody is left racing, or at the **3:00** cap.
-- The results screen ranks finishers by time, then everyone else by how far
-  they got, and shows lives lost and how much box and gate damage each
-  runner dealt. Wins are kept for the whole session, and the leader wears
+- The results screen ranks finishers by total time, then everyone else by
+  how far they got. For each finisher it shows the run time on the clock
+  (⚡ marks the quickest), the penalty, and the total, plus lives lost and
+  how much box and gate damage each runner dealt. Wins are kept for the whole session, and the leader wears
   a 👑.
 
 ### Moves

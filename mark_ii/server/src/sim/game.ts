@@ -503,6 +503,8 @@ export class Game {
         bot: p.bot,
         place: p.place,
         timeMs: p.finishMs >= 0 ? Math.round(p.finishMs) : null,
+        // finishers can't lose more lives, so the penalty baked into finishMs is still deaths x penalty
+        rawMs: p.finishMs >= 0 ? Math.round(p.finishMs - p.deaths * RUN.deathPenaltyMs) : null,
         progress: p.finishMs >= 0 ? 100 : Math.max(0, Math.min(99, Math.round((p.bestX / finishX) * 100))),
         deaths: p.deaths,
         smash: Math.round(p.smash),

@@ -102,8 +102,10 @@ export type ResultRow = {
   color: string;
   bot: boolean;
   place: number;
-  /** Run time in ms, or null if they never crossed the line. */
+  /** Final time in ms: the run plus the penalty for lives lost. Null if they never crossed the line. */
   timeMs: number | null;
+  /** Time on the clock when they crossed the line, before the penalty (null if they never did). */
+  rawMs: number | null;
   /** Percent of the course covered (100 for finishers). */
   progress: number;
   deaths: number;
