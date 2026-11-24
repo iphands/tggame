@@ -1,9 +1,13 @@
-# ⚔️ Last Survivor Run
+# 🏃 Last Survivor Run
 
-A multiplayer 2D platform brawler for up to **16 players**. Shoot, stomp
-and bomb each other off five themed floating arenas. **The more damage
-you take, the farther you fly.** Everyone gets 5 lives, and the last one
-standing wins.
+A multiplayer 2D co-op runner for up to **16 players**. Everyone starts on
+the same start pad and the screen scrolls on without mercy: jump the pits,
+dodge the blocks, shoot the boxes out of your way and **break the gates
+together**. Fall behind the left edge of the screen and you lose a life.
+First across the finish line wins.
+
+It is a fork of [Last Survivor Arena](../mark_i) (same engine, artwork and
+controls), turned from a brawler into a race.
 
 Phones and desktops play together. The game is built for phones first
 (landscape, on-screen buttons) and also supports keyboard and mouse. Bots
@@ -27,13 +31,15 @@ press **+ BOT** a few times, then **START**.
 | --- | --- |
 | `npm run dev` | Game server on **:8081** (`tsx watch`) + Vite client on **:5174** (also reachable from the LAN) |
 | `npm run build && npm start` | Builds both, then one Node process serves the client **and** the WebSocket on **:8081** |
-| `npm test` | Vitest: physics, combat, match flow, bots, levels, interpolation, protocol |
+| `npm test` | Vitest: physics, combat, scroll/boxes/gates, match flow, bots, courses, interpolation, protocol |
 | `npm run typecheck` | Client + server TypeScript configs |
 | `node scripts/smoke.mjs [ws://host:port]` | Protocol smoke test against a running server |
-| `node scripts/round-smoke.mjs [ws://host:port]` | Plays a full bot round to the results screen |
+| `node scripts/round-smoke.mjs [ws://host:port]` | Bots run a full course to the results screen |
+| `npx tsx scripts/bot-run.ts [bots] [seeds] [course]` | Offline: bots run every course; prints finish times and where they died (for tuning courses) |
 
 **LAN party:** run `npm run build && npm start`, then open
-`http://<your-ip>:8081` on every phone and laptop.
+`http://<your-ip>:8081` on every phone and laptop. (The original brawler
+uses ports 8080/5173, so both games can run side by side.)
 
 ### Phones: full screen and size
 
@@ -43,9 +49,10 @@ press **+ BOT** a few times, then **START**.
   **Share → Add to Home Screen** and launch the game from that icon. It runs
   as a web app with no browser bars. The join screen shows this hint on
   iPhones.
-- On phone-sized screens the arena camera **zooms in and follows you**, and
-  zooms back out while you're respawning and on the results screen. The HUD
-  and lobby text also scale up.
+- On phone-sized screens the camera **zooms in and follows you** inside the
+  scrolling screen (looking a little further ahead), and zooms back out while
+  you're respawning and on the results screen. The HUD and lobby text also
+  scale up. The red glow marks the real left edge of the screen.
 - **Graphics quality:** the ✨ button cycles Auto / High / Medium / Low. Auto
   (the default) runs Medium on every device and drops to Low if the
   frame rate stays under 50 fps. Add `?gfx=low` to the URL to force a tier.
@@ -69,89 +76,106 @@ press **+ BOT** a few times, then **START**.
 
 ### The rules
 
-- **Damage %** goes up with every hit you take. Knockback grows with it, so
-  at 0% a shot barely moves you and at 150% it can send you off-screen.
-- Leave the arena past the bottom, the sides or the top and you lose a life.
-  The last player who hit you within 5 s gets credit for the **KO**.
-- You get **5 lives**. After a KO you drop back in at 0% with 2 s of
-  invulnerability. Attacking ends the invulnerability early.
-- The round ends when one player has lives left, or after **4:00**. On
-  time-out, the player with the most lives wins (then the lowest damage); a
-  dead heat is a draw.
-- The results screen shows places, KOs, falls and damage dealt. After 9 s the
-  next arena loads. Wins and KOs are kept for the whole session, and the
-  current leader wears a 👑.
+- **The screen scrolls.** It creeps forward on its own, and the leader drags
+  it faster once they pass about two thirds of the way across. It never
+  moves back. The right edge is a wall: nobody outruns the screen.
+- **You lose a life** by falling into a pit or by being caught by the left
+  edge of the screen (the red glow). You get **3 lives**. After 1.3 s you drop
+  back in a little ahead of the left edge with 2 s of invulnerability.
+  Shooting ends the invulnerability early. Out of lives means spectating.
+- **Wooden boxes** block the way and break after a few shots. Shoot the
+  bottom box of a stack and the whole stack comes down. You can also stand on
+  them.
+- **Steel blocks** never break: jump over them (tall ones need the double
+  jump).
+- **Gates** are walls across the whole screen with one shared health bar:
+  22 hit points per racer still in the round. The screen waits at a gate, so
+  nobody is caught while it stands. Everyone's shots count, and bullets pass
+  through your teammates. A gate nobody shoots crumbles on its own after
+  45 s.
+- **Shots shove other runners** but do no damage, and the shove never grows.
+  Shoving someone into a pit is allowed (and credited in the feed).
+- **Cross the finish line** to lock in your place and time. Once the first
+  runner is across, everyone else has **20 s** to finish. The round also ends
+  when nobody is left racing, or at the **3:00** cap.
+- The results screen ranks finishers by time, then everyone else by how far
+  they got, and shows lives lost and how much box and gate damage each
+  runner dealt. Wins are kept for the whole session, and the leader wears
+  a 👑.
 
 ### Moves
 
 - **Jump:** tap for a hop, hold for a full jump. You get one **double
   jump** in the air. Holding jump while falling slows your fall, which
-  helps you get back to the stage. Coyote time and input buffering keep
-  jumps forgiving.
+  stretches a jump across wide pits. Coyote time and input buffering keep
+  jumps forgiving. A held jump clears about 190 px, a double jump about
+  280 px.
 - **Stomp:** land on someone's head. You bounce high and get your double
-  jump back. A grounded victim is popped up and an airborne one is spiked
-  down. 9% damage.
-- **Pistol:** the default weapon. Long range, 5% per hit with modest knockback. **Aim
-  assist** bends shots toward the nearest foe in front of you (within ±12.5°),
-  so you can hit people on other platforms without jumping. It's a big help
-  on touch screens. The boomstick spread is assisted too.
-- **Down:** on a platform, drop through to the one below. You can't drop if
-  there's nothing underneath. In the air, past the top of a jump, it
-  fast-falls.
+  jump back.
+- **Pistol:** the default weapon, unlimited ammo. 1 damage to boxes and
+  gates. **Aim assist** bends shots toward the nearest breakable box in
+  front of you (within ±12.5°), so you can hit a stack without jumping.
+- **Down:** on a platform, drop through to the one below (never through a
+  box). In the air, past the top of a jump, it fast-falls.
 
 ### `?` crates
 
-Crates fall from the sky every 3.5–5.5 s (up to 5 at once), and faster in the last 45 s. Walk
-into one to open it.
+Crates drop from the sky ahead of the pack every 2.5–4 s (up to 5 at once).
+Walk into one to open it.
 
-| Item | Effect |
+| Item | Effect | Box / gate damage |
+| --- | --- | --- |
+| **Boomstick** | 4 shotgun blasts: a 5-pellet spread with big recoil | 1 per pellet |
+| **Bombs** | 3 lobbed bombs that bounce and explode on a fuse, on a box or on the gate | 8 to everything in the blast |
+| **SMG** | 30 rounds of hold-to-spray rapid fire | 0.5 per round |
+| **Rockets** | 3 accelerating rockets that fly through runners and explode on the first box or gate | 12 to everything in the blast |
+| **☢ Railgun** | *Rare.* 2 shots. A short charge, then a beam that pierces every runner and box in line and stops at steel or the gate | 15 |
+| **Shield** | 6 s of immunity to shoves | |
+| **Extra life** | +1 life (never more than 3) | |
+
+Explosions shove everyone nearby, including whoever fired them.
+
+### The courses
+
+Pick the next course in the lobby with ◀ ▶. Courses rotate after every
+round. Each is about 13,000 px long with two gates.
+
+| Course | Twist |
 | --- | --- |
-| **Boomstick** | 4 shotgun blasts: a wide 5-pellet spread with big knockback and recoil |
-| **Bombs** | 3 lobbed bombs that bounce and explode on a fuse or on contact. They can hurt you too |
-| **SMG** | 30 rounds of hold-to-spray rapid fire: small hits that add up fast |
-| **Rockets** | 3 accelerating rockets that explode on contact: up to 30% and a huge blast that sends people flying |
-| **☢ Railgun** | *Rare and devastating.* 2 shots. A short charge shows a sight line, then a screen-wide beam pierces everyone in line: 30% damage and a launch that KOs at almost any damage. Big recoil |
-| **Shield** | 6 s of immunity to hits |
-| **Heal** | −40% damage |
-
-### The arenas
-
-Pick the next arena in the lobby with ◀ ▶. Arenas rotate after every round.
-
-| Arena | Twist |
-| --- | --- |
-| **Sky Isles** | Grassy islands and two vertical lifts. The classic. |
-| **Frostbite Peaks** | Slippery **ice** (you slide and can't stop quickly), a gliding platform, snowfall and aurora |
-| **Crumbling Temple** | Stones that **crumble** a moment after you step on them and come back 4.5 s later |
-| **Magma Forge** | **Spring pads** that launch you skyward, shuttling platforms, a lava lake below |
-| **Neon Void** | **Low gravity**, orbiting platforms, a bounce pad and big air |
+| **Sky Sprint** | Grassy islands, stairs and lazy lifts. The gentle one. |
+| **Frost Dash** | Long stretches of slippery **ice**: you slide into the crates unless you shoot early |
+| **Temple Tumble** | Bridges of stones that **crumble** a moment after the first runner steps on them |
+| **Forge Run** | **Spring pads** over the lava and shuttling platforms |
+| **Neon Rush** | **Low gravity**: wide pits, tall blocks, orbiting platforms |
 
 ### Lobby and bots
 
-- Anyone can change the arena, add or remove bots, or press **START**. Solo
-  practice works too.
+- Anyone can change the course, add or remove bots, or press **START**. Solo
+  runs work too (the gates scale to one runner).
 - The round starts on its own 10 s after 2 or more players are in, or right
   away at 10 players.
 - Players who join mid-round watch it and play the next one.
-- Bots play by the same rules as humans: same inputs, no cheats. They chase,
-  stomp, grab crates, shoot and recover back to the stage, and they
-  avoid all piling onto one target. A human joining a full arena replaces a
-  bot. When the last human leaves, the bots go too.
+- Bots play by the same rules as humans: same inputs, no cheats. They run,
+  jump pits and blocks, and shoot boxes and gates. A human joining a full
+  game replaces a bot. When the last human leaves, the bots go too.
 
 ## Architecture
 
 ```
-shared/src/constants.ts   ALL gameplay tuning (PHYS, COMBAT, MATCH, ITEMS, ARENA, colors, bot names)
-shared/src/levels.ts      the five arena definitions + platformPos()
-shared/src/types.ts       snapshot entity types (players, platforms, projectiles, crates, fx, feed, results)
+shared/src/constants.ts   ALL gameplay tuning (PHYS, COMBAT, RUN, BOX, MATCH, ITEMS, ARENA, colors, bot names)
+shared/src/levels.ts      course types, LEVELS, platformPos(), safeSpots()
+shared/src/courses.ts     the five hand-built courses + the cursor builder they're written with
+shared/src/types.ts       snapshot entity types (players, projectiles, crates, fx, feed, results)
 shared/src/protocol.ts    client/server messages + isClientMessage()
 server/src/index.ts       HTTP (static client, /health) + WebSocket + 60 Hz loop / 30 Hz broadcast
-server/src/sim/game.ts    Game: roster, lobby → starting → playing → ended, stocks, KOs, snapshot
-server/src/sim/physics.ts movement, jumps, one-way landing, drop-through, ice, bounce pads
-server/src/sim/combat.ts  knockback, stomp, pistol/boomstick/bombs, explosions
-server/src/sim/items.ts   crate spawning, falling, pickup, item effects
-server/src/sim/platforms.ts moving + crumbling platforms, landing test
-server/src/sim/bots.ts    bot brains (targeting, edge safety, recovery, attacks)
+server/src/sim/game.ts    Game: roster, lobby → starting → playing → ended, lives, finish, ranking, snapshot
+server/src/sim/scroll.ts  the scrolling screen: base pace, leader drag, gate hold, gate health
+server/src/sim/physics.ts movement, jumps, one-way landing, solid box sides, screen/gate walls
+server/src/sim/boxes.ts   damage to boxes (and stack collapse) and gates
+server/src/sim/combat.ts  shoves, stomp, guns, projectiles vs boxes and gates, explosions
+server/src/sim/items.ts   crate spawning ahead of the pack, falling, pickup, item effects
+server/src/sim/platforms.ts moving + crumbling platforms, box plats, landing test
+server/src/sim/bots.ts    bot brains (run, jump, shoot what's in the way)
 client/src/main.ts        bootstrap: Phaser game, join flow, touch wiring
 client/src/net.ts         WebSocket client (reconnect, input de-dupe, origin-aware URL)
 client/src/interp.ts      snapshot buffer + server-clock sync for smooth interpolation
@@ -159,24 +183,31 @@ client/src/store.ts       shared client state + fx queue
 client/src/lobby.ts       DOM: join screen, lobby panels, in-game buttons
 client/src/controls.ts    touch buttons + keyboard/touch merge
 client/src/audio.ts       WebAudio synthesized sound effects
-client/src/art/           procedural pixel-art fighters, items, themed backdrops + platforms
-client/src/view/          LevelView, FighterView, Hud, Particles
+client/src/art/           procedural pixel-art runners, items, boxes, gates, themed backdrops + platforms
+client/src/view/          LevelView (course pieces near the screen), FighterView, Hud, Particles
 client/src/fullscreen.ts  Fullscreen API + standalone (home-screen) detection
 client/public/            web app manifest (icons are generated into icons/)
-client/src/scenes/        Boot → Lobby (live arena preview) → Arena (+ Hud overlay scene)
+client/src/scenes/        Boot → Lobby (live course preview) → Arena (+ Hud overlay scene)
 tests/                    vitest suites (tests/sim/* drive the Game directly)
+tests/fixtures/arenas.ts  small static worlds (the brawler's arenas) for physics and combat tests
 ```
 
 ### Netcode
 
 The server is authoritative. It runs the simulation in **fixed 60 Hz ticks**,
 which makes it deterministic for a given seed and inputs. Every 2 ticks it
-broadcasts a full snapshot (30 Hz). Clients send held-button state when it
+broadcasts a snapshot (30 Hz). Clients send held-button state when it
 changes, plus one-shot actions (`shoot`, `drop`).
+
+The course itself is not sent: client and server share the level data, and
+platform motion is a pure function of sim time. A snapshot only carries what
+changes: the screen scroll, crumbling platforms that aren't solid, boxes near
+the screen that are damaged or broken, and the standing gate's health.
 
 Clients draw about 75 ms behind the server clock and interpolate between
 snapshots by **server sim time**, so network jitter doesn't cause stutter.
-One-shot effects (hits, KOs, explosions…) are queued and played when the
+The screen scroll is interpolated the same way. One-shot effects (hits,
+explosions, boxes breaking…) are queued and played when the
 render clock reaches them, so sounds and particles line up with what's on
 screen.
 
@@ -191,14 +222,15 @@ Client → server:
 | `shoot` / `drop` | — | One-shot actions; the server enforces cooldowns |
 | `restart` | — | Start a fresh round now (lobby START, ↻) |
 | `addBot` / `removeBot` | — | Manage bots |
-| `pickLevel` | `dir: 1 \| -1` | Change the next arena (lobby / results only) |
+| `pickLevel` | `dir: 1 \| -1` | Change the next course (lobby / results only) |
 | `leave` | — | Leave the game |
 
-Server → client: `welcome` (`selfId`, `capacity`), `full` (the arena has 16
+Server → client: `welcome` (`selfId`, `capacity`), `full` (the game has 16
 humans), and `snapshot`. A snapshot carries the phase, timers, current and
-next arena, players, platforms, projectiles, crates, one-shot `fx`, the KO
-`feed` and the final `results`. See `shared/src/protocol.ts` for the full
-shape.
+next course, the round counter, `scrollX`, players (lives, place, finish
+time), crumble states, box damage, the gate, projectiles, crates, one-shot
+`fx`, the `feed` and the final `results`. See `shared/src/protocol.ts` for
+the full shape.
 
 ## Deploying
 
