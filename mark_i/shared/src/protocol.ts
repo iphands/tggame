@@ -14,6 +14,8 @@ export type ClientMessage =
   | { type: 'join'; name?: string }
   | { type: 'input'; left: boolean; right: boolean; jump: boolean }
   | { type: 'shoot' }
+  /** Fire button let go: throws a bomb that is still winding up. */
+  | { type: 'release' }
   | { type: 'drop' }
   | { type: 'restart' }
   | { type: 'leave' }
@@ -56,7 +58,7 @@ export type ServerMessage =
   | { type: 'full'; capacity: number }
   | SnapshotMessage;
 
-const NO_ARGS = new Set(['shoot', 'drop', 'restart', 'leave', 'addBot', 'removeBot']);
+const NO_ARGS = new Set(['shoot', 'release', 'drop', 'restart', 'leave', 'addBot', 'removeBot']);
 
 export function isClientMessage(v: unknown): v is ClientMessage {
   if (!v || typeof v !== 'object') return false;

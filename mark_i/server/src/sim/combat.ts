@@ -137,7 +137,32 @@ function spendAmmo(p: Player): void {
   }
 }
 
-export function fire(w: World, p: Player): boolean {
+/**
+ * Fire button pressed (clients repeat this while it is held). Guns fire at
+ * once. Bombs wind up instead: the throw happens on release, or by itself at
+ * full strength once the wind-up completes, so a tap lobs short and a hold
+ * throws long.
+ */
+export function pressFire(w: World, p: Player): void {
+  if (p.weapon !== 'bombs') {
+    fire(w, p);
+    return;
+  }
+  if (p.life !== 'alive' || p.windAt > 0) return;
+  if (w.t - p.shotAt < weaponCooldown(p)) return;
+  p.windAt = w.t;
+}
+
+/** Fire button released: throw a winding-up bomb with the strength built so far. */
+export function releaseFire(w: World, p: Player): void {
+  if (p.windAt <= 0) return;
+  const power = Math.min(1, (w.t - p.windAt) / COMBAT.bomb.holdMs);
+  p.windAt = 0;
+  if (p.weapon === 'bombs') fire(w, p, power);
+}
+
+/** `power` (0..1) scales the bomb throw from a short lob to the full arc. */
+export function fire(w: World, p: Player, power = 1): boolean {
   if (p.life !== 'alive') return false;
   if (p.chargeUntil > 0) return false; // railgun already charging
   if (w.t - p.shotAt < weaponCooldown(p)) return false;
@@ -182,8 +207,9 @@ export function fire(w: World, p: Player): boolean {
     spendAmmo(p);
   } else {
     const B = COMBAT.bomb;
-    const vx = p.face * B.throwVx + p.vx * 0.5;
-    const vy = B.throwVy + Math.min(0, p.vy * 0.3);
+    const k = Math.max(0, Math.min(1, power));
+    const vx = p.face * (B.shortVx + (B.throwVx - B.shortVx) * k) + p.vx * 0.5;
+    const vy = B.shortVy + (B.throwVy - B.shortVy) * k + Math.min(0, p.vy * 0.3);
     spawn(w, p, 'bomb', muzzleX, p.y + 10, vx, vy, B.fuseMs, 0);
     spendAmmo(p);
   }
@@ -216,9 +242,13 @@ export function assistAngle(w: World, p: Player, mx: number, my: number): number
   return best;
 }
 
-/** Fire railgun beams whose charge has finished. Call once per tick. */
+/** Fire railgun beams whose charge has finished, and fully wound-up bombs. Call once per tick. */
 export function updateCharges(w: World): void {
   for (const p of w.players.values()) {
+    if (p.windAt > 0) {
+      if (p.life !== 'alive' || p.weapon !== 'bombs') p.windAt = 0;
+      else if (w.t - p.windAt >= COMBAT.bomb.holdMs) releaseFire(w, p);
+    }
     if (p.chargeUntil <= 0) continue;
     if (p.life !== 'alive') {
       p.chargeUntil = 0;

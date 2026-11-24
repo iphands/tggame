@@ -10,7 +10,7 @@ import { LEVELS, levelAt } from '../../../shared/src/levels.js';
 import type { SnapshotBody } from '../../../shared/src/protocol.js';
 import type { HitHow, Phase, ResultRow } from '../../../shared/src/types.js';
 import { makeBrain, thinkBot } from './bots.js';
-import { fire, updateCharges, updateProjectiles, updateStomps } from './combat.js';
+import { fire, pressFire, releaseFire, updateCharges, updateProjectiles, updateStomps } from './combat.js';
 import { scheduleFirstCrate, updateCrates } from './items.js';
 import { createPlayer, resetBody, resetForRound, type Input, type Player, type World } from './model.js';
 import { applyInput, separateBodies, stepPlayer, tryDrop } from './physics.js';
@@ -166,7 +166,13 @@ export class Game {
 
   shoot(id: string): void {
     const p = this.w.players.get(id);
-    if (p && this.w.phase === 'playing') fire(this.w, p);
+    if (p && this.w.phase === 'playing') pressFire(this.w, p);
+  }
+
+  /** Fire button released (ends a bomb wind-up early: a shorter throw). */
+  release(id: string): void {
+    const p = this.w.players.get(id);
+    if (p && this.w.phase === 'playing') releaseFire(this.w, p);
   }
 
   drop(id: string): void {
@@ -300,7 +306,7 @@ export class Game {
     const w = this.w;
     if (combat) {
       const actions = {
-        fire: (p: Player) => fire(w, p),
+        fire: (p: Player, power?: number) => fire(w, p, power),
         drop: (p: Player) => tryDrop(w, p),
         input: (p: Player, i: Input) => applyInput(p, i),
       };

@@ -9,6 +9,7 @@ describe('client message validation', () => {
       { type: 'join' },
       { type: 'input', left: true, right: false, jump: false },
       { type: 'shoot' },
+      { type: 'release' },
       { type: 'drop' },
       { type: 'restart' },
       { type: 'leave' },

@@ -58,6 +58,7 @@ export class ArenaScene extends Phaser.Scene {
   private keys = {} as Record<KeyName, Phaser.Input.Keyboard.Key[]>;
   private prevDown = false;
   private lastFireSent = 0;
+  private prevFiring = false;
 
   constructor() {
     super('Arena');
@@ -258,6 +259,9 @@ export class ArenaScene extends Phaser.Scene {
       this.lastFireSent = t;
       client.send({ type: 'shoot' });
     }
+    // letting go throws a bomb early (short); the server ignores it otherwise
+    if (this.prevFiring && !firing) client.send({ type: 'release' });
+    this.prevFiring = firing;
   }
 
   // ------------------------------------------------------------ world

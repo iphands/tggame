@@ -74,6 +74,8 @@ export type Player = {
   shotAt: number;
   /** Railgun: sim ms the charged shot fires (0 = not charging). */
   chargeUntil: number;
+  /** Bombs: sim ms the throw wind-up began (0 = not winding up). */
+  windAt: number;
   lastHit: { by: string; at: number; how: HitHow } | null;
 
   // per-match stats
@@ -179,6 +181,7 @@ export function createPlayer(id: string, name: string, color: string, bot: boole
     ammo: -1,
     shotAt: -1e9,
     chargeUntil: 0,
+    windAt: 0,
     lastHit: null,
     kos: 0,
     falls: 0,
@@ -211,6 +214,7 @@ export function resetBody(p: Player): void {
   p.ammo = -1;
   p.shotAt = -1e9;
   p.chargeUntil = 0;
+  p.windAt = 0;
   p.lastHit = null;
 }
 

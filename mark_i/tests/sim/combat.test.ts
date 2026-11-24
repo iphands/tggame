@@ -130,6 +130,8 @@ describe('guns', () => {
     run(g, 50);
     pa.face = 1;
     g.shoot(a);
+    expect(g.w.projectiles).toHaveLength(0); // winding up until release
+    g.release(a);
     const bomb = g.w.projectiles[0];
     expect(bomb.kind).toBe('bomb');
     expect(bomb.vy).toBeLessThan(0); // lobbed upward
@@ -139,12 +141,45 @@ describe('guns', () => {
     expect(P(g, b).dmg).toBe(0);
   });
 
+  it('bombs: a tap lobs short, a hold throws the full arc', () => {
+    const throwAfter = (holdMs: number | null) => {
+      const { g, a, b } = duel(400);
+      const pa = P(g, a);
+      grantItem(g.w, pa, 'bombs');
+      park(g, b);
+      run(g, 50);
+      pa.face = 1;
+      g.shoot(a);
+      if (holdMs === null) {
+        // never released: throws by itself once fully wound up
+        for (let t = 0; t < COMBAT.bomb.holdMs + 50 && !g.w.projectiles.length; t += 10) run(g, 10);
+      } else {
+        if (holdMs > 0) run(g, holdMs);
+        g.release(a);
+      }
+      expect(g.w.projectiles).toHaveLength(1);
+      expect(pa.ammo).toBe(COMBAT.bomb.ammo - 1);
+      return { vx: g.w.projectiles[0].vx, g, a };
+    };
+    const tap = throwAfter(0).vx;
+    const half = throwAfter(COMBAT.bomb.holdMs / 2).vx;
+    const held = throwAfter(null);
+    expect(tap).toBeCloseTo(COMBAT.bomb.shortVx, 0);
+    expect(held.vx).toBeCloseTo(COMBAT.bomb.throwVx, 0);
+    expect(half).toBeGreaterThan(tap);
+    expect(half).toBeLessThan(held.vx);
+    // a late release after the auto-throw does nothing
+    held.g.release(held.a);
+    expect(held.g.w.projectiles).toHaveLength(1);
+  });
+
   it('a bomb explosion damages and launches players inside the radius', () => {
     const { g, a, b } = duel(60);
     const pa = P(g, a);
     const pb = P(g, b);
     grantItem(g.w, pa, 'bombs');
     g.shoot(a);
+    g.release(a);
     // fast-forward the fuse with the bomb sitting just beside the target
     const bomb = g.w.projectiles[0];
     bomb.x = pb.x - 20;

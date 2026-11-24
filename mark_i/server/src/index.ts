@@ -153,6 +153,9 @@ function handle(ws: WebSocket, peer: { id: string | null }, msg: ClientMessage):
     case 'shoot':
       game.shoot(id);
       break;
+    case 'release':
+      game.release(id);
+      break;
     case 'drop':
       game.drop(id);
       break;

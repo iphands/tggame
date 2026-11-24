@@ -2,7 +2,7 @@
  * Bot brains. Bots produce the same inputs a human would (left/right/jump
  * plus fire / drop actions) — they get no special powers.
  */
-import { PHYS } from '../../../shared/src/constants.js';
+import { COMBAT, PHYS } from '../../../shared/src/constants.js';
 import { isSolid } from './platforms.js';
 import type { BotBrain, Player, Plat, World } from './model.js';
 
@@ -10,7 +10,8 @@ const W = PHYS.playerW;
 const H = PHYS.playerH;
 
 export type BotActions = {
-  fire: (p: Player) => void;
+  /** `power` (0..1) is the bomb throw strength; other weapons ignore it. */
+  fire: (p: Player, power?: number) => void;
   drop: (p: Player) => void;
   input: (p: Player, input: { left: boolean; right: boolean; jump: boolean }) => void;
 };
@@ -176,7 +177,7 @@ export function thinkBot(w: World, p: Player, act: BotActions): void {
         }
       } else if (facing) {
         const r = w.rng();
-        if (p.weapon === 'bombs' && adx < 430 && ady < 140 && r < 0.07) act.fire(p);
+        if (p.weapon === 'bombs' && adx < 430 && ady < 140 && r < 0.07) act.fire(p, bombPower(adx));
         else if (p.weapon === 'boomstick' && adx < 240 && ady < 40 && r < 0.25) act.fire(p);
         else if (p.weapon === 'pistol' && adx < 650 && ady < 22 && r < 0.035 * b.skill) act.fire(p);
         else if (p.weapon === 'smg' && adx < 600 && ady < 120 && r < 0.5) act.fire(p);
@@ -217,4 +218,13 @@ function nearestCrate(w: World, p: Player, maxDist: number) {
     }
   }
   return best;
+}
+
+/** Throw strength (0..1) that lands a bomb roughly `dist` px ahead on level ground. */
+function bombPower(dist: number): number {
+  const B = COMBAT.bomb;
+  const reach = (vx: number, vy: number) => (vx * 2 * -vy) / B.gravity;
+  const near = reach(B.shortVx, B.shortVy);
+  const far = reach(B.throwVx, B.throwVy);
+  return Math.max(0, Math.min(1, (dist - near) / (far - near)));
 }

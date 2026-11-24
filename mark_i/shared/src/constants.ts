@@ -66,7 +66,7 @@ export const COMBAT = {
   /** Guns bend toward the nearest foe in front within this cone (no jump-to-aim needed on touch). */
   aimAssist: { maxDeg: 12.5, range: 900 },
   boomstick: { pellets: 5, spreadDeg: 18, dmg: 5, base: 230, growth: 3.4, speed: 1350, ttlMs: 250, cooldownMs: 650, ammo: 4, angleDeg: 22, recoil: 380 },
-  bomb: { fuseMs: 1500, throwVx: 640, throwVy: -640, gravity: 1800, radius: 125, dmg: 16, base: 480, growth: 6.4, ammo: 3, cooldownMs: 450, minAngleDeg: 28, armMs: 90 },
+  bomb: { fuseMs: 1500, throwVx: 640, throwVy: -640, shortVx: 250, shortVy: -430, holdMs: 300, gravity: 1800, radius: 125, dmg: 16, base: 480, growth: 6.4, ammo: 3, cooldownMs: 350, minAngleDeg: 28, armMs: 90 },
   smg: { dmg: 3, base: 130, growth: 1.6, speed: 1700, ttlMs: 450, cooldownMs: 70, ammo: 30, angleDeg: 15, spreadDeg: 5 },
   rocket: { speed: 520, accel: 900, maxSpeed: 1250, ttlMs: 1600, radius: 115, dmg: 30, base: 1040, growth: 13.2, ammo: 3, cooldownMs: 600, minAngleDeg: 25, recoil: 160 },
   /** The big one: rare, 2 shots, short telegraphed charge, screen-wide piercing beam. */
