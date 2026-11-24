@@ -97,7 +97,8 @@ uses ports 8080/5173, so both games can run side by side.)
   into a pit is allowed (and credited in the feed).
 - **Getting hit raises your %** (the big number on your card). The higher it
   is, the slower you run: up to 15% slower at 100%. It resets when you lose
-  a life.
+  a life, and every shot you land on a gate while the screen waits at it
+  heals 2%.
 - **Leading the pack slows you a little too**: up to 10% once you're well
   ahead of the other runners, so they can catch up.
 - **Cross the finish line** to lock in your place and time. Once the first
