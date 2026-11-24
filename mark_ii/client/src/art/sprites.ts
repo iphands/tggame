@@ -381,10 +381,152 @@ export function makeCommonTextures(scene: Phaser.Scene): void {
     ctx.fillRect(34, 6, 4, 2);
   });
 
-  for (const item of ['boomstick', 'bombs', 'smg', 'rockets', 'railgun', 'shield', 'heal'] as const) {
+  for (const item of ['boomstick', 'bombs', 'smg', 'rockets', 'railgun', 'shield', 'life'] as const) {
     add(scene, `icon-${item}`, 32, 32, (ctx) => drawIcon(ctx, item));
   }
   add(scene, 'icon-pistol', 32, 32, (ctx) => drawIcon(ctx, 'pistol'));
+
+  // ---- course furniture
+  add(scene, 'box', 48, 48, (ctx) => drawBox(ctx, 48, false));
+  add(scene, 'box-cracked', 48, 48, (ctx) => drawBox(ctx, 48, true));
+  add(scene, 'gate', 96, 96, (ctx) => drawGate(ctx, 96));
+
+  // finish line: a checkered strip (tiled vertically)
+  add(scene, 'checker', 24, 24, (ctx) => {
+    ctx.fillStyle = '#f5f6fa';
+    ctx.fillRect(0, 0, 24, 24);
+    ctx.fillStyle = '#14111c';
+    ctx.fillRect(0, 0, 12, 12);
+    ctx.fillRect(12, 12, 12, 12);
+  });
+
+  // the left edge of the screen: a hot danger glow fading to the right
+  add(scene, 'killwall', 96, 8, (ctx) => {
+    const g = ctx.createLinearGradient(0, 0, 96, 0);
+    g.addColorStop(0, 'rgba(255,60,90,0.85)');
+    g.addColorStop(0.25, 'rgba(255,90,60,0.4)');
+    g.addColorStop(1, 'rgba(255,90,60,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 96, 8);
+  });
+}
+
+/** A wooden crate: shoot it. `cracked` once it has taken damage. */
+function drawBox(ctx: CanvasRenderingContext2D, s: number, cracked: boolean): void {
+  ctx.fillStyle = '#3a2210';
+  ctx.fillRect(0, 0, s, s);
+  ctx.fillStyle = cracked ? '#a8703c' : '#c08a4a';
+  ctx.fillRect(2, 2, s - 4, s - 4);
+  // planks
+  ctx.fillStyle = cracked ? '#8f5c30' : '#a8733a';
+  for (let y = 2; y < s - 2; y += 11) ctx.fillRect(2, y + 9, s - 4, 2);
+  // frame
+  ctx.fillStyle = '#7a4a22';
+  ctx.fillRect(2, 2, s - 4, 6);
+  ctx.fillRect(2, s - 8, s - 4, 6);
+  ctx.fillRect(2, 2, 6, s - 4);
+  ctx.fillRect(s - 8, 2, 6, s - 4);
+  // cross brace
+  ctx.strokeStyle = '#7a4a22';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(8, 8);
+  ctx.lineTo(s - 8, s - 8);
+  ctx.stroke();
+  // highlights and nails
+  ctx.fillStyle = 'rgba(255,230,180,0.35)';
+  ctx.fillRect(2, 2, s - 4, 2);
+  ctx.fillRect(2, 2, 2, s - 4);
+  ctx.fillStyle = '#e8d2a8';
+  for (const [x, y] of [[4, 4], [s - 7, 4], [4, s - 7], [s - 7, s - 7]]) ctx.fillRect(x, y, 3, 3);
+  if (cracked) {
+    ctx.strokeStyle = '#2a1608';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(s * 0.3, 3);
+    ctx.lineTo(s * 0.42, s * 0.3);
+    ctx.lineTo(s * 0.3, s * 0.5);
+    ctx.lineTo(s * 0.5, s * 0.72);
+    ctx.lineTo(s * 0.44, s - 3);
+    ctx.moveTo(s * 0.42, s * 0.3);
+    ctx.lineTo(s * 0.7, s * 0.4);
+    ctx.lineTo(s - 4, s * 0.3);
+    ctx.stroke();
+  }
+}
+
+/** One tile of a co-op gate: riveted shutter with hazard stripes. */
+function drawGate(ctx: CanvasRenderingContext2D, s: number): void {
+  ctx.fillStyle = '#14111c';
+  ctx.fillRect(0, 0, s, s);
+  ctx.fillStyle = '#4a4f66';
+  ctx.fillRect(3, 0, s - 6, s);
+  // shutter slats
+  for (let y = 0; y < s; y += 16) {
+    ctx.fillStyle = '#5f6580';
+    ctx.fillRect(3, y, s - 6, 3);
+    ctx.fillStyle = '#353a4e';
+    ctx.fillRect(3, y + 13, s - 6, 3);
+  }
+  // hazard band
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(3, s / 2 - 12, s - 6, 24);
+  ctx.clip();
+  ctx.fillStyle = '#ffc23d';
+  ctx.fillRect(0, s / 2 - 12, s, 24);
+  ctx.fillStyle = '#14111c';
+  for (let x = -s; x < s * 2; x += 24) {
+    ctx.beginPath();
+    ctx.moveTo(x, s / 2 + 12);
+    ctx.lineTo(x + 12, s / 2 + 12);
+    ctx.lineTo(x + 36, s / 2 - 12);
+    ctx.lineTo(x + 24, s / 2 - 12);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+  // rivets
+  ctx.fillStyle = '#c9cee0';
+  for (const y of [8, s - 11]) for (const x of [8, s - 11]) ctx.fillRect(x, y, 3, 3);
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.fillRect(3, 0, 3, s);
+}
+
+/** Texture for a permanent steel block of the given size (cached). Jump it: it never breaks. */
+export function blockTexture(scene: Phaser.Scene, w: number, h: number): string {
+  const key = `block-${w}x${h}`;
+  if (scene.textures.exists(key)) return key;
+  const [c, ctx] = canvas(w, h);
+  ctx.fillStyle = '#14111c';
+  ctx.fillRect(0, 0, w, h);
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, '#8189a6');
+  g.addColorStop(1, '#4a5069');
+  ctx.fillStyle = g;
+  ctx.fillRect(2, 2, w - 4, h - 4);
+  // panel seams every 48 px
+  ctx.fillStyle = 'rgba(20,17,28,0.55)';
+  for (let x = 48; x < w; x += 48) ctx.fillRect(x - 1, 2, 2, h - 4);
+  for (let y = 48; y < h; y += 48) ctx.fillRect(2, y - 1, w - 4, 2);
+  // bevel
+  ctx.fillStyle = 'rgba(255,255,255,0.38)';
+  ctx.fillRect(2, 2, w - 4, 3);
+  ctx.fillRect(2, 2, 3, h - 4);
+  ctx.fillStyle = 'rgba(10,6,24,0.4)';
+  ctx.fillRect(2, h - 5, w - 4, 3);
+  ctx.fillRect(w - 5, 2, 3, h - 4);
+  // bolts in every panel corner
+  ctx.fillStyle = '#d7dbe8';
+  for (let x = 0; x < w; x += 48) {
+    for (let y = 0; y < h; y += 48) {
+      const pw = Math.min(48, w - x);
+      const ph = Math.min(48, h - y);
+      for (const [bx, by] of [[8, 8], [pw - 11, 8], [8, ph - 11], [pw - 11, ph - 11]]) ctx.fillRect(x + bx, y + by, 3, 3);
+    }
+  }
+  scene.textures.addCanvas(key, c);
+  return key;
 }
 
 function drawBomb(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
@@ -433,7 +575,7 @@ function drawCrate(ctx: CanvasRenderingContext2D): void {
 
 function drawIcon(
   ctx: CanvasRenderingContext2D,
-  item: 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun' | 'shield' | 'heal' | 'pistol'
+  item: 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun' | 'shield' | 'life' | 'pistol'
 ): void {
   if (item === 'smg') {
     ctx.fillStyle = '#14111c';
@@ -499,7 +641,7 @@ function drawIcon(
     ctx.quadraticCurveTo(23, 20, 16, 25);
     ctx.closePath();
     ctx.fill();
-  } else if (item === 'heal') {
+  } else if (item === 'life') {
     ctx.fillStyle = '#ff4f7b';
     ctx.beginPath();
     ctx.moveTo(16, 28);
@@ -508,9 +650,8 @@ function drawIcon(
     ctx.bezierCurveTo(16, 10, 18, 6, 22, 6);
     ctx.bezierCurveTo(29, 6, 30, 18, 16, 28);
     ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(14, 11, 4, 11);
-    ctx.fillRect(10, 15, 12, 4);
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.fillRect(9, 10, 4, 3);
   } else if (item === 'boomstick') {
     ctx.save();
     ctx.translate(16, 16);

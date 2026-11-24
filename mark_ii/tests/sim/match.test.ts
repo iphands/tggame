@@ -1,26 +1,42 @@
 import { describe, it, expect } from 'vitest';
-import { ARENA, COLORS, ITEMS, MATCH, PHYS } from '../../shared/src/constants.js';
+import { ARENA, COLORS, ITEMS, MATCH, PHYS, RUN } from '../../shared/src/constants.js';
 import { LEVELS } from '../../shared/src/levels.js';
 import { Game } from '../../server/src/sim/game.js';
 import { spawnCrate } from '../../server/src/sim/items.js';
-import { newGame, startMatch, run, place, park, P, TICK_MS } from './helpers.js';
+import { ARENAS } from '../fixtures/arenas.js';
+import { flatWorld, newCustom, newGame, startMatch, run, place, park, hold, P, TICK_MS } from './helpers.js';
 
-/** Throw a player out of the arena (past the bottom blast line). */
+/** Drop a player into the pit (below the bottom of the screen). */
 function kill(g: Game, id: string): void {
   const p = P(g, id);
   p.grounded = false;
   p.platIdx = -1;
-  p.x = 640;
-  p.y = ARENA.blastBottom + 10;
+  p.y = ARENA.height + RUN.fallBelow + 10;
   run(g, TICK_MS);
 }
 
-/** Lose every stock. */
+/** Lose every life. */
 function eliminate(g: Game, id: string): void {
-  for (let i = 0; i < MATCH.stocks; i++) {
+  for (let i = 0; i < RUN.lives; i++) {
     if (P(g, id).life === 'respawning') run(g, MATCH.respawnDelayMs + 50);
     kill(g, id);
   }
+}
+
+/** A short flat course whose finish line (x=1200) is on screen from the start. */
+function sprint(names: string[] = ['Alice', 'Bob']): { g: Game; ids: string[] } {
+  const g = newCustom(flatWorld({ length: 1900 }));
+  const ids = startMatch(g, names);
+  // stand everyone mid-screen so the scrolling screen never catches them
+  ids.forEach((id, i) => place(g, id, 700 + i * 40, 540));
+  run(g, 100);
+  return { g, ids };
+}
+
+/** Carry a player across the finish line. */
+function finish(g: Game, id: string): void {
+  place(g, id, g.w.level.finishX + 20, 540);
+  run(g, TICK_MS * 2);
 }
 
 describe('lobby & start', () => {
@@ -45,7 +61,7 @@ describe('lobby & start', () => {
     expect(g.phase).toBe('starting');
   });
 
-  it('places everyone on the arena during the countdown, frozen', () => {
+  it('lines everyone up on the course during the countdown, frozen and facing the run', () => {
     const g = newGame('frost');
     const a = g.join('Alice')!.id;
     g.join('Bob');
@@ -58,7 +74,9 @@ describe('lobby & start', () => {
     run(g, 1000);
     expect(pa.y).toBe(y0);
     expect(pa.x).toBeGreaterThan(0);
-    expect(pa.y + PHYS.playerH).toBe(LEVELS[1].spawns[0].y);
+    expect(pa.y + PHYS.playerH).toBe(ARENAS[1].spawns[0].y);
+    expect(pa.face).toBe(1);
+    expect(g.w.scrollX).toBe(0);
   });
 
   it('restart forces a round even solo, but never with zero humans', () => {
@@ -68,16 +86,6 @@ describe('lobby & start', () => {
     g.join('Solo');
     g.restart();
     expect(g.phase).toBe('starting');
-  });
-
-  it('a solo practice round does not end instantly', () => {
-    const g = newGame();
-    const [a] = startMatch(g, ['Solo']);
-    run(g, 5000);
-    expect(g.phase).toBe('playing');
-    eliminate(g, a);
-    expect(g.phase).toBe('ended');
-    expect(g.winnerId).toBeNull();
   });
 
   it('players joining during the countdown get into the round', () => {
@@ -90,138 +98,193 @@ describe('lobby & start', () => {
   });
 });
 
-describe('stocks, KOs and respawns', () => {
-  it('leaving the blast zone costs a stock, then you respawn invulnerable at 0%', () => {
+describe('lives and respawns', () => {
+  it('falling into the pit costs a life, then you drop back in invulnerable', () => {
     const g = newGame();
     const [a, b] = startMatch(g, ['Alice', 'Bob', 'Cara']);
     park(g, b);
     const pa = P(g, a);
-    pa.dmg = 77;
     kill(g, a);
-    expect(pa.stocks).toBe(MATCH.stocks - 1);
+    expect(pa.lives).toBe(RUN.lives - 1);
     expect(pa.life).toBe('respawning');
-    expect(pa.falls).toBe(1);
+    expect(pa.deaths).toBe(1);
     expect(g.w.feed[0]).toMatchObject({ victim: 'Alice', killer: null, how: 'fall' });
     run(g, MATCH.respawnDelayMs + 50);
     expect(pa.life).toBe('alive');
-    expect(pa.dmg).toBe(0);
     expect(pa.invulnUntil).toBeGreaterThan(g.simTimeMs);
     run(g, 600);
     expect(pa.grounded).toBe(true);
   });
 
-  it('all four blast lines count', () => {
-    const g = newGame();
-    const [a] = startMatch(g, ['Alice', 'Bob', 'Cara']);
-    const pa = P(g, a);
-    const spots: [number, number][] = [
-      [ARENA.blastLeft - 100, 300],
-      [ARENA.blastRight + 10, 300],
-      [640, ARENA.blastTop - 100],
-    ];
-    let stocks = pa.stocks;
-    for (const [x, y] of spots.slice(0, MATCH.stocks - 1)) {
-      if (pa.life === 'respawning') run(g, MATCH.respawnDelayMs + 50);
-      pa.grounded = false;
-      pa.platIdx = -1;
-      pa.x = x;
-      pa.y = y;
-      run(g, TICK_MS);
-      expect(pa.stocks).toBe(--stocks);
-    }
-  });
-
-  it('the last player to hit you within the credit window gets the KO', () => {
-    const g = newGame();
-    const [a, b] = startMatch(g, ['Alice', 'Bob', 'Cara']);
-    const pb = P(g, b);
-    pb.lastHit = { by: a, at: g.simTimeMs, how: 'bomb' };
-    kill(g, b);
-    expect(P(g, a).kos).toBe(1);
-    expect(g.w.feed[0]).toMatchObject({ victim: 'Bob', killer: 'Alice', how: 'bomb' });
-
-    run(g, MATCH.respawnDelayMs + 50);
-    pb.lastHit = { by: a, at: g.simTimeMs, how: 'pistol' };
-    run(g, 5200); // credit expires
-    kill(g, b);
-    expect(P(g, a).kos).toBe(1);
-    expect(g.w.feed[0].how).toBe('fall');
-  });
-
-  it('losing your last stock puts you out and the last one standing wins', () => {
-    const g = newGame();
-    const [a, b, c] = startMatch(g, ['Alice', 'Bob', 'Cara']);
-    eliminate(g, b);
-    expect(P(g, b).life).toBe('out');
-    expect(P(g, b).place).toBe(3);
-    expect(g.phase).toBe('playing');
-    eliminate(g, c);
-    expect(P(g, c).place).toBe(2);
-    expect(g.phase).toBe('ended');
-    expect(g.winnerId).toBe(a);
-    expect(P(g, a).wins).toBe(1);
-    expect(g.results?.map((r) => r.name)).toEqual(['Alice', 'Cara', 'Bob']);
-  });
-
-  it('timeout: more stocks wins, then less damage', () => {
-    const g = newGame();
-    const [a, b] = startMatch(g);
-    park(g, a);
-    place(g, b, 640, 440);
+  it('respawns land ahead of the left screen edge, never past a standing gate', () => {
+    const g = newCustom(flatWorld({ gates: [{ x: 2000, w: 96 }] }));
+    const [a] = startMatch(g, ['Alice', 'Bob']);
+    g.w.scrollX = 600;
     kill(g, a);
     run(g, MATCH.respawnDelayMs + 50);
-    g.timeLeftMs = 50;
-    run(g, 100);
-    expect(g.phase).toBe('ended');
-    expect(g.winnerId).toBe(b);
+    const pa = P(g, a);
+    expect(pa.life).toBe('alive');
+    expect(pa.x).toBeGreaterThanOrEqual(g.w.scrollX + RUN.respawnAheadFrac * ARENA.width - PHYS.playerW);
+    expect(pa.x + PHYS.playerW).toBeLessThan(2000);
+    // right up against the gate there is no spot far enough ahead: take the last one before it
+    g.w.scrollX = 2000 - RUN.gateHoldFrac * ARENA.width;
+    place(g, a, 1900, 540);
+    kill(g, a);
+    run(g, MATCH.respawnDelayMs + 50);
+    expect(pa.life).toBe('alive');
+    expect(pa.x + PHYS.playerW).toBeLessThan(2000);
+    expect(pa.x).toBeGreaterThan(g.w.scrollX);
   });
 
-  it('timeout with identical standing is a draw', () => {
+  it('losing your last life puts you out; the round goes on for the others', () => {
+    const g = newGame();
+    const [, b] = startMatch(g, ['Alice', 'Bob', 'Cara']);
+    eliminate(g, b);
+    expect(P(g, b).life).toBe('out');
+    expect(g.phase).toBe('playing');
+    run(g, MATCH.respawnDelayMs + 500);
+    expect(P(g, b).life).toBe('out');
+  });
+
+  it('when everyone is out the round ends with no winner', () => {
     const g = newGame();
     const [a, b] = startMatch(g);
-    park(g, a);
-    place(g, b, 640, 440);
-    g.timeLeftMs = 50;
-    run(g, 100);
+    eliminate(g, a);
+    eliminate(g, b);
     expect(g.phase).toBe('ended');
     expect(g.winnerId).toBeNull();
+    expect(g.results?.every((r) => r.timeMs === null)).toBe(true);
   });
 
   it('after the results screen, everyone returns to the lobby and the next round auto-arms', () => {
     const g = newGame();
-    const [, b] = startMatch(g);
+    const [a, b] = startMatch(g);
+    eliminate(g, a);
     eliminate(g, b);
     expect(g.phase).toBe('ended');
     run(g, MATCH.endHoldMs + 100);
     expect(g.phase).toBe('lobby');
     for (const p of g.players.values()) {
       expect(p.life).toBe('alive');
-      expect(p.stocks).toBe(MATCH.stocks);
+      expect(p.lives).toBe(RUN.lives);
     }
     run(g, MATCH.fallbackWaitMs + 200);
     expect(g.phase).toBe('starting');
   });
 });
 
+describe('the finish', () => {
+  it('crossing the line records your place and time; the first across wins', () => {
+    const { g, ids } = sprint(['Alice', 'Bob', 'Cara']);
+    const [a, b, c] = ids;
+    run(g, 1000);
+    finish(g, b);
+    expect(P(g, b).place).toBe(1);
+    expect(P(g, b).finishMs).toBeGreaterThan(900);
+    expect(g.w.feed[0]).toMatchObject({ victim: 'Bob', how: 'finish' });
+    expect(g.phase).toBe('playing'); // the others are still racing
+    expect(g.graceMs()).toBeGreaterThan(RUN.finishGraceMs - 200);
+    run(g, 500);
+    finish(g, a);
+    finish(g, c);
+    expect(g.phase).toBe('ended');
+    expect(g.winnerId).toBe(b);
+    expect(P(g, b).wins).toBe(1);
+    expect(g.results?.map((r) => r.name)).toEqual(['Bob', 'Alice', 'Cara']);
+    expect(g.results?.[0].timeMs).toBeLessThan(g.results![1].timeMs!);
+    expect(g.results?.every((r) => r.progress === 100)).toBe(true);
+  });
+
+  it('finished runners are done: no more shoves, shots, or lost lives', () => {
+    const { g, ids } = sprint();
+    const [a, b] = ids;
+    finish(g, a);
+    const pa = P(g, a);
+    place(g, b, pa.x - 20, 540);
+    run(g, 100);
+    P(g, b).face = 1;
+    g.shoot(b);
+    run(g, 100);
+    expect(pa.lastHit).toBeNull();
+    g.shoot(a);
+    expect(pa.shotAt).toBeLessThan(0);
+    kill(g, a);
+    expect(pa.life).toBe('alive');
+    expect(pa.lives).toBe(RUN.lives);
+    expect(pa.x).toBeGreaterThan(g.w.level.finishX);
+  });
+
+  it('stragglers get a grace period after the first finisher, then rank by distance', () => {
+    const { g, ids } = sprint(['Alice', 'Bob', 'Cara', 'Dan']);
+    const [a, b, c, d] = ids;
+    place(g, c, 1000, 540);
+    place(g, d, 1100, 540);
+    run(g, 200);
+    eliminate(g, d); // went farthest, but is out
+    place(g, b, 800, 540);
+    run(g, 200);
+    finish(g, a);
+    run(g, RUN.finishGraceMs - 500);
+    expect(g.phase).toBe('playing');
+    run(g, 600);
+    expect(g.phase).toBe('ended');
+    expect(g.winnerId).toBe(a);
+    // finisher, then runners still going by distance, then the eliminated
+    expect(g.results?.map((r) => r.name)).toEqual(['Alice', 'Cara', 'Bob', 'Dan']);
+    expect(g.results?.map((r) => r.place)).toEqual([1, 2, 3, 4]);
+    expect(g.results?.[1].timeMs).toBeNull();
+    expect(g.results?.[1].progress).toBeGreaterThan(g.results![2].progress);
+  });
+
+  it('the clock running out ends the round with no winner if nobody finished', () => {
+    const g = newCustom(flatWorld());
+    startMatch(g);
+    g.timeLeftMs = 50;
+    run(g, 100);
+    expect(g.phase).toBe('ended');
+    expect(g.winnerId).toBeNull();
+    expect(g.timeLeftMs).toBe(0);
+  });
+
+  it('a solo run works: finish alone and win', () => {
+    const { g, ids } = sprint(['Solo']);
+    const [a] = ids;
+    run(g, 3000);
+    expect(g.phase).toBe('playing');
+    hold(g, a, { right: true });
+    run(g, 800);
+    expect(P(g, a).x).toBeGreaterThan(800);
+    finish(g, a);
+    expect(g.phase).toBe('ended');
+    expect(g.winnerId).toBe(a);
+  });
+});
+
 describe('joining and leaving', () => {
   it('mid-round joiners wait, then play the next round', () => {
     const g = newGame();
-    const [, b] = startMatch(g);
+    const [a, b] = startMatch(g);
     const late = g.join('Late')!.id;
     expect(P(g, late).life).toBe('waiting');
+    eliminate(g, a);
     eliminate(g, b);
+    expect(g.results?.some((r) => r.name === 'Late')).toBe(false);
     run(g, MATCH.endHoldMs + 100);
     g.restart();
     expect(P(g, late).life).toBe('alive');
   });
 
-  it('a leaver ends the match when only one player remains', () => {
-    const g = newGame();
-    const [a, b] = startMatch(g);
+  it('a leaver is announced; the round ends once nobody is left racing', () => {
+    const { g, ids } = sprint(['Alice', 'Bob', 'Cara']);
+    const [a, b, c] = ids;
     g.leave(b);
+    expect(g.phase).toBe('playing');
+    expect(g.w.feed[0]).toMatchObject({ victim: 'Bob', how: 'left' });
+    finish(g, a);
+    g.leave(c);
     expect(g.phase).toBe('ended');
     expect(g.winnerId).toBe(a);
-    expect(g.w.feed[0]).toMatchObject({ victim: 'Bob', how: 'left' });
+    expect(g.results?.map((r) => r.place)).toEqual([1]);
   });
 
   it('colors stay unique, names are cleaned and de-duplicated', () => {
@@ -252,8 +315,8 @@ describe('joining and leaving', () => {
   });
 });
 
-describe('arena selection', () => {
-  it('pickLevel cycles the next arena in the lobby, and the round uses it', () => {
+describe('course selection', () => {
+  it('pickLevel cycles the next course in the lobby, and the round uses it', () => {
     const g = new Game({ seed: 3 });
     g.join('Alice');
     g.nextLevelIndex = 0;
@@ -268,20 +331,22 @@ describe('arena selection', () => {
     expect(g.nextLevelIndex).toBe(1);
   });
 
-  it('the arena rotates after each round', () => {
+  it('the course rotates after each round', () => {
     const g = newGame('sky');
-    const [, b] = startMatch(g);
+    const [a, b] = startMatch(g);
+    eliminate(g, a);
     eliminate(g, b);
     expect(g.nextLevelIndex).toBe(1);
   });
 });
 
 describe('item crates', () => {
-  it('drop from the sky, land on a platform, and grant their item on touch', () => {
+  it('drop from the sky ahead of the pack, land on the floor, and grant their item on touch', () => {
     const g = newGame();
     const [a, b] = startMatch(g);
     park(g, b);
     const crate = spawnCrate(g.w, 'boomstick')!;
+    expect(crate.x).toBeGreaterThan(P(g, a).x + 100);
     run(g, 2000);
     expect(crate.platIdx).toBeGreaterThanOrEqual(0);
     const pl = g.w.plats[crate.platIdx];
@@ -308,18 +373,35 @@ describe('item crates', () => {
 });
 
 describe('snapshot', () => {
-  it('drains fx and reports arena state', () => {
-    const g = newGame();
+  it('drains fx and reports course state', () => {
+    const g = newCustom(flatWorld({ boxes: [{ x: 700, y: 492, w: 48, h: 48, hp: 3 }], gates: [{ x: 1500, w: 96 }] }));
     const [a] = startMatch(g);
-    place(g, a, 640, 440);
+    place(g, a, 640, 540);
     run(g, 100);
     g.setInput(a, { left: false, right: false, jump: true });
     run(g, 50);
     const s1 = g.snapshot();
     expect(s1.fx.some((f) => f.k === 'jump')).toBe(true);
     expect(g.snapshot().fx.length).toBe(0);
-    expect(s1.platforms.length).toBe(g.w.plats.length);
-    expect(s1.players[0]).toHaveProperty('dmg');
+    expect(s1.players[0]).toMatchObject({ lives: RUN.lives, place: 0, finishMs: -1 });
     expect(s1.phase).toBe('playing');
+    expect(s1.round).toBe(1);
+    expect(s1.scrollX).toBe(0);
+    expect(s1.boxes).toEqual([]); // untouched boxes aren't sent
+    expect(s1.gate).toMatchObject({ i: 0 });
+    expect(s1.gate!.hp).toBeGreaterThan(0);
+    // every snapshot must survive JSON (no Infinity, no NaN)
+    expect(JSON.parse(JSON.stringify(s1))).toEqual(s1);
+  });
+
+  it('the round counter bumps on every (re)start, even on the same course', () => {
+    const g = newCustom(flatWorld());
+    g.join('Solo');
+    g.restart();
+    const r1 = g.snapshot().round;
+    run(g, MATCH.countdownMs + 500);
+    g.restart();
+    expect(g.snapshot().round).toBe(r1 + 1);
+    expect(g.snapshot().scrollX).toBe(0);
   });
 });

@@ -1,10 +1,12 @@
 /**
  * Bot brains. Bots produce the same inputs a human would (left/right/jump
- * plus fire / drop actions) — they get no special powers.
+ * plus fire / drop actions) — they get no special powers. A runner bot heads
+ * right, jumps pits and blocks, and shoots boxes and gates out of its way.
  */
 import { PHYS } from '../../../shared/src/constants.js';
+import { isBreakable } from './boxes.js';
 import { isSolid } from './platforms.js';
-import type { BotBrain, Player, Plat, World } from './model.js';
+import { activeGate, type BotBrain, type Player, type Plat, type World } from './model.js';
 
 const W = PHYS.playerW;
 const H = PHYS.playerH;
@@ -26,6 +28,8 @@ export function makeBrain(rng: () => number): BotBrain {
     jumpCd: 0,
     dropCd: 0,
     calmUntil: 0,
+    stuckX: 0,
+    stuckAt: 0,
   };
 }
 
@@ -48,143 +52,125 @@ function queueJump(b: BotBrain, holdTicks: number, cd: number): void {
   b.jumpCd = cd;
 }
 
+/** The nearest box whose side blocks the way ahead (within `reach` px of the bot's front). */
+function boxAhead(w: World, p: Player, reach: number): Plat | null {
+  const front = p.x + W;
+  let best: Plat | null = null;
+  for (const i of w.solids) {
+    const pl = w.plats[i];
+    if (!isSolid(pl)) continue;
+    if (pl.x + pl.w <= p.x || pl.x - front > reach) continue;
+    if (pl.y >= p.y + H - 4 || pl.y + pl.h <= p.y - 150) continue; // under our feet / far overhead
+    if (!best || pl.x < best.x) best = pl;
+  }
+  return best;
+}
+
+/** Top of the stack that `box` belongs to: the highest box surface in its column. */
+function stackTop(w: World, box: Plat): number {
+  let top = box.y;
+  for (const i of w.solids) {
+    const pl = w.plats[i];
+    if (isSolid(pl) && pl.x < box.x + box.w && pl.x + pl.w > box.x) top = Math.min(top, pl.y);
+  }
+  return top;
+}
+
 export function thinkBot(w: World, p: Player, act: BotActions): void {
   const b = p.brain;
   if (!b) return;
-  if (p.life !== 'alive') {
+  if (p.life !== 'alive' || p.finishMs >= 0) {
     act.input(p, { left: false, right: false, jump: false });
     return;
   }
   b.jumpCd = Math.max(0, b.jumpCd - 1);
-  b.dropCd = Math.max(0, b.dropCd - 1);
 
   const cx = p.x + W / 2;
   const feet = p.y + H;
   const launched = w.t < p.launchUntil;
-  let move = 0;
+  const reach = 150 * (w.level.gravityScale < 1 ? 1.35 : 1); // comfortable single-jump height
+  let move = 1;
   let floatHold = false;
+  let shoot = false;
+
+  // reaction time off the line, and the odd moment of hesitation on safe ground
+  if (w.t < b.calmUntil) move = 0;
+  else if (p.grounded && w.rng() < 0.0025 * (1.15 - b.skill)) b.calmUntil = w.t + 120 + w.rng() * 260;
 
   const support = platformUnder(w.plats, cx, feet);
   const overPit = !p.grounded && !support;
 
   if (overPit) {
-    // ---- recovery: steer back toward the nearest reachable platform
+    // ---- in the air over nothing: steer for the best platform ahead
     let goal: Plat | null = null;
     let bestScore = Infinity;
     for (const pl of w.plats) {
-      if (!isSolid(pl)) continue;
-      const hx = cx < pl.x ? pl.x - cx : cx > pl.x + pl.w ? cx - (pl.x + pl.w) : 0;
-      const tooHigh = Math.max(0, feet - pl.y - 120);
-      const score = hx + tooHigh * 2.5;
+      // nothing is under us, so every platform either starts ahead or ended behind: only look ahead
+      if (!isSolid(pl) || pl.x < cx - 10) continue;
+      const hx = Math.max(0, pl.x - cx);
+      if (hx > 520) continue;
+      const tooHigh = Math.max(0, feet - pl.y - 110);
+      const score = hx + tooHigh * 2.5 - (pl.x + pl.w > cx + 200 ? 30 : 0);
       if (score < bestScore) {
         bestScore = score;
         goal = pl;
       }
     }
+    move = 1;
     if (goal) {
-      const gx = Math.min(Math.max(cx, goal.x + 24), goal.x + goal.w - 24);
-      move = Math.abs(gx - cx) > 4 ? Math.sign(gx - cx) : 0;
-      if (!launched && p.vy > 60 && p.airJumpsLeft > 0 && feet > goal.y - 40) queueJump(b, 18, 10);
-      if (p.vy > 0 && Math.abs(gx - cx) > 40) floatHold = true;
+      const gx = Math.max(cx, goal.x + 26);
+      if (!launched && p.vy > 40 && p.airJumpsLeft > 0 && (feet > goal.y - 40 || gx - cx > 150)) queueJump(b, 20, 10);
+      if (p.vy > 0 && gx - cx > 30) floatHold = true;
+    } else if (!launched && p.vy > 40 && p.airJumpsLeft > 0) {
+      queueJump(b, 20, 10);
     }
-  } else {
-    // ---- pick a target: a nearby crate when unarmed, else the nearest foe
-    let tx = cx;
-    let tFeet = feet;
-    let foe: Player | null = null;
-    if (w.t >= b.retargetAt || (b.targetId && w.players.get(b.targetId)?.life !== 'alive')) {
-      b.retargetAt = w.t + 700 + w.rng() * 900;
-      // spread out: a foe other bots already chase looks farther away
-      const chasers = new Map<string, number>();
-      for (const o of w.players.values()) {
-        if (o !== p && o.brain?.targetId) chasers.set(o.brain.targetId, (chasers.get(o.brain.targetId) ?? 0) + 1);
+  } else if (move !== 0) {
+    // ---- the gate: stand at it and shoot
+    const gate = activeGate(w);
+    if (gate && gate.x - (p.x + W) < 520) shoot = true;
+
+    // ---- a box in the way: shoot it if it breaks, otherwise jump it
+    const box = boxAhead(w, p, 300);
+    if (box) {
+      const dist = box.x - (p.x + W);
+      const top = stackTop(w, box);
+      const climb = feet - top;
+      if (isBreakable(box)) {
+        shoot = true;
+        // low stacks are quicker to hop than to shoot
+        if (climb <= reach * 0.7 && dist < 70 && p.grounded) queueJump(b, 20, 16);
+      } else if (dist < 78 && p.grounded) {
+        queueJump(b, 22, 14);
       }
-      let best = Infinity;
-      b.targetId = null;
-      for (const q of w.players.values()) {
-        if (q === p || q.life !== 'alive') continue;
-        const d = Math.hypot(q.x - p.x, (q.y - p.y) * 1.5) + (chasers.get(q.id) ?? 0) * 260 + w.rng() * 120;
-        if (d < best) {
-          best = d;
-          b.targetId = q.id;
-        }
+      // pressed against something taller than this jump: use the air jump
+      if (!p.grounded && !launched && dist < 6 && feet > top && p.vy > -120 && p.airJumpsLeft > 0 && climb < reach * 1.9) {
+        queueJump(b, 20, 10);
       }
     }
-    foe = b.targetId ? w.players.get(b.targetId) ?? null : null;
-    if (foe && foe.life !== 'alive') foe = null;
 
-    const crate = p.weapon === 'pistol' ? nearestCrate(w, p, 380) : null;
-    if (crate) {
-      tx = crate.x + 14;
-      tFeet = crate.y + 28;
-    } else if (foe) {
-      tx = foe.x + W / 2;
-      tFeet = foe.y + H;
-    } else if (support) {
-      tx = support.x + support.w / 2;
-    }
-
-    const dx = tx - cx;
-    const dy = tFeet - feet; // negative: target is higher
-    move = Math.abs(dx) > 18 ? Math.sign(dx) : 0;
-
-    // edge safety: don't stroll off a ledge unless a platform catches us
-    if (p.grounded && move !== 0 && p.platIdx >= 0) {
+    // ---- the edge of the floor: jump unless something catches us just below
+    if (p.grounded && p.platIdx >= 0) {
       const pl = w.plats[p.platIdx];
-      const ahead = cx + move * 26;
-      if (ahead < pl.x || ahead > pl.x + pl.w) {
-        const catcher = platformUnder(w.plats, ahead, feet + 1, 320);
-        if (!catcher) {
-          // jump the gap if something solid lies that way, else hold the edge
-          const across = w.plats.some(
-            (o) =>
-              isSolid(o) &&
-              o !== pl &&
-              o.y > feet - 230 &&
-              (move > 0 ? o.x > pl.x + pl.w - 10 && o.x - (pl.x + pl.w) < 280 : o.x + o.w < pl.x + 10 && pl.x - (o.x + o.w) < 280)
-          );
-          const wantsAcross = Math.abs(dx) > 60;
-          if (across && wantsAcross) queueJump(b, 20, 24);
-          else move = 0;
-        }
+      const ahead = cx + 10 + Math.max(0, p.vx) * 0.04;
+      if (ahead > pl.x + pl.w) {
+        const catcher = platformUnder(w.plats, ahead + 20, feet - 1, 90);
+        if (!catcher) queueJump(b, 26, 12);
       }
     }
+    // falling short of the ledge ahead: air jump
+    if (!p.grounded && !launched && p.vy > 250 && p.airJumpsLeft > 0 && support && support.y - feet > 220) queueJump(b, 18, 10);
 
-    // vertical pursuit
-    if (dy < -70 && Math.abs(dx) < 200 && p.grounded) queueJump(b, 20, 20);
-    if (!p.grounded && !launched && p.vy > -80 && dy < -50 && p.airJumpsLeft > 0 && Math.abs(dx) < 220) {
-      queueJump(b, 16, 14);
-    }
-    if (dy > 70 && Math.abs(dx) < 150 && p.grounded && b.dropCd === 0) {
-      b.dropCd = 40;
-      act.drop(p);
-    }
-
-    // ---- combat
-    if (foe && !crate && !launched) {
-      const fdx = foe.x + W / 2 - cx;
-      const fdy = foe.y - p.y;
-      const adx = Math.abs(fdx);
-      const ady = Math.abs(fdy);
-      const facing = Math.sign(fdx) === p.face || adx < 4;
-      if (adx < 52 && ady < 40) {
-        if (!facing) move = Math.sign(fdx); // turn around first
-        else if (w.t >= b.calmUntil && w.rng() < 0.035 + 0.06 * b.skill) {
-          act.fire(p); // point-blank shot
-          // breathe between flurries so bots don't juggle anyone to death
-          if (w.rng() < 0.3) b.calmUntil = w.t + 350 + w.rng() * 700;
-        }
-      } else if (facing) {
-        const r = w.rng();
-        if (p.weapon === 'bombs' && adx < 430 && ady < 140 && r < 0.07) act.fire(p);
-        else if (p.weapon === 'boomstick' && adx < 240 && ady < 40 && r < 0.25) act.fire(p);
-        else if (p.weapon === 'pistol' && adx < 650 && ady < 22 && r < 0.035 * b.skill) act.fire(p);
-        else if (p.weapon === 'smg' && adx < 600 && ady < 120 && r < 0.5) act.fire(p);
-        else if (p.weapon === 'rockets' && adx < 700 && ady < 150 && r < 0.05) act.fire(p);
-        else if (p.weapon === 'railgun' && adx < 1100 && ady < 200 && r < 0.03 * b.skill) act.fire(p);
-      }
+    // ---- stuck (wedged under a ledge, facing a wall): hop and shoot
+    if (Math.abs(p.x - b.stuckX) > 6) {
+      b.stuckX = p.x;
+      b.stuckAt = w.t;
+    } else if (w.t - b.stuckAt > 900 && !(gate && gate.x - (p.x + W) < 60)) {
+      queueJump(b, 22, 20);
+      shoot = true;
     }
   }
+
+  if (shoot && !launched && p.face === 1 && w.rng() < 0.18 + 0.3 * b.skill) act.fire(p);
 
   // ---- jump button state machine (needs a released→pressed edge)
   let jump = false;
@@ -203,18 +189,4 @@ export function thinkBot(w: World, p: Player, act: BotActions): void {
     jump = true;
   }
   act.input(p, { left: move < 0, right: move > 0, jump });
-}
-
-function nearestCrate(w: World, p: Player, maxDist: number) {
-  let best = null;
-  let bestD = maxDist;
-  for (const c of w.crates) {
-    if (c.platIdx < 0) continue; // only grounded crates are worth chasing
-    const d = Math.hypot(c.x - p.x, (c.y - p.y) * 1.5);
-    if (d < bestD) {
-      bestD = d;
-      best = c;
-    }
-  }
-  return best;
 }

@@ -1,13 +1,13 @@
 import Phaser from 'phaser';
 import { PHYS } from '../../../shared/src/constants';
-import type { Fx, PlatformState, PlayerState } from '../../../shared/src/types';
+import type { Fx, PlayerState } from '../../../shared/src/types';
 import { store } from '../store';
-import { lerp, lerpPlayer } from '../interp';
+import { lerp, lerpPlayer, lerpScroll } from '../interp';
 import { fireHeld, mergeInput, requests, setTouchControlsVisible, touchInput } from '../controls';
 import { play, setMuted, isMuted } from '../audio';
 import { hexNum } from '../art/color';
 import { LevelView } from '../view/levelView';
-import { FighterView, TEXT_RES } from '../view/fighters';
+import { FighterView, TEXT_RES, ordinal, placeColor } from '../view/fighters';
 import { Particles } from '../view/particles';
 import { view as camView } from './HudScene';
 import { setPerfExtra } from '../perfMeter';
@@ -36,7 +36,7 @@ const ITEM_LABEL: Record<string, [string, string]> = {
   boomstick: ['BOOMSTICK!', '#ffb02e'],
   bombs: ['BOMBS!', '#ff7a5c'],
   shield: ['SHIELD!', '#7fd3ff'],
-  heal: ['-40%', '#7dffb0'],
+  life: ['+1 LIFE!', '#ff7fa0'],
   smg: ['SMG!', '#3df2ff'],
   rockets: ['ROCKETS!', '#ff6b4f'],
   railgun: ['☢ RAILGUN ☢', '#ff4fd8'],
@@ -45,6 +45,10 @@ const ITEM_LABEL: Record<string, [string, string]> = {
 export class ArenaScene extends Phaser.Scene {
   private level: LevelView | null = null;
   private levelIndex = -1;
+  /** Server round counter the world was built for (a restart on the same course still rebuilds). */
+  private round = -1;
+  /** Interpolated left edge of the course screen. */
+  private scrollX = 0;
   private fighters = new Map<string, FighterView>();
   private shots = new Map<number, Phaser.GameObjects.Image>();
   private crates = new Map<number, Phaser.GameObjects.Image>();
@@ -72,8 +76,10 @@ export class ArenaScene extends Phaser.Scene {
     this.crates = new Map();
     this.level = null;
     this.levelIndex = -1;
+    this.round = -1;
+    this.scrollX = 0;
     this.particles = new Particles(this);
-    // small screens: the arena camera zooms in and follows you; the HUD is its own overlay scene
+    // small screens: the camera zooms in and follows you; the HUD is its own overlay scene
     camView.small = this.scale.displaySize.height < 560;
     this.zoom = 1;
     this.camX = 640;
@@ -143,8 +149,8 @@ export class ArenaScene extends Phaser.Scene {
       this.scene.start('Lobby');
       return;
     }
-    if (snap.level !== this.levelIndex) {
-      // new arena: rebuild everything world-side
+    if (snap.level !== this.levelIndex || snap.round !== this.round) {
+      // new course or a fresh round on the same one: rebuild everything world-side
       for (const f of this.fighters.values()) f.destroy();
       this.fighters.clear();
       for (const s of this.shots.values()) s.destroy();
@@ -156,6 +162,8 @@ export class ArenaScene extends Phaser.Scene {
       this.level = new LevelView(this, snap.level);
       this.applyQuality();
       this.levelIndex = snap.level;
+      this.round = snap.round;
+      store.fxQueue.length = 0;
     }
 
     this.handleInput();
@@ -169,14 +177,13 @@ export class ArenaScene extends Phaser.Scene {
     const { a, b, alpha } = br;
     const prev = new Map(a.players.map((p) => [p.id, p]));
     const players: PlayerState[] = b.players.map((p) => lerpPlayer(prev.get(p.id), p, alpha));
-    const plats: PlatformState[] =
-      a.platforms.length === b.platforms.length
-        ? b.platforms.map((p, i) => ({ ...p, x: lerp(a.platforms[i].x, p.x, alpha), y: lerp(a.platforms[i].y, p.y, alpha) }))
-        : b.platforms;
     const simNow = lerp(a.simTimeMs, b.simTimeMs, alpha);
+    // the screen scroll is interpolated like everything else (a new round cuts instead of panning back)
+    this.scrollX = a.round === b.round ? lerpScroll(a.scrollX, b.scrollX, alpha) : b.scrollX;
 
-    this.level!.update(simNow, delta, plats.length ? plats : undefined);
-    this.renderFighters(players, simNow, delta, plats);
+    this.updateCamera(players, snap.phase, delta);
+    this.level!.update(simNow, delta, camView.x, { scrollX: this.scrollX, crumble: b.crumble, boxes: b.boxes, gate: b.gate });
+    this.renderFighters(players, simNow, delta);
     this.renderProjectiles(a, b, alpha, delta);
     this.renderCrates(b, simNow);
 
@@ -192,7 +199,6 @@ export class ArenaScene extends Phaser.Scene {
       syncGfxButton();
     }
     setPerfExtra(`${store.quality.tier} · ${this.particles.active} fx · ${camView.small ? 'zoom' : 'full'}`);
-    this.updateCamera(players, snap.phase, delta);
   }
 
   /**
@@ -205,19 +211,24 @@ export class ArenaScene extends Phaser.Scene {
     this.vignette?.setVisible(f.vignette);
   }
 
-  /** Zoom in and follow yourself on small screens; full view otherwise. */
+  /**
+   * The camera shows the server's scrolling screen. On small screens it zooms
+   * in and follows you inside that screen (looking a little further ahead).
+   */
   private updateCamera(players: PlayerState[], phase: string, delta: number): void {
     camView.small = this.scale.displaySize.height < 560;
+    const left = Math.round(this.scrollX);
     const me = players.find((p) => p.id === store.selfId);
     const follow = camView.small && !!me && me.life === 'alive' && (phase === 'playing' || phase === 'starting');
     const targetZoom = follow ? SMALL_SCREEN_ZOOM : 1;
     const s = Math.min(delta, 50) / 1000;
     this.zoom += (targetZoom - this.zoom) * (1 - Math.exp(-3.5 * s));
+    // camX is kept relative to the screen's left edge, so the scroll itself never lags
     let tx = 640;
     let ty = 360;
     if (follow && me) {
-      // look a little ahead of where you're moving
-      tx = me.x + PHYS.playerW / 2 + Phaser.Math.Clamp(me.vx * 0.18, -90, 90);
+      // you run right: keep more of the road ahead in view than behind
+      tx = me.x - left + PHYS.playerW / 2 + 110 + Phaser.Math.Clamp(me.vx * 0.18, -60, 90);
       ty = me.y + PHYS.playerH / 2 - 30;
     }
     const f = 1 - Math.exp(-6 * s);
@@ -228,13 +239,14 @@ export class ArenaScene extends Phaser.Scene {
     const z = this.zoom * (1 + this.zoomKick);
     cam.setZoom(z);
     this.vignette?.setScale(1 / z);
-    cam.centerOn(this.camX, this.camY);
-    // what the HUD needs to place off-screen markers (bounds-clamped like the camera)
+    cam.setBounds(left, 0, 1280, 720);
+    cam.centerOn(left + this.camX, this.camY);
+    // what the HUD and the level view need: the visible world rectangle (bounds-clamped like the camera)
     const w = 1280 / this.zoom;
     const h = 720 / this.zoom;
     camView.w = w;
     camView.h = h;
-    camView.x = Phaser.Math.Clamp(this.camX - w / 2, 0, 1280 - w);
+    camView.x = left + Phaser.Math.Clamp(this.camX - w / 2, 0, 1280 - w);
     camView.y = Phaser.Math.Clamp(this.camY - h / 2, 0, 720 - h);
   }
 
@@ -262,7 +274,9 @@ export class ArenaScene extends Phaser.Scene {
 
   // ------------------------------------------------------------ world
 
-  private renderFighters(players: PlayerState[], simNow: number, delta: number, plats: PlatformState[]): void {
+  private renderFighters(players: PlayerState[], simNow: number, delta: number): void {
+    const level = this.level!;
+    const groundBelow = (cx: number, feet: number) => level.groundBelow(cx, feet);
     const seen = new Set<string>();
     const topWins = Math.max(0, ...players.map((p) => p.wins));
     for (const p of players) {
@@ -274,7 +288,7 @@ export class ArenaScene extends Phaser.Scene {
         this.fighters.set(p.id, v);
       }
       v.leader = topWins > 0 && p.wins === topWins;
-      v.update(p, simNow, delta, plats);
+      v.update(p, simNow, delta, groundBelow);
       if (p.life === 'alive' && p.launched && Math.hypot(p.vx, p.vy) > 850 && Math.random() < 0.7) {
         this.particles.burst(p.x + PHYS.playerW / 2, p.y + PHYS.playerH / 2, {
           count: 1,
@@ -498,9 +512,9 @@ export class ArenaScene extends Phaser.Scene {
         this.popup(
           Phaser.Math.Clamp(f.x + f.dirX * 60, camView.x + 80, camView.x + camView.w - 80),
           Phaser.Math.Clamp(f.y + f.dirY * 60, camView.y + 80, camView.y + camView.h - 80),
-          'KO!',
+          f.dirX !== 0 ? 'CAUGHT!' : 'SPLAT!',
           '#ffd166',
-          46
+          40
         );
         play('ko', self ? 1.2 : 0.9);
         break;
@@ -527,6 +541,44 @@ export class ArenaScene extends Phaser.Scene {
         }
         play('crumble', 0.8);
         break;
+      case 'boxhit':
+        this.particles.burst(f.x, f.y, { count: 5, colors: [0xffe9b0, 0xc08a4a, 0xffffff], speed: [60, 220], angle: [110, 250], life: [120, 280], size: [1, 3], gravity: 500 });
+        this.glow(f.x, f.y, 0xffe9b0, 26, 90);
+        play('boxhit', 0.7);
+        break;
+      case 'boxbreak': {
+        const cx = f.x + f.w / 2;
+        const cy = f.y + f.h / 2;
+        this.particles.burst(cx, cy, { count: 16, colors: [0xc08a4a, 0x7a4a22, 0xe8d2a8, 0xa8733a], speed: [80, 360], angle: [-170, -10], life: [450, 900], size: [3, 7], gravity: 1100 });
+        this.particles.burst(cx, cy, { count: 6, colors: [0xe6e0f0, 0xcfc6dc], speed: [20, 80], life: [300, 600], size: [6, 10], texture: 'puff', alpha: 0.6, gravity: -40 });
+        this.ring(cx, cy, 0xffe9b0, 60, 260);
+        this.cameras.main.shake(70, 0.004);
+        play('boxbreak', 0.9);
+        break;
+      }
+      case 'gatebreak': {
+        const cx = f.x + f.w / 2;
+        for (let y = 60; y <= 560; y += 70) {
+          this.particles.burst(cx, y, { count: 14, colors: [0x5f6580, 0xffc23d, 0xc9cee0, 0x14111c], speed: [120, 560], angle: [-150, 60], life: [500, 1100], size: [4, 9], gravity: 1200 });
+          this.glow(cx, y, 0xffe9b0, 160, 300);
+        }
+        this.ring(cx, 380, 0xffe680, 320, 600);
+        this.cameras.main.shake(420, 0.02);
+        this.cameras.main.flash(120, 255, 240, 200);
+        this.zoomKick = Math.max(this.zoomKick, 0.05);
+        this.popup(Phaser.Math.Clamp(cx, camView.x + 200, camView.x + camView.w - 200), camView.y + camView.h * 0.36, 'GATE DOWN! GO!', '#7dffb0', 46);
+        play('gate');
+        break;
+      }
+      case 'finish': {
+        const colors = [0xffd166, 0xff5d5d, 0x4da3ff, 0x3ddc84, 0xffffff, 0xff6bcb];
+        this.particles.burst(f.x, f.y - 20, { count: f.place === 1 ? 60 : 30, colors, speed: [160, 620], angle: [-160, -20], life: [700, 1500], size: [3, 6], gravity: 700, drag: 1.2 });
+        this.ring(f.x, f.y, 0xffe680, 120, 500);
+        this.popup(f.x, f.y - 70, `${ordinal(f.place)}!`, placeColor(f.place), f.place === 1 ? 54 : 38);
+        if (f.place === 1) this.cameras.main.flash(140, 255, 230, 150);
+        play(f.place === 1 || self ? 'finish' : 'pickup', self ? 1.1 : 0.8);
+        break;
+      }
     }
   }
 }

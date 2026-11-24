@@ -1,16 +1,14 @@
 /** Entity shapes sent from the server to clients in every snapshot. */
-import type { PlatformKind } from './levels.js';
-
 export type Phase = 'lobby' | 'starting' | 'playing' | 'ended';
 
 export type WeaponKind = 'pistol' | 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun';
-export type ItemKind = 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun' | 'shield' | 'heal';
+export type ItemKind = 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun' | 'shield' | 'life';
 export type HitHow = 'stomp' | 'pistol' | 'boomstick' | 'bomb' | 'smg' | 'rocket' | 'railgun';
 
 /**
- * alive      — on stage, playing
- * respawning — lost a stock, waiting to drop back in
- * out        — no stocks left (spectating the rest of the round)
+ * alive      — on the course (still running, or past the finish line: see finishMs)
+ * respawning — lost a life, waiting to drop back in
+ * out        — no lives left (spectating the rest of the round)
  * waiting    — joined mid-round, plays next round
  */
 export type LifeState = 'alive' | 'respawning' | 'out' | 'waiting';
@@ -27,9 +25,11 @@ export type PlayerState = {
   face: 1 | -1;
   grounded: boolean;
   life: LifeState;
-  /** Damage percent: higher = flies farther when hit. */
-  dmg: number;
-  stocks: number;
+  lives: number;
+  /** Finishing position this round (0 = hasn't finished). */
+  place: number;
+  /** Run time in ms when they crossed the line (-1 = hasn't finished). */
+  finishMs: number;
   weapon: WeaponKind;
   ammo: number; // -1 = infinite
   invuln: boolean;
@@ -43,15 +43,6 @@ export type PlayerState = {
   /** Session totals (persist across rounds while connected). */
   wins: number;
   kos: number;
-};
-
-export type PlatformState = {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  kind: PlatformKind;
-  state: 'solid' | 'shaking' | 'gone';
 };
 
 export type ProjectileState = {
@@ -84,7 +75,12 @@ export type Fx =
   | { k: 'ko'; x: number; y: number; id: string; color: string; dirX: number; dirY: number }
   | { k: 'pickup'; x: number; y: number; id: string; item: ItemKind }
   | { k: 'crate'; x: number; y: number }
-  | { k: 'crumble'; x: number; y: number; w: number };
+  | { k: 'crumble'; x: number; y: number; w: number }
+  /** A shot stopped on a box or gate. */
+  | { k: 'boxhit'; x: number; y: number }
+  | { k: 'boxbreak'; x: number; y: number; w: number; h: number }
+  | { k: 'gatebreak'; x: number; w: number }
+  | { k: 'finish'; x: number; y: number; id: string; place: number };
 
 export type FeedEntry = {
   n: number; // unique sequence number
@@ -92,7 +88,8 @@ export type FeedEntry = {
   victimColor: string;
   killer: string | null;
   killerColor: string | null;
-  how: HitHow | 'fall' | 'left';
+  /** 'scroll' = caught by the left screen edge; 'finish' = crossed the line (killer is null). */
+  how: HitHow | 'fall' | 'scroll' | 'left' | 'finish';
 };
 
 export type ResultRow = {
@@ -101,7 +98,11 @@ export type ResultRow = {
   color: string;
   bot: boolean;
   place: number;
-  kos: number;
-  falls: number;
-  dmgDealt: number;
+  /** Run time in ms, or null if they never crossed the line. */
+  timeMs: number | null;
+  /** Percent of the course covered (100 for finishers). */
+  progress: number;
+  deaths: number;
+  /** Damage dealt to boxes and gates. */
+  smash: number;
 };

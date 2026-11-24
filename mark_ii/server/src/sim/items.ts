@@ -1,9 +1,9 @@
-/** Item crates: they drop from the sky, land on platforms, and grant power-ups on touch. */
-import { ARENA, COMBAT, ITEMS, PHYS } from '../../../shared/src/constants.js';
+/** Item crates: they drop from the sky just ahead of the pack, land on platforms, and grant power-ups on touch. */
+import { ARENA, COMBAT, ITEMS, PHYS, RUN } from '../../../shared/src/constants.js';
 import type { ItemKind } from '../../../shared/src/types.js';
 import { findLanding, isSolid } from './platforms.js';
 import { randRange } from './rng.js';
-import type { Crate, Player, World } from './model.js';
+import { activeGate, centerX, type Crate, type Player, type World } from './model.js';
 
 const ITEM_WEIGHTS: [ItemKind, number][] = [
   ['boomstick', 3],
@@ -12,7 +12,7 @@ const ITEM_WEIGHTS: [ItemKind, number][] = [
   ['rockets', 2],
   ['railgun', 1], // rare and devastating
   ['shield', 2],
-  ['heal', 2],
+  ['life', 2],
 ];
 
 export function rollItem(rng: () => number): ItemKind {
@@ -22,21 +22,49 @@ export function rollItem(rng: () => number): ItemKind {
     r -= n;
     if (r < 0) return item;
   }
-  return 'heal';
+  return 'life';
 }
 
 export function scheduleFirstCrate(w: World): void {
   w.nextCrateAt = w.t + randRange(w.rng, ITEMS.firstCrateMinMs, ITEMS.firstCrateMaxMs);
 }
 
+/**
+ * Drop a crate onto plain floor between the leader and just past the right
+ * edge of the screen (never behind a standing gate or past the finish).
+ */
 export function spawnCrate(w: World, item: ItemKind = rollItem(w.rng)): Crate | null {
-  const solid = w.plats.filter(isSolid);
-  if (solid.length === 0) return null;
-  const pl = solid[Math.floor(w.rng() * solid.length)];
-  const x = pl.x + w.rng() * Math.max(0, pl.w - ITEMS.size);
-  const crate: Crate = { id: w.seq.crate++, item, x, y: -ITEMS.size - 10, vy: 0, platIdx: -1, bornAt: w.t };
+  const S = ITEMS.size;
+  let leader = w.scrollX + ARENA.width * 0.3;
+  for (const p of w.players.values()) if (p.life === 'alive' && p.finishMs < 0) leader = Math.max(leader, centerX(p));
+  const lo = Math.max(leader + 120, w.scrollX + 60);
+  let hi = Math.min(w.scrollX + ARENA.width + 160, w.level.finishX - 80);
+  const gate = activeGate(w);
+  if (gate) hi = Math.min(hi, gate.x - 50);
+
+  // candidate stretches: [from, to] ranges of crate x on solid, plain, static platforms
+  const spans: [number, number][] = [];
+  for (const pl of w.plats) {
+    if (pl.box || !isSolid(pl) || pl.def.move || pl.kind === 'crumble' || pl.kind === 'bounce') continue;
+    const from = Math.max(pl.x, lo);
+    const to = Math.min(pl.x + pl.w - S, hi - S);
+    if (to >= from) spans.push([from, to]);
+  }
+  if (spans.length === 0) return null;
+  const total = spans.reduce((n, [a, b]) => n + (b - a) + 1, 0);
+  let r = w.rng() * total;
+  let x = spans[0][0];
+  for (const [a, b] of spans) {
+    const len = b - a + 1;
+    if (r < len) {
+      x = a + r;
+      break;
+    }
+    r -= len;
+  }
+  const crate: Crate = { id: w.seq.crate++, item, x, y: -S - 10, vy: 0, platIdx: -1, bornAt: w.t };
   w.crates.push(crate);
-  w.fx.push({ k: 'crate', x: x + ITEMS.size / 2, y: 0 });
+  w.fx.push({ k: 'crate', x: x + S / 2, y: 0 });
   return crate;
 }
 
@@ -60,24 +88,24 @@ export function grantItem(w: World, p: Player, item: ItemKind): void {
   } else if (item === 'shield') {
     p.shieldUntil = w.t + COMBAT.shieldMs;
   } else {
-    p.dmg = Math.max(0, p.dmg - COMBAT.heal);
+    p.lives = Math.min(RUN.lives, p.lives + 1);
   }
 }
 
 /** Spawn timer, falling, riding platforms, expiry and pickup. */
-export function updateCrates(w: World, dtMs: number, timeLeftMs: number): void {
+export function updateCrates(w: World, dtMs: number): void {
   const s = dtMs / 1000;
   const S = ITEMS.size;
 
   if (w.t >= w.nextCrateAt) {
     if (w.crates.length < ITEMS.maxCrates) spawnCrate(w);
-    const mul = timeLeftMs <= ITEMS.finaleMs ? ITEMS.finaleMul : 1;
-    w.nextCrateAt = w.t + randRange(w.rng, ITEMS.intervalMinMs, ITEMS.intervalMaxMs) * mul;
+    w.nextCrateAt = w.t + randRange(w.rng, ITEMS.intervalMinMs, ITEMS.intervalMaxMs);
   }
 
   const keep: Crate[] = [];
   for (const c of w.crates) {
     if (w.t - c.bornAt > ITEMS.lifeMs) continue;
+    if (c.x + S < w.scrollX) continue; // left behind by the screen
 
     const ride = c.platIdx >= 0 ? w.plats[c.platIdx] : null;
     if (ride && isSolid(ride)) {
@@ -96,12 +124,12 @@ export function updateCrates(w: World, dtMs: number, timeLeftMs: number): void {
           c.platIdx = idx;
         }
       }
-      if (c.y > ARENA.blastBottom) continue;
+      if (c.y > ARENA.height + RUN.fallBelow) continue;
     }
 
     let taker: Player | null = null;
     for (const p of w.players.values()) {
-      if (p.life !== 'alive') continue;
+      if (p.life !== 'alive' || p.finishMs >= 0) continue;
       if (p.x < c.x + S && p.x + PHYS.playerW > c.x && p.y < c.y + S && p.y + PHYS.playerH > c.y) {
         taker = p;
         break;

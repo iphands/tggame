@@ -67,7 +67,7 @@ export function initLobbyDom(onJoin: (name: string) => void): void {
       play('click');
       fn();
     });
-  // optimistic: show the new arena immediately; the next snapshot confirms it
+  // optimistic: show the new course immediately; the next snapshot confirms it
   const pick = (dir: 1 | -1) => {
     store.client?.send({ type: 'pickLevel', dir });
     if (store.snapshot) {
@@ -143,7 +143,7 @@ export function renderLobby(): void {
     const c = store.conn;
     const show = store.joined && c !== 'connected';
     pill.classList.toggle('hidden', !show);
-    pill.textContent = c === 'full' ? 'Arena is full (16 players)' : c === 'connecting' ? 'Connecting…' : 'Reconnecting…';
+    pill.textContent = c === 'full' ? 'Game is full (16 players)' : c === 'connecting' ? 'Connecting…' : 'Reconnecting…';
   }
 
   const snap = store.snapshot;
@@ -186,7 +186,7 @@ export function renderLobby(): void {
   if (status) {
     let msg: string;
     if (snap.autoStartMs !== null) msg = `Starting in ${Math.ceil(snap.autoStartMs / 1000)}…`;
-    else if (players.length < 2) msg = 'Waiting for challengers. Add a bot or press START to practice.';
+    else if (players.length < 2) msg = 'Waiting for runners. Add a bot or press START to practice.';
     else msg = 'Ready!';
     status.textContent = msg;
   }

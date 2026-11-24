@@ -1,7 +1,7 @@
 /** Player movement: gravity, running, jumping, landing, drop-through, body push. */
-import { PHYS } from '../../../shared/src/constants.js';
+import { ARENA, BOX, PHYS } from '../../../shared/src/constants.js';
 import { findLanding, isSolid } from './platforms.js';
-import type { Input, Player, World } from './model.js';
+import { activeGate, type Input, type Player, type World } from './model.js';
 
 /** Store new input; a released→pressed jump edge buffers a jump. */
 export function applyInput(p: Player, input: Input): void {
@@ -99,10 +99,15 @@ export function stepPlayer(w: World, p: Player, dtMs: number): void {
   const wasGrounded = p.grounded;
   const prevBottom = p.y + H;
   p.prevBottom = prevBottom;
+  const x0 = p.x;
+  const y0 = p.y;
   p.x += p.vx * s;
+  clampToView(w, p);
+  blockSides(w, p, x0, y0);
   p.y += p.vy * s;
+  bumpHead(w, p, y0);
 
-  // ---- one-way landing
+  // ---- landing (one-way platform tops and box tops)
   p.grounded = false;
   p.platIdx = -1;
   if (p.vy >= 0) {
@@ -147,7 +152,7 @@ export function tryDrop(w: World, p: Player): boolean {
     p.cuttable = false;
     return true;
   }
-  if (p.platIdx < 0) return false;
+  if (p.platIdx < 0 || w.plats[p.platIdx].box) return false; // boxes are solid all the way through
   const feet = p.y + PHYS.playerH;
   let hasBelow = false;
   for (let i = 0; i < w.plats.length; i++) {
@@ -185,6 +190,82 @@ export function separateBodies(alive: Player[]): void {
       b.x -= d * push;
       a.vx += d * PHYS.bodyPush * 0.1;
       b.vx -= d * PHYS.bodyPush * 0.1;
+    }
+  }
+}
+
+/** The standing gate and the right screen edge are walls. */
+function clampToView(w: World, p: Player): void {
+  const W = PHYS.playerW;
+  let maxX = w.scrollX + ARENA.width - W;
+  const gate = activeGate(w);
+  if (gate) maxX = Math.min(maxX, gate.x - W);
+  if (p.x > maxX) {
+    p.x = maxX;
+    if (p.vx > 0) p.vx = 0;
+  }
+}
+
+/** Does the body (top at `top`) overlap this box's side, i.e. sit too low to simply step onto it? */
+function besideBox(top: number, by: number, bh: number): boolean {
+  return top + PHYS.playerH > by + BOX.stepUp && top < by + bh;
+}
+
+/** Stop horizontal motion into box sides. `x0`/`y0` is the body before this tick's move. */
+function blockSides(w: World, p: Player, x0: number, y0: number): void {
+  const W = PHYS.playerW;
+  for (const i of w.solids) {
+    const pl = w.plats[i];
+    if (!isSolid(pl) || !besideBox(y0, pl.y, pl.h)) continue;
+    if (p.x + W <= pl.x || p.x >= pl.x + pl.w) continue;
+    const fromLeft = x0 + W <= pl.x + 1;
+    const fromRight = x0 >= pl.x + pl.w - 1;
+    if (fromLeft || (!fromRight && x0 + W / 2 < pl.x + pl.w / 2)) {
+      p.x = pl.x - W;
+      if (p.vx > 0) p.vx = 0;
+    } else {
+      p.x = pl.x + pl.w;
+      if (p.vx < 0) p.vx = 0;
+    }
+  }
+}
+
+/** Rising into the underside of a box stops the jump. `y0` is the body top before the move. */
+function bumpHead(w: World, p: Player, y0: number): void {
+  if (p.vy >= 0) return;
+  const W = PHYS.playerW;
+  for (const i of w.solids) {
+    const pl = w.plats[i];
+    if (!isSolid(pl)) continue;
+    if (p.x + W <= pl.x || p.x >= pl.x + pl.w) continue;
+    const under = pl.y + pl.h;
+    if (y0 >= under - 1 && p.y < under) {
+      p.y = under;
+      p.vy = 0;
+      p.cuttable = false;
+    }
+  }
+}
+
+/**
+ * Final pass after body pushes: nobody ends the tick inside a box, past the
+ * standing gate or off the right edge of the screen.
+ */
+export function resolveSolids(w: World, alive: Player[]): void {
+  const W = PHYS.playerW;
+  for (const p of alive) {
+    clampToView(w, p);
+    for (const i of w.solids) {
+      const pl = w.plats[i];
+      if (!isSolid(pl) || !besideBox(p.y, pl.y, pl.h)) continue;
+      if (p.x + W <= pl.x || p.x >= pl.x + pl.w) continue;
+      if (p.x + W / 2 < pl.x + pl.w / 2) {
+        p.x = pl.x - W;
+        if (p.vx > 0) p.vx = 0;
+      } else {
+        p.x = pl.x + pl.w;
+        if (p.vx < 0) p.vx = 0;
+      }
     }
   }
 }

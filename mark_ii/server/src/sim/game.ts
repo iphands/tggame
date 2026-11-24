@@ -1,23 +1,26 @@
 /**
- * The authoritative game: lobby → starting (countdown on the arena) →
- * playing (stocks, KOs, items) → ended (results) → lobby.
+ * The authoritative game: lobby → starting (countdown on the start pad) →
+ * playing (the screen scrolls, runners race to the finish) → ended (results)
+ * → lobby.
  *
  * Time only advances through step(); the sim runs in fixed 60 Hz ticks so
  * it's deterministic for a given seed and input sequence.
  */
-import { ARENA, BOT_NAMES, COLORS, COMBAT, ITEMS, MATCH, PHYS, TICK_MS } from '../../../shared/src/constants.js';
-import { LEVELS, levelAt } from '../../../shared/src/levels.js';
+import { ARENA, BOT_NAMES, COLORS, COMBAT, ITEMS, MATCH, PHYS, RUN, TICK_MS } from '../../../shared/src/constants.js';
+import { LEVELS, levelAt, safeSpots, type LevelDef } from '../../../shared/src/levels.js';
 import type { SnapshotBody } from '../../../shared/src/protocol.js';
-import type { HitHow, Phase, ResultRow } from '../../../shared/src/types.js';
+import type { FeedEntry, Phase, ResultRow } from '../../../shared/src/types.js';
 import { makeBrain, thinkBot } from './bots.js';
 import { fire, updateCharges, updateProjectiles, updateStomps } from './combat.js';
 import { scheduleFirstCrate, updateCrates } from './items.js';
-import { createPlayer, resetBody, resetForRound, type Input, type Player, type World } from './model.js';
-import { applyInput, separateBodies, stepPlayer, tryDrop } from './physics.js';
-import { buildPlats, updatePlats } from './platforms.js';
+import { activeGate, centerX, createPlayer, isRacing, resetBody, resetForRound, type Input, type Player, type World } from './model.js';
+import { applyInput, resolveSolids, separateBodies, stepPlayer, tryDrop } from './physics.js';
+import { buildPlats, solidIndices, updatePlats } from './platforms.js';
 import { makeRng } from './rng.js';
+import { armGate, updateScroll } from './scroll.js';
 
-export type GameOptions = { seed?: number };
+/** `levels` swaps the course list (tests use small static worlds). */
+export type GameOptions = { seed?: number; levels?: LevelDef[] };
 
 
 const FEED_MAX = 6;
@@ -31,6 +34,9 @@ export class Game {
   results: ResultRow[] | null = null;
   levelIndex = 0;
   nextLevelIndex = 0;
+  /** Bumps whenever a round is built. */
+  round = 0;
+  readonly levels: LevelDef[];
   private endHoldMs: number | null = null;
   private fallbackSince: number | null = null;
   private startCount = 0;
@@ -39,14 +45,25 @@ export class Game {
 
   constructor(opts: GameOptions = {}) {
     const rng = makeRng(opts.seed ?? Date.now());
-    this.nextLevelIndex = Math.floor(rng() * LEVELS.length);
+    this.levels = opts.levels ?? LEVELS;
+    this.nextLevelIndex = Math.floor(rng() * this.levels.length);
     this.levelIndex = this.nextLevelIndex;
-    const level = levelAt(this.levelIndex);
+    const level = levelAt(this.levelIndex, this.levels);
+    const plats = buildPlats(level, 0);
     this.w = {
       t: 0,
       phase: 'lobby',
       level,
-      plats: buildPlats(level, 0),
+      plats,
+      solids: solidIndices(plats),
+      spots: safeSpots(level),
+      scrollX: 0,
+      gateIdx: 0,
+      gateHp: 0,
+      gateMax: 0,
+      roundStartT: 0,
+      firstFinishAt: -1,
+      finishCount: 0,
       players: new Map(),
       projectiles: [],
       crates: [],
@@ -139,12 +156,8 @@ export class Game {
   leave(id: string): void {
     const p = this.w.players.get(id);
     if (!p) return;
-    const inPlay = this.w.phase === 'playing' && (p.life === 'alive' || p.life === 'respawning');
-    if (inPlay) {
-      this.pushFeed(p, null, 'left');
-      // everyone already eliminated moves up a place
-      for (const q of this.w.players.values()) if (q.place > 0) q.place--;
-    }
+    const inPlay = this.w.phase === 'playing' && isRacing(p);
+    if (inPlay) this.pushFeed(p, null, 'left');
     this.w.players.delete(id);
     if (this.humanCount() === 0) {
       // nobody left to play with: clear the bots and idle in the lobby
@@ -174,10 +187,10 @@ export class Game {
     if (p && (this.w.phase === 'playing' || this.w.phase === 'ended')) tryDrop(this.w, p);
   }
 
-  /** Change the arena for the next round (lobby / results screen only). */
+  /** Change the course for the next round (lobby / results screen only). */
   pickLevel(dir: 1 | -1): void {
     if (this.w.phase !== 'lobby' && this.w.phase !== 'ended') return;
-    const n = LEVELS.length;
+    const n = this.levels.length;
     this.nextLevelIndex = (((this.nextLevelIndex + dir) % n) + n) % n;
   }
 
@@ -243,12 +256,19 @@ export class Game {
     if (quick || waited) this.beginCountdown();
   }
 
-  /** lobby → starting: build the arena and place everyone on it. */
+  /** lobby → starting: build the course and line everyone up on the start pad. */
   private beginCountdown(): void {
     const w = this.w;
     this.levelIndex = this.nextLevelIndex;
-    w.level = levelAt(this.levelIndex);
+    this.round++;
+    w.level = levelAt(this.levelIndex, this.levels);
     w.plats = buildPlats(w.level, w.t);
+    w.solids = solidIndices(w.plats);
+    w.spots = safeSpots(w.level);
+    w.scrollX = 0;
+    w.gateIdx = 0;
+    w.firstFinishAt = -1;
+    w.finishCount = 0;
     w.projectiles = [];
     w.crates = [];
     w.feed = [];
@@ -263,9 +283,10 @@ export class Game {
     for (const p of w.players.values()) {
       resetForRound(p);
       this.placeAtSpawn(p, i++);
-      // bots take a moment to size everyone up after "FIGHT!"
-      if (p.brain) p.brain.calmUntil = w.t + MATCH.countdownMs + 700 + w.rng() * 1100;
+      // bots have human-ish reaction times off the line
+      if (p.brain) p.brain.calmUntil = w.t + MATCH.countdownMs + 80 + w.rng() * 420 * (1.5 - p.brain.skill);
     }
+    armGate(w);
   }
 
   private startPlaying(): void {
@@ -274,7 +295,9 @@ export class Game {
     this.countdownMs = null;
     this.timeLeftMs = MATCH.durationMs;
     this.startCount = [...w.players.values()].filter((p) => p.life === 'alive').length;
-    // a jump tapped during the countdown must not fire as an air jump at FIGHT
+    w.roundStartT = w.t;
+    armGate(w); // sized for everyone who made the start
+    // a jump tapped during the countdown must not fire as an air jump at GO
     for (const p of w.players.values()) p.jumpBufferMs = 0;
     scheduleFirstCrate(w);
   }
@@ -289,6 +312,7 @@ export class Game {
     w.projectiles = [];
     w.crates = [];
     w.nextCrateAt = Infinity;
+    w.scrollX = 0;
     for (const p of w.players.values()) resetForRound(p);
     // re-arm the auto-start grace period so rounds keep flowing
     this.fallbackSince = w.players.size >= MATCH.fallbackStartPlayers ? w.t : null;
@@ -317,15 +341,21 @@ export class Game {
       updateStomps(w, alive);
     }
     separateBodies(alive);
+    resolveSolids(w, alive);
     if (combat) {
       updateCharges(w);
       updateProjectiles(w, TICK_MS);
-      updateCrates(w, TICK_MS, this.timeLeftMs ?? 0);
+      updateCrates(w, TICK_MS);
+      updateScroll(w, TICK_MS);
     }
 
     for (const p of alive) {
-      if (!outOfBounds(p)) continue;
-      if (combat) this.knockOut(p);
+      if (p.finishMs < 0) p.bestX = Math.max(p.bestX, centerX(p));
+      if (combat && p.finishMs < 0 && centerX(p) >= w.level.finishX) this.finish(p);
+      const lost = lostHow(w, p);
+      if (!lost) continue;
+      if (p.finishMs >= 0) this.parkAtFinish(p); // done racing: just put them back on the pad
+      else if (combat) this.knockOut(p, lost);
       else {
         // victory lap: just park anyone who wanders off; standings are final
         p.life = 'respawning';
@@ -338,9 +368,9 @@ export class Game {
     for (const p of this.w.players.values()) {
       if (p.life !== 'respawning' || this.w.t < p.respawnAt) continue;
       resetBody(p);
-      p.dmg = 0;
       p.life = 'alive';
-      const s = this.pickRespawn(p);
+      p.face = 1;
+      const s = this.pickRespawn();
       p.x = s.x - PHYS.playerW / 2;
       p.y = s.y - PHYS.playerH;
       p.invulnUntil = this.w.t + MATCH.invulnMs;
@@ -348,27 +378,48 @@ export class Game {
     }
   }
 
-  /** The spawn point farthest from everyone else (a little random among the best two). */
-  private pickRespawn(p: Player): { x: number; y: number } {
-    const others = [...this.w.players.values()].filter((q) => q !== p && q.life === 'alive');
-    const scored = this.w.level.spawns
-      .map((s) => {
-        let d = 2000;
-        for (const q of others) d = Math.min(d, Math.hypot(q.x + PHYS.playerW / 2 - s.x, q.y + PHYS.playerH - s.y));
-        return { s, d };
-      })
-      .sort((a, b) => b.d - a.d);
-    const pick = scored.length > 1 && this.w.rng() < 0.35 ? scored[1] : scored[0];
-    return pick.s;
+  /**
+   * Where a runner drops back in: the first safe spot a little in from the
+   * left screen edge, never past the standing gate or the finish line.
+   */
+  private pickRespawn(): { x: number; y: number } {
+    const w = this.w;
+    const gate = activeGate(w);
+    const maxX = Math.min(gate ? gate.x - 70 : Infinity, w.level.finishX - 120, w.scrollX + ARENA.width - 60);
+    const wantX = w.scrollX + RUN.respawnAheadFrac * ARENA.width;
+    const ok = w.spots.filter((s) => s.x >= w.scrollX + 50 && s.x <= maxX);
+    const ahead = ok.find((s) => s.x >= wantX);
+    return ahead ?? ok[ok.length - 1] ?? w.spots.find((s) => s.x >= w.scrollX + 50) ?? w.level.spawns[0];
   }
 
-  private knockOut(p: Player): void {
+  /** A runner crossed the line. */
+  private finish(p: Player): void {
     const w = this.w;
-    const cx = Math.min(Math.max(p.x + PHYS.playerW / 2, 24), ARENA.width - 24);
+    p.finishMs = w.t - w.roundStartT;
+    p.place = ++w.finishCount;
+    p.chargeUntil = 0;
+    p.invulnUntil = 0;
+    if (w.firstFinishAt < 0) w.firstFinishAt = w.t;
+    w.fx.push({ k: 'finish', x: centerX(p), y: p.y + PHYS.playerH / 2, id: p.id, place: p.place });
+    this.pushFeed(p, null, 'finish');
+  }
+
+  /** Finished runners can't be lost: drop them back on the finish pad. */
+  private parkAtFinish(p: Player): void {
+    const w = this.w;
+    const x = w.level.finishX + 140 + (p.place % 6) * 40;
+    const pad = w.level.platforms.find((pl) => !pl.move && x >= pl.x && x <= pl.x + pl.w);
+    resetBody(p);
+    p.x = x - PHYS.playerW / 2;
+    p.y = (pad ? pad.y : ARENA.height * 0.75) - PHYS.playerH;
+  }
+
+  /** Lost a life: fell into a pit or got caught by the left edge of the screen. */
+  private knockOut(p: Player, how: 'fall' | 'scroll'): void {
+    const w = this.w;
+    const cx = Math.min(Math.max(centerX(p), w.scrollX + 24), w.scrollX + ARENA.width - 24);
     const cy = Math.min(Math.max(p.y + PHYS.playerH / 2, 24), ARENA.height - 24);
-    const dirX = p.x < 0 ? 1 : p.x > ARENA.width ? -1 : 0;
-    const dirY = p.y > ARENA.height ? -1 : p.y < 0 ? 1 : 0;
-    w.fx.push({ k: 'ko', x: cx, y: cy, id: p.id, color: p.color, dirX, dirY });
+    w.fx.push({ k: 'ko', x: cx, y: cy, id: p.id, color: p.color, dirX: how === 'scroll' ? 1 : 0, dirY: how === 'fall' ? -1 : 0 });
 
     const hit = p.lastHit;
     const killer = hit && w.t - hit.at <= COMBAT.koCreditMs ? w.players.get(hit.by) ?? null : null;
@@ -377,26 +428,24 @@ export class Game {
       killer.totalKos++;
       this.pushFeed(p, killer, hit!.how);
     } else {
-      this.pushFeed(p, null, 'fall');
+      this.pushFeed(p, null, how);
     }
 
-    p.stocks--;
-    p.falls++;
+    p.lives--;
+    p.deaths++;
     resetBody(p);
     p.x = -9999;
     p.y = -9999;
-    if (p.stocks > 0) {
+    if (p.lives > 0) {
       p.life = 'respawning';
       p.respawnAt = w.t + MATCH.respawnDelayMs;
     } else {
       p.life = 'out';
       p.outAt = w.t;
-      const remaining = [...w.players.values()].filter((q) => q.life === 'alive' || q.life === 'respawning').length;
-      p.place = remaining + 1;
     }
   }
 
-  private pushFeed(victim: Player, killer: Player | null, how: HitHow | 'fall' | 'left'): void {
+  private pushFeed(victim: Player, killer: Player | null, how: FeedEntry['how']): void {
     this.w.feed.unshift({
       n: this.w.seq.feed++,
       victim: victim.name,
@@ -408,37 +457,38 @@ export class Game {
     if (this.w.feed.length > FEED_MAX) this.w.feed.length = FEED_MAX;
   }
 
+  /** The round ends when nobody is still racing, the finish grace runs out, or the clock does. */
   private checkMatchEnd(): void {
-    if (this.w.phase !== 'playing') return;
-    const remaining = [...this.w.players.values()].filter((p) => p.life === 'alive' || p.life === 'respawning');
-    const lastStanding = this.startCount >= 2 && remaining.length <= 1;
-    if (lastStanding || remaining.length === 0) {
-      this.endMatch(remaining, false);
-    } else if ((this.timeLeftMs ?? 1) <= 0) {
-      this.endMatch(remaining, true);
-    }
+    const w = this.w;
+    if (w.phase !== 'playing') return;
+    const racing = [...w.players.values()].some(isRacing);
+    const graceOver = w.firstFinishAt >= 0 && w.t - w.firstFinishAt >= RUN.finishGraceMs;
+    if (!racing || graceOver) this.endMatch(false);
+    else if ((this.timeLeftMs ?? 1) <= 0) this.endMatch(true);
   }
 
-  private endMatch(remaining: Player[], timeout: boolean): void {
+  /** ms the stragglers have left once someone has finished, else null. */
+  graceMs(): number | null {
     const w = this.w;
-    // rank survivors: more stocks first, then less damage
-    const ranked = [...remaining].sort((a, b) => b.stocks - a.stocks || a.dmg - b.dmg);
-    ranked.forEach((p, i) => (p.place = i + 1));
-    if (ranked.length === 0) {
-      // the last fighters went out on the same tick: they share first place
-      for (const p of w.players.values()) if (p.outAt === w.t) p.place = 1;
-    }
-    let winner: Player | null = ranked[0] ?? null;
-    if (timeout && ranked.length > 1) {
-      const [a, b] = ranked;
-      if (a.stocks === b.stocks && Math.abs(a.dmg - b.dmg) < 1) winner = null; // dead heat → draw
-    }
+    if (w.phase !== 'playing' || w.firstFinishAt < 0) return null;
+    return Math.max(0, Math.round(RUN.finishGraceMs - (w.t - w.firstFinishAt)));
+  }
+
+  private endMatch(timeout: boolean): void {
+    const w = this.w;
+    // finishers keep their order; then runners still going by distance, then the eliminated by distance
+    const ran = [...w.players.values()].filter((p) => p.life !== 'waiting');
+    const rest = ran
+      .filter((p) => p.finishMs < 0)
+      .sort((a, b) => Number(a.life === 'out') - Number(b.life === 'out') || b.bestX - a.bestX);
+    rest.forEach((p, i) => (p.place = w.finishCount + i + 1));
+    const winner = ran.find((p) => p.finishMs >= 0 && p.place === 1) ?? null;
     if (winner) winner.wins++;
     for (const p of w.players.values()) if (p.bot) applyInput(p, { left: false, right: false, jump: false });
     this.winnerId = winner ? winner.id : null;
 
-    this.results = [...w.players.values()]
-      .filter((p) => p.place > 0)
+    const finishX = w.level.finishX;
+    this.results = ran
       .sort((a, b) => a.place - b.place)
       .map((p) => ({
         id: p.id,
@@ -446,16 +496,17 @@ export class Game {
         color: p.color,
         bot: p.bot,
         place: p.place,
-        kos: p.kos,
-        falls: p.falls,
-        dmgDealt: Math.round(p.dmgDealt),
+        timeMs: p.finishMs >= 0 ? Math.round(p.finishMs) : null,
+        progress: p.finishMs >= 0 ? 100 : Math.max(0, Math.min(99, Math.round((p.bestX / finishX) * 100))),
+        deaths: p.deaths,
+        smash: Math.round(p.smash),
       }));
 
     w.phase = 'ended';
     w.projectiles = [];
     this.endHoldMs = MATCH.endHoldMs;
     this.timeLeftMs = timeout ? 0 : this.timeLeftMs;
-    this.nextLevelIndex = (this.levelIndex + 1) % LEVELS.length;
+    this.nextLevelIndex = (this.levelIndex + 1) % this.levels.length;
   }
 
   private placeAtSpawn(p: Player, i: number): void {
@@ -475,7 +526,7 @@ export class Game {
     const idx = this.w.plats.findIndex((pl) => pl.y === s.y && x >= pl.x && x <= pl.x + pl.w);
     p.grounded = idx >= 0;
     p.platIdx = idx;
-    p.face = x < ARENA.width / 2 ? 1 : -1;
+    p.face = 1;
   }
 
   // ------------------------------------------------------------ snapshot
@@ -493,7 +544,10 @@ export class Game {
     const t = w.t;
     const fx = w.fx;
     w.fx = [];
-    const onArena = w.phase !== 'lobby';
+    const onCourse = w.phase !== 'lobby';
+    const gate = onCourse ? activeGate(w) : null;
+    const viewL = w.scrollX - 200;
+    const viewR = w.scrollX + ARENA.width + 200;
     return {
       tick: this.tick,
       simTimeMs: Math.round(t),
@@ -501,9 +555,12 @@ export class Game {
       countdownMs: this.w.phase === 'ended' ? Math.round(this.endHoldMs ?? 0) : this.countdownMs,
       autoStartMs: this.autoStartMs(),
       timeLeftMs: this.timeLeftMs === null ? null : Math.round(this.timeLeftMs),
+      graceMs: this.graceMs(),
       winnerId: this.winnerId,
       level: this.levelIndex,
       nextLevel: this.nextLevelIndex,
+      round: this.round,
+      scrollX: onCourse ? r1(w.scrollX) : 0,
       players: [...w.players.values()].map((p) => ({
         id: p.id,
         name: p.name,
@@ -516,8 +573,9 @@ export class Game {
         face: p.face,
         grounded: p.grounded,
         life: p.life,
-        dmg: r1(p.dmg),
-        stocks: p.stocks,
+        lives: p.lives,
+        place: p.finishMs >= 0 ? p.place : 0,
+        finishMs: p.finishMs >= 0 ? Math.round(p.finishMs) : -1,
         weapon: p.weapon,
         ammo: p.ammo,
         invuln: t < p.invulnUntil,
@@ -529,9 +587,9 @@ export class Game {
         wins: p.wins,
         kos: p.totalKos,
       })),
-      platforms: onArena
-        ? w.plats.map((pl) => ({ x: r1(pl.x), y: r1(pl.y), w: pl.w, h: pl.h, kind: pl.kind, state: pl.state }))
-        : [],
+      crumble: onCourse ? crumbleStates(w) : [],
+      boxes: onCourse ? boxStates(w, viewL, viewR) : [],
+      gate: gate ? { i: w.gateIdx, hp: r1(w.gateHp), max: w.gateMax } : null,
       projectiles: w.projectiles.map((pr) => ({
         id: pr.id,
         kind: pr.kind,
@@ -555,13 +613,32 @@ export class Game {
   }
 }
 
-function outOfBounds(p: Player): boolean {
-  return (
-    p.x + PHYS.playerW < ARENA.blastLeft ||
-    p.x > ARENA.blastRight ||
-    p.y > ARENA.blastBottom ||
-    p.y + PHYS.playerH < ARENA.blastTop
-  );
+/** How (if at all) a runner was lost this tick: into a pit, or off the left edge of the screen. */
+function lostHow(w: World, p: Player): 'fall' | 'scroll' | null {
+  if (p.y > ARENA.height + RUN.fallBelow) return 'fall';
+  if (p.x + PHYS.playerW < w.scrollX - RUN.killMargin) return 'scroll';
+  return null;
+}
+
+function crumbleStates(w: World): [number, 'shaking' | 'gone'][] {
+  const out: [number, 'shaking' | 'gone'][] = [];
+  for (let i = 0; i < w.plats.length; i++) {
+    const pl = w.plats[i];
+    if (!pl.box && pl.state !== 'solid') out.push([i, pl.state]);
+  }
+  return out;
+}
+
+/** Damaged or broken boxes near the screen. */
+function boxStates(w: World, viewL: number, viewR: number): [number, number][] {
+  const out: [number, number][] = [];
+  for (const i of w.solids) {
+    const pl = w.plats[i];
+    const box = pl.box!;
+    if (box.hp >= box.max || pl.x + pl.w < viewL || pl.x > viewR) continue;
+    out.push([box.idx, r1(Math.max(0, box.hp))]);
+  }
+  return out;
 }
 
 function r1(n: number): number {

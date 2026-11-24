@@ -1,20 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { SnapshotBuffer, INTERP_DELAY_MS, lerpPlayer } from '../client/src/interp.js';
+import { SnapshotBuffer, INTERP_DELAY_MS, lerpPlayer, lerpScroll } from '../client/src/interp.js';
 import type { SnapshotMessage } from '../shared/src/protocol.js';
 import type { PlayerState } from '../shared/src/types.js';
 
 function player(x: number, y = 100, life: PlayerState['life'] = 'alive'): PlayerState {
   return {
     id: 'p1', name: 'A', color: '#fff', bot: false, x, y, vx: 0, vy: 0, face: 1, grounded: true, life,
-    dmg: 0, stocks: 3, weapon: 'pistol', ammo: -1, invuln: false, shield: false, launched: false,
-    shotAt: -1, airJumps: 1, wins: 0, kos: 0,
+    lives: 3, place: 0, finishMs: -1, weapon: 'pistol', ammo: -1, invuln: false, shield: false, launched: false,
+    charging: false, shotAt: -1, airJumps: 1, wins: 0, kos: 0,
   };
 }
 
 function snap(t: number, x: number): SnapshotMessage {
   return {
     type: 'snapshot', selfId: 'p1', tick: t, simTimeMs: t, phase: 'playing', countdownMs: null, autoStartMs: null,
-    timeLeftMs: 1000, winnerId: null, level: 0, nextLevel: 0, players: [player(x)], platforms: [],
+    timeLeftMs: 1000, graceMs: null, winnerId: null, level: 0, nextLevel: 0, round: 1, scrollX: 0,
+    players: [player(x)], crumble: [], boxes: [], gate: null,
     projectiles: [], crates: [], fx: [], feed: [], results: null,
   };
 }
@@ -56,5 +57,12 @@ describe('snapshot interpolation', () => {
     expect(lerpPlayer(player(0), player(600), 0.5).x).toBe(600);
     expect(lerpPlayer(player(0, 100, 'respawning'), player(10), 0.5).x).toBe(10);
     expect(lerpPlayer(player(0), player(10), 0.5).x).toBe(5);
+  });
+
+  it('the screen scroll pans smoothly forward but cuts on a new round', () => {
+    expect(lerpScroll(100, 110, 0.5)).toBe(105);
+    expect(lerpScroll(100, 100, 0.5)).toBe(100);
+    expect(lerpScroll(5000, 0, 0.5)).toBe(0); // restart: never pan backwards across the course
+    expect(lerpScroll(0, 900, 0.5)).toBe(900); // a jump that big is a cut
   });
 });

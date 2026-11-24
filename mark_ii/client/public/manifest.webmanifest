@@ -1,7 +1,7 @@
 {
   "name": "Last Survivor Run",
   "short_name": "Runner",
-  "description": "Multiplayer platform brawler: knock everyone off the arena.",
+  "description": "Multiplayer co-op runner: dodge, jump and blast your way to the finish line.",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

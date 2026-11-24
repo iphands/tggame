@@ -1,6 +1,6 @@
 /** Server-side simulation state. Everything here is internal to the server. */
-import { MATCH, PHYS } from '../../../shared/src/constants.js';
-import type { LevelDef, PlatformDef, PlatformKind } from '../../../shared/src/levels.js';
+import { PHYS, RUN } from '../../../shared/src/constants.js';
+import type { GateDef, LevelDef, PlatformDef, PlatformKind } from '../../../shared/src/levels.js';
 import type {
   FeedEntry,
   Fx,
@@ -29,8 +29,11 @@ export type BotBrain = {
   /** Ticks before another jump decision. */
   jumpCd: number;
   dropCd: number;
-  /** Sim ms until the bot may fire at close range again (pacing). */
+  /** Sim ms until the bot gets going again (reaction time, hesitation). */
   calmUntil: number;
+  /** Stuck detector: where it stood at `stuckAt`. */
+  stuckX: number;
+  stuckAt: number;
 };
 
 export type Player = {
@@ -67,8 +70,7 @@ export type Player = {
   /** Speed clamp skipped until this sim ms (lunges, recoil, launches). */
   boostUntil: number;
 
-  dmg: number;
-  stocks: number;
+  lives: number;
   weapon: WeaponKind;
   ammo: number;
   shotAt: number;
@@ -76,12 +78,18 @@ export type Player = {
   chargeUntil: number;
   lastHit: { by: string; at: number; how: HitHow } | null;
 
-  // per-match stats
+  // per-round stats
   kos: number;
-  falls: number;
-  dmgDealt: number;
+  deaths: number;
+  /** Damage dealt to boxes and gates. */
+  smash: number;
+  /** Finishing position (0 = hasn't finished). */
   place: number;
-  /** Sim ms the player lost their last stock (-1 if not out). */
+  /** Run time when they crossed the line (-1 = hasn't finished). */
+  finishMs: number;
+  /** Farthest x reached this round. */
+  bestX: number;
+  /** Sim ms the player lost their last life (-1 if not out). */
   outAt: number;
 
   // session stats
@@ -101,6 +109,8 @@ export type Plat = {
   state: 'solid' | 'shaking' | 'gone';
   /** ms spent in the current crumble state. */
   timer: number;
+  /** Set for boxes: solid on every side. `idx` is the index into level.boxes; hp Infinity = unbreakable. */
+  box?: { idx: number; hp: number; max: number };
 };
 
 export type Projectile = {
@@ -115,6 +125,8 @@ export type Projectile = {
   bornAt: number;
   /** Knockback angle for bullets/pellets (degrees above horizontal). */
   angleDeg: number;
+  /** Players this shot has already shoved (it flies on through them). */
+  hit: string[];
 };
 
 export type Crate = {
@@ -133,7 +145,23 @@ export type World = {
   t: number;
   phase: Phase;
   level: LevelDef;
+  /** Level platforms first (same order as level.platforms), then one per level box. */
   plats: Plat[];
+  /** Indices into `plats` of the boxes. */
+  solids: number[];
+  /** Respawn spots (see safeSpots), sorted by x. */
+  spots: { x: number; y: number }[];
+  /** Left edge of the screen in course px. Only ever moves right during a round. */
+  scrollX: number;
+  /** Index of the next standing gate (level.gates.length = all down). */
+  gateIdx: number;
+  gateHp: number;
+  gateMax: number;
+  /** Sim ms the current round went live. */
+  roundStartT: number;
+  /** Sim ms the first runner crossed the line (-1 = nobody yet). */
+  firstFinishAt: number;
+  finishCount: number;
   players: Map<string, Player>;
   projectiles: Projectile[];
   crates: Crate[];
@@ -173,17 +201,18 @@ export function createPlayer(id: string, name: string, color: string, bot: boole
     shieldUntil: 0,
     launchUntil: 0,
     boostUntil: 0,
-    dmg: 0,
-    stocks: MATCH.stocks,
+    lives: RUN.lives,
     weapon: 'pistol',
     ammo: -1,
     shotAt: -1e9,
     chargeUntil: 0,
     lastHit: null,
     kos: 0,
-    falls: 0,
-    dmgDealt: 0,
+    deaths: 0,
+    smash: 0,
     place: 0,
+    finishMs: -1,
+    bestX: 0,
     outAt: -1,
     wins: 0,
     totalKos: 0,
@@ -222,12 +251,13 @@ export function resetForRound(p: Player): void {
   p.face = 1;
   p.life = 'alive';
   p.respawnAt = 0;
-  p.dmg = 0;
-  p.stocks = MATCH.stocks;
+  p.lives = RUN.lives;
   p.kos = 0;
-  p.falls = 0;
-  p.dmgDealt = 0;
+  p.deaths = 0;
+  p.smash = 0;
   p.place = 0;
+  p.finishMs = -1;
+  p.bestX = 0;
   p.outAt = -1;
   p.input = { ...NO_INPUT };
   p.prevJump = false;
@@ -235,6 +265,16 @@ export function resetForRound(p: Player): void {
 
 export function isActive(p: Player): boolean {
   return p.life === 'alive';
+}
+
+/** Still racing: on the course or about to drop back in, and not across the line yet. */
+export function isRacing(p: Player): boolean {
+  return (p.life === 'alive' || p.life === 'respawning') && p.finishMs < 0;
+}
+
+/** The gate currently standing in the way, if any. */
+export function activeGate(w: World): GateDef | null {
+  return w.level.gates[w.gateIdx] ?? null;
 }
 
 export function centerX(p: Player): number {

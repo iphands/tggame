@@ -3,8 +3,9 @@ import { PHYS } from '../../../shared/src/constants.js';
 import { platformPos, type LevelDef } from '../../../shared/src/levels.js';
 import type { Plat, World } from './model.js';
 
+/** Level platforms (same order as level.platforms) followed by one solid plat per box. */
 export function buildPlats(level: LevelDef, t: number): Plat[] {
-  return level.platforms.map((def) => {
+  const plats: Plat[] = level.platforms.map((def) => {
     const pos = platformPos(def, t);
     return {
       def,
@@ -19,12 +20,37 @@ export function buildPlats(level: LevelDef, t: number): Plat[] {
       timer: 0,
     };
   });
+  level.boxes.forEach((b, idx) => {
+    const hp = b.hp ?? Infinity;
+    plats.push({
+      def: { x: b.x, y: b.y, w: b.w, h: b.h },
+      kind: 'normal',
+      x: b.x,
+      y: b.y,
+      prevX: b.x,
+      prevY: b.y,
+      w: b.w,
+      h: b.h,
+      state: 'solid',
+      timer: 0,
+      box: { idx, hp, max: hp },
+    });
+  });
+  return plats;
+}
+
+/** Indices of the box plats. */
+export function solidIndices(plats: Plat[]): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < plats.length; i++) if (plats[i].box) out.push(i);
+  return out;
 }
 
 /** Advance platform motion and crumble timers by one tick. */
 export function updatePlats(w: World, dtMs: number): void {
   for (let i = 0; i < w.plats.length; i++) {
     const pl = w.plats[i];
+    if (pl.box) continue; // boxes never move
     pl.prevX = pl.x;
     pl.prevY = pl.y;
     const pos = platformPos(pl.def, w.t);

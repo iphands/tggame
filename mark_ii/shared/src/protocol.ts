@@ -4,7 +4,6 @@ import type {
   FeedEntry,
   Fx,
   Phase,
-  PlatformState,
   PlayerState,
   ProjectileState,
   ResultRow,
@@ -31,14 +30,24 @@ export type SnapshotBody = {
   /** Lobby: ms until the round auto-starts (null = not armed). */
   autoStartMs: number | null;
   timeLeftMs: number | null;
+  /** Once someone has finished: ms the rest have left to cross the line. */
+  graceMs: number | null;
   winnerId: string | null;
-  /** Arena being played (index into LEVELS). */
+  /** Course being played (index into LEVELS). */
   level: number;
-  /** Arena for the next round. */
+  /** Course for the next round. */
   nextLevel: number;
+  /** Bumps every time a round is (re)built, so clients rebuild the course even on a same-course restart. */
+  round: number;
+  /** Left edge of the screen in course px. */
+  scrollX: number;
   players: PlayerState[];
-  /** Empty in the lobby. */
-  platforms: PlatformState[];
+  /** Crumbling platforms that aren't solid right now: [platform index, state]. Positions come from the level data. */
+  crumble: [number, 'shaking' | 'gone'][];
+  /** Boxes near the screen that are damaged or broken: [index into level.boxes, hp left]. */
+  boxes: [number, number][];
+  /** The next standing gate (index into level.gates), or null when all are down. */
+  gate: { i: number; hp: number; max: number } | null;
   projectiles: ProjectileState[];
   crates: CrateState[];
   /** One-shot effects since the previous snapshot. */

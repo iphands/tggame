@@ -1,15 +1,15 @@
 /** Attacks, projectiles, knockback. */
-import { ARENA, COMBAT, PHYS } from '../../../shared/src/constants.js';
+import { ARENA, BOX, COMBAT, PHYS, RUN } from '../../../shared/src/constants.js';
 import type { HitHow } from '../../../shared/src/types.js';
-import { findLanding } from './platforms.js';
-import type { Player, Projectile, World } from './model.js';
+import { damageBox, damageGate, isBreakable, type ShotKind } from './boxes.js';
+import { findLanding, isSolid } from './platforms.js';
+import { activeGate, type Player, type Projectile, type World } from './model.js';
 
 const W = PHYS.playerW;
 const H = PHYS.playerH;
 const RAD = Math.PI / 180;
 
 export type HitSpec = {
-  dmg: number;
   base: number;
   growth: number;
   /** Launch direction (need not be normalized). +y is down. */
@@ -18,26 +18,24 @@ export type HitSpec = {
   how: HitHow;
 };
 
-/** Knockback speed for a victim who is now at `dmg` percent. */
+/** Knockback speed for a victim at `dmg` percent. Runners always count as RUN.shovePct: hits shove, they never build up. */
 export function knockSpeed(base: number, growth: number, dmg: number): number {
   return Math.min(COMBAT.maxKnock, base + growth * dmg);
 }
 
 /**
- * Deal damage + knockback. Returns false if the hit was blocked
- * (spawn invulnerability or shield) or the victim isn't on stage.
+ * Shove a runner. Returns false if the hit was blocked (spawn
+ * invulnerability or shield) or the victim isn't running (off the course, or
+ * already across the line).
  */
 export function applyHit(w: World, attacker: Player | null, victim: Player, spec: HitSpec): boolean {
-  if (victim.life !== 'alive') return false;
+  if (victim.life !== 'alive' || victim.finishMs >= 0) return false;
   if (w.t < victim.invulnUntil || w.t < victim.shieldUntil) {
     w.fx.push({ k: 'block', x: victim.x + W / 2, y: victim.y + H / 2, id: victim.id });
     return false;
   }
-  victim.dmg = Math.min(999, victim.dmg + spec.dmg);
   const credited = attacker !== null && attacker !== victim;
-  if (credited) attacker.dmgDealt += spec.dmg;
-
-  const speed = knockSpeed(spec.base, spec.growth, victim.dmg);
+  const speed = knockSpeed(spec.base, spec.growth, RUN.shovePct);
   const len = Math.hypot(spec.dirX, spec.dirY) || 1;
   let vx = (spec.dirX / len) * speed;
   let vy = (spec.dirY / len) * speed;
@@ -94,6 +92,7 @@ export function updateStomps(w: World, alive: Player[]): void {
   for (const a of alive) {
     for (const b of alive) {
       if (a === b || a.life !== 'alive' || b.life !== 'alive') continue;
+      if (a.finishMs >= 0 || b.finishMs >= 0) continue;
       if (!isStomp(a, b)) continue;
       a.vy = -S.bounceVel;
       a.cuttable = true;
@@ -103,7 +102,7 @@ export function updateStomps(w: World, alive: Player[]): void {
       const side = diff > 0 ? 1 : diff < 0 ? -1 : a.face;
       // airborne victims get spiked down; grounded ones popped up and away
       const dir = b.grounded ? angled(side, S.angleDeg) : { dirX: side * 0.35, dirY: 1 };
-      applyHit(w, a, b, { dmg: S.dmg, base: S.base, growth: S.growth, ...dir, how: 'stomp' });
+      applyHit(w, a, b, { base: S.base, growth: S.growth, ...dir, how: 'stomp' });
       break; // one stomp per stomper per tick
     }
   }
@@ -138,7 +137,7 @@ function spendAmmo(p: Player): void {
 }
 
 export function fire(w: World, p: Player): boolean {
-  if (p.life !== 'alive') return false;
+  if (p.life !== 'alive' || p.finishMs >= 0) return false;
   if (p.chargeUntil > 0) return false; // railgun already charging
   if (w.t - p.shotAt < weaponCooldown(p)) return false;
   p.shotAt = w.t;
@@ -193,25 +192,36 @@ export function fire(w: World, p: Player): boolean {
 
 /**
  * Aim assist: angle (radians, +down, relative to facing) toward the nearest
- * on-stage foe in front of the shooter within the assist cone, else 0.
+ * breakable box in front of the shooter within the assist cone; with no box
+ * to shoot, toward the nearest runner. 0 if nothing qualifies (or the gate is
+ * the nearest thing: it fills the whole screen height).
  */
 export function assistAngle(w: World, p: Player, mx: number, my: number): number {
   const A = COMBAT.aimAssist;
   let best = 0;
   let bestDist = Infinity;
-  for (const q of w.players.values()) {
-    if (q === p || q.life !== 'alive') continue;
-    const dx = (q.x + W / 2 - mx) * p.face;
-    const dy = q.y + H / 2 - my;
-    if (dx <= 0) continue; // behind
+  const consider = (dx: number, dy: number) => {
+    if (dx <= 0) return; // behind
     const dist = Math.hypot(dx, dy);
-    if (dist > A.range) continue;
+    if (dist > A.range || dist >= bestDist) return;
     const a = Math.atan2(dy, dx);
-    if (Math.abs(a) > A.maxDeg * RAD) continue;
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = a;
-    }
+    if (Math.abs(a) > A.maxDeg * RAD) return;
+    bestDist = dist;
+    best = a;
+  };
+  for (const i of w.solids) {
+    const pl = w.plats[i];
+    if (!isBreakable(pl)) continue;
+    const nearX = p.face > 0 ? pl.x : pl.x + pl.w;
+    const ty = Math.min(Math.max(my, pl.y + 8), pl.y + pl.h - 8);
+    consider((nearX - mx) * p.face, ty - my);
+  }
+  const gate = activeGate(w);
+  if (gate && p.face > 0) consider(gate.x - mx, 0);
+  if (bestDist < Infinity) return best;
+  for (const q of w.players.values()) {
+    if (q === p || q.life !== 'alive' || q.finishMs >= 0) continue;
+    consider((q.x + W / 2 - mx) * p.face, q.y + H / 2 - my);
   }
   return best;
 }
@@ -230,7 +240,36 @@ export function updateCharges(w: World): void {
   }
 }
 
-/** Screen-wide piercing beam: hits every foe along the line. */
+/** Where along (x1,y1)→(x2,y2), as 0..1, a shot is stopped by a box or the gate. Infinity = flies free. */
+function firstBlock(w: World, x1: number, y1: number, x2: number, y2: number, onlyPermanent = false): { t: number; box: number; gate: boolean } {
+  let t = Infinity;
+  let box = -1;
+  let gateHit = false;
+  for (const i of w.solids) {
+    const pl = w.plats[i];
+    if (!isSolid(pl)) continue;
+    if (onlyPermanent && isBreakable(pl)) continue;
+    const e = segmentEntry(x1, y1, x2, y2, pl.x, pl.y, pl.x + pl.w, pl.y + pl.h);
+    if (e >= 0 && e < t) {
+      t = e;
+      box = i;
+    }
+  }
+  const gate = activeGate(w);
+  if (gate) {
+    let e = -1;
+    if (x1 >= gate.x) e = 0; // muzzle pressed into the gate
+    else if (x2 >= gate.x) e = (gate.x - x1) / (x2 - x1);
+    if (e >= 0 && e < t) {
+      t = e;
+      box = -1;
+      gateHit = true;
+    }
+  }
+  return { t, box, gate: gateHit };
+}
+
+/** Piercing beam: shoves every runner and smashes every box along the line, until a permanent block or the gate stops it. */
 function fireRail(w: World, p: Player): void {
   const R = COMBAT.railgun;
   const mx = p.x + W / 2 + p.face * (W / 2 + 6);
@@ -238,14 +277,26 @@ function fireRail(w: World, p: Player): void {
   const aim = assistAngle(w, p, mx, my);
   const dx = p.face * Math.cos(aim);
   const dy = Math.sin(aim);
-  const x2 = mx + dx * R.range;
-  const y2 = my + dy * R.range;
+  let x2 = mx + dx * R.range;
+  let y2 = my + dy * R.range;
+  const stop = firstBlock(w, mx, my, x2, y2, true);
+  if (stop.t <= 1) {
+    x2 = mx + (x2 - mx) * stop.t;
+    y2 = my + (y2 - my) * stop.t;
+  }
   const pad = R.width / 2;
   for (const q of w.players.values()) {
     if (q === p || q.life !== 'alive') continue;
     if (!segmentHitsBox(mx, my, x2, y2, q.x - pad, q.y - pad, q.x + W + pad, q.y + H + pad)) continue;
-    applyHit(w, p, q, { dmg: R.dmg, base: R.base, growth: R.growth, ...angled(p.face, R.angleDeg), how: 'railgun' });
+    applyHit(w, p, q, { base: R.base, growth: R.growth, ...angled(p.face, R.angleDeg), how: 'railgun' });
   }
+  for (const i of w.solids) {
+    const pl = w.plats[i];
+    if (!isBreakable(pl)) continue;
+    if (segmentHitsBox(mx, my, x2, y2, pl.x - pad, pl.y - pad, pl.x + pl.w + pad, pl.y + pl.h + pad)) damageBox(w, i, BOX.dmg.railgun, p);
+  }
+  if (stop.gate) damageGate(w, BOX.dmg.railgun, p);
+  if (stop.t <= 1) w.fx.push({ k: 'boxhit', x: x2, y: y2 });
   // big kick back on the shooter
   p.vx -= p.face * R.recoil;
   p.boostUntil = Math.max(p.boostUntil, w.t + 200);
@@ -255,6 +306,11 @@ function fireRail(w: World, p: Player): void {
 
 /** Liang–Barsky segment vs axis-aligned box. */
 export function segmentHitsBox(x1: number, y1: number, x2: number, y2: number, bx0: number, by0: number, bx1: number, by1: number): boolean {
+  return segmentEntry(x1, y1, x2, y2, bx0, by0, bx1, by1) >= 0;
+}
+
+/** Where (0..1) the segment enters the box, or -1 if it misses. 0 when it starts inside. */
+export function segmentEntry(x1: number, y1: number, x2: number, y2: number, bx0: number, by0: number, bx1: number, by1: number): number {
   let t0 = 0;
   let t1 = 1;
   const dx = x2 - x1;
@@ -271,7 +327,8 @@ export function segmentHitsBox(x1: number, y1: number, x2: number, y2: number, b
     }
     return true;
   };
-  return clip(-dx, x1 - bx0) && clip(dx, bx1 - x1) && clip(-dy, y1 - by0) && clip(dy, by1 - y1) && t0 <= t1;
+  const hit = clip(-dx, x1 - bx0) && clip(dx, bx1 - x1) && clip(-dy, y1 - by0) && clip(dy, by1 - y1) && t0 <= t1;
+  return hit ? t0 : -1;
 }
 
 function spawn(
@@ -285,7 +342,12 @@ function spawn(
   ttlMs: number,
   angleDeg: number
 ): void {
-  w.projectiles.push({ id: w.seq.projectile++, kind, owner: owner.id, x, y, vx, vy, ttlMs, bornAt: w.t, angleDeg });
+  w.projectiles.push({ id: w.seq.projectile++, kind, owner: owner.id, x, y, vx, vy, ttlMs, bornAt: w.t, angleDeg, hit: [] });
+}
+
+/** Has the shot left the neighbourhood of the screen? */
+function offScreen(w: World, x: number, y: number, margin: number): boolean {
+  return x < w.scrollX - margin || x > w.scrollX + ARENA.width + margin || y > ARENA.height + RUN.fallBelow || y < -500;
 }
 
 export function updateProjectiles(w: World, dtMs: number): void {
@@ -305,34 +367,29 @@ export function updateProjectiles(w: World, dtMs: number): void {
     const y0 = pr.y;
     const x1 = pr.x + pr.vx * s;
     const y1 = pr.y + pr.vy * s;
-    if (pr.ttlMs <= 0 || x1 < -100 || x1 > ARENA.width + 100) continue;
+    if (pr.ttlMs <= 0 || offScreen(w, x1, y1, 100)) continue;
 
-    // swept AABB vs bodies; the first body along the path is hit
-    const minX = Math.min(x0, x1) - 3;
-    const maxX = Math.max(x0, x1) + 3;
-    const minY = Math.min(y0, y1) - 3;
-    const maxY = Math.max(y0, y1) + 3;
-    let hit: Player | null = null;
-    let best = Infinity;
+    // bullets fly through runners (shoving each once) and stop on the first box or the gate
+    const stop = firstBlock(w, x0, y0, x1, y1);
+    const owner = w.players.get(pr.owner) ?? null;
+    const spec = pr.kind === 'bullet' ? COMBAT.pistol : pr.kind === 'dart' ? COMBAT.smg : COMBAT.boomstick;
     for (const q of w.players.values()) {
-      if (q.life !== 'alive' || q.id === pr.owner) continue;
-      if (maxX < q.x || minX > q.x + W || maxY < q.y || minY > q.y + H) continue;
-      const d = Math.abs(q.x + W / 2 - x0);
-      if (d < best) {
-        best = d;
-        hit = q;
-      }
-    }
-    if (hit) {
-      const owner = w.players.get(pr.owner) ?? null;
-      const spec = pr.kind === 'bullet' ? COMBAT.pistol : pr.kind === 'dart' ? COMBAT.smg : COMBAT.boomstick;
-      applyHit(w, owner, hit, {
-        dmg: spec.dmg,
+      if (q.life !== 'alive' || q.id === pr.owner || pr.hit.includes(q.id)) continue;
+      const e = segmentEntry(x0, y0, x1, y1, q.x - 3, q.y - 3, q.x + W + 3, q.y + H + 3);
+      if (e < 0 || e > stop.t) continue;
+      pr.hit.push(q.id);
+      applyHit(w, owner, q, {
         base: spec.base,
         growth: spec.growth,
         ...angled(Math.sign(pr.vx) || 1, pr.angleDeg),
         how: pr.kind === 'bullet' ? 'pistol' : pr.kind === 'dart' ? 'smg' : 'boomstick',
       });
+    }
+    if (stop.t <= 1) {
+      const dmg = BOX.dmg[pr.kind as ShotKind];
+      w.fx.push({ k: 'boxhit', x: x0 + (x1 - x0) * stop.t, y: y0 + (y1 - y0) * stop.t });
+      if (stop.gate) damageGate(w, dmg, owner);
+      else damageBox(w, stop.box, dmg, owner);
       continue; // consumed
     }
     pr.x = x1;
@@ -349,7 +406,7 @@ function updateBomb(w: World, b: Projectile, s: number): boolean {
   const prevBottom = b.y + 6;
   b.x += b.vx * s;
   b.y += b.vy * s;
-  if (b.y > ARENA.blastBottom) return false;
+  if (offScreen(w, b.x, b.y, 300)) return false;
 
   if (b.vy >= 0) {
     const idx = findLanding(w.plats, b.x - 6, 12, prevBottom, b.y + 6);
@@ -369,24 +426,34 @@ function updateBomb(w: World, b: Projectile, s: number): boolean {
     }
   }
 
-  let direct = false;
+  // touching the gate or the side of a breakable box sets it off; permanent blocks bounce it back
+  let contact = false;
   if (w.t - b.bornAt >= B.armMs) {
-    for (const q of w.players.values()) {
-      if (q.life !== 'alive' || q.id === b.owner) continue;
-      if (b.x + 6 > q.x && b.x - 6 < q.x + W && b.y + 6 > q.y && b.y - 6 < q.y + H) {
-        direct = true;
-        break;
+    const gate = activeGate(w);
+    if (gate && b.x + 6 >= gate.x) {
+      b.x = gate.x - 6;
+      contact = true;
+    }
+    for (const i of w.solids) {
+      const pl = w.plats[i];
+      if (!isSolid(pl)) continue;
+      if (b.x + 6 <= pl.x || b.x - 6 >= pl.x + pl.w || b.y + 6 <= pl.y || b.y - 6 >= pl.y + pl.h) continue;
+      if (isBreakable(pl)) {
+        contact = true;
+      } else {
+        b.x = b.vx >= 0 ? pl.x - 6 : pl.x + pl.w + 6;
+        b.vx = -b.vx * 0.5;
       }
     }
   }
-  if (direct || b.ttlMs <= 0) {
+  if (contact || b.ttlMs <= 0) {
     explode(w, b);
     return false;
   }
   return true;
 }
 
-/** Rockets fly straight, speed up, and explode on the first body they touch. Returns true if alive. */
+/** Rockets fly straight through runners, speed up, and explode on the first box or gate (or when they burn out). Returns true if alive. */
 function updateRocket(w: World, r: Projectile, s: number): boolean {
   const R = COMBAT.rocket;
   const speed = Math.hypot(r.vx, r.vy) || 1;
@@ -397,25 +464,26 @@ function updateRocket(w: World, r: Projectile, s: number): boolean {
   const y0 = r.y;
   r.x += r.vx * s;
   r.y += r.vy * s;
-  if (r.x < ARENA.blastLeft || r.x > ARENA.blastRight || r.y > ARENA.blastBottom || r.y < ARENA.blastTop) return false;
-  let hit = false;
-  for (const q of w.players.values()) {
-    if (q.life !== 'alive' || q.id === r.owner) continue;
-    if (segmentHitsBox(x0, y0, r.x, r.y, q.x - 4, q.y - 4, q.x + W + 4, q.y + H + 4)) {
-      hit = true;
-      break;
-    }
+  const stop = firstBlock(w, x0, y0, r.x, r.y);
+  if (stop.t <= 1) {
+    r.x = x0 + (r.x - x0) * stop.t;
+    r.y = y0 + (r.y - y0) * stop.t;
+    explode(w, r);
+    return false;
   }
-  if (hit || r.ttlMs <= 0) {
+  if (offScreen(w, r.x, r.y, 200)) return false;
+  if (r.ttlMs <= 0) {
     explode(w, r);
     return false;
   }
   return true;
 }
 
+/** Blast: shoves every runner in the radius (the thrower too) and smashes boxes and the gate. */
 export function explode(w: World, b: Projectile): void {
   const B = b.kind === 'rocket' ? COMBAT.rocket : COMBAT.bomb;
   const how = b.kind === 'rocket' ? 'rocket' : 'bomb';
+  const boxDmg = b.kind === 'rocket' ? BOX.dmg.rocket : BOX.dmg.bomb;
   w.fx.push({ k: 'boom', x: b.x, y: b.y, r: B.radius });
   const owner = w.players.get(b.owner) ?? null;
   const minA = B.minAngleDeg * RAD;
@@ -430,7 +498,6 @@ export function explode(w: World, b: Projectile): void {
     const a = Math.max(Math.atan2(-dy, Math.abs(dx)), minA);
     const self = owner !== null && q === owner;
     applyHit(w, owner, q, {
-      dmg: B.dmg * f * (self ? 0.5 : 1),
       base: B.base * f * (self ? 0.7 : 1),
       growth: B.growth * f,
       dirX: side * Math.cos(a),
@@ -438,4 +505,13 @@ export function explode(w: World, b: Projectile): void {
       how,
     });
   }
+  for (const i of w.solids) {
+    const pl = w.plats[i];
+    if (!isBreakable(pl)) continue;
+    const nx = Math.min(Math.max(b.x, pl.x), pl.x + pl.w);
+    const ny = Math.min(Math.max(b.y, pl.y), pl.y + pl.h);
+    if (Math.hypot(nx - b.x, ny - b.y) <= B.radius) damageBox(w, i, boxDmg, owner);
+  }
+  const gate = activeGate(w);
+  if (gate && b.x + B.radius >= gate.x) damageGate(w, boxDmg, owner);
 }

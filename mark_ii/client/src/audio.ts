@@ -113,7 +113,11 @@ export type Sfx =
   | 'tick'
   | 'go'
   | 'win'
-  | 'click';
+  | 'click'
+  | 'boxhit'
+  | 'boxbreak'
+  | 'gate'
+  | 'finish';
 
 /** Play a sound. `vol` scales loudness (e.g. by distance or power). */
 export function play(name: Sfx, vol = 1): void {
@@ -211,6 +215,23 @@ export function play(name: Sfx, vol = 1): void {
       break;
     case 'click':
       tone('square', 1200, 900, 0.04, 0.06 * v);
+      break;
+    case 'boxhit':
+      noise(0.05, 0.22 * v, 'bandpass', 900, 500, 0, 2);
+      tone('square', 320, 180, 0.05, 0.08 * v);
+      break;
+    case 'boxbreak':
+      noise(0.28, 0.5 * v, 'lowpass', 2400, 260);
+      tone('triangle', 240, 70, 0.2, 0.2 * v);
+      noise(0.12, 0.25 * v, 'highpass', 2600, 1800, 0.05);
+      break;
+    case 'gate':
+      noise(0.9, 0.8 * v, 'lowpass', 1500, 50);
+      tone('sawtooth', 130, 34, 0.7, 0.4 * v);
+      [392, 523, 659].forEach((f, i) => tone('square', f, f, 0.16, 0.08 * v, 0.25 + i * 0.08));
+      break;
+    case 'finish':
+      [659, 784, 1047, 1319].forEach((f, i) => tone('square', f, f, i === 3 ? 0.4 : 0.1, 0.1 * v, i * 0.09));
       break;
   }
 }

@@ -9,9 +9,9 @@ import { renderLobby, showScreen } from '../lobby';
 import { setPerfExtra } from '../perfMeter';
 
 /**
- * Title / lobby: the next arena plays live behind the DOM lobby panels, with
- * a few idle fighters bouncing around for life. Before joining, it cycles
- * through every arena as an attract loop.
+ * Title / lobby: the start of the next course sits live behind the DOM lobby
+ * panels, with a few idle runners bouncing on the start pad. Before joining,
+ * it cycles through every course as an attract loop.
  */
 export class LobbyScene extends Phaser.Scene {
   private view: LevelView | null = null;
@@ -46,7 +46,7 @@ export class LobbyScene extends Phaser.Scene {
     this.view = new LevelView(this, index);
     for (const d of this.dancers) d.s.destroy();
     this.dancers = [];
-    // a few fighters hopping on the main platform for flavor
+    // a few runners hopping on the start pad for flavor
     const level = LEVELS[index];
     const main = level.platforms[0];
     for (let i = 0; i < 4; i++) {
@@ -70,7 +70,7 @@ export class LobbyScene extends Phaser.Scene {
       this.attractAt = time + 6000;
       this.showLevel((this.shownIndex + 1) % LEVELS.length);
     }
-    this.view?.update(time, delta);
+    this.view?.update(time, delta, 0);
     setPerfExtra(`${store.quality.tier} · lobby`);
 
     const s = delta / 1000;

@@ -1,12 +1,12 @@
-/** In-arena HUD: timer, KO feed, player cards, banners, results, off-screen markers. */
+/** In-run HUD: race clock, course progress bar, feed, player cards, banners, results, off-screen markers. */
 import Phaser from 'phaser';
-import { ARENA, MATCH, PHYS } from '../../../shared/src/constants';
+import { ARENA, MATCH, PHYS, RUN } from '../../../shared/src/constants';
 import { levelAt } from '../../../shared/src/levels';
 import type { SnapshotMessage } from '../../../shared/src/protocol';
 import type { FeedEntry, PlayerState } from '../../../shared/src/types';
 import { fighterTexture } from '../art/sprites';
 import { hexNum } from '../art/color';
-import { dmgColor, setTextIf, TEXT_RES } from './fighters';
+import { ordinal, placeColor, setTextIf, TEXT_RES } from './fighters';
 
 const FONT = '"Trebuchet MS", "Segoe UI", system-ui, sans-serif';
 const HOW_LABEL: Record<FeedEntry['how'], string> = {
@@ -18,22 +18,35 @@ const HOW_LABEL: Record<FeedEntry['how'], string> = {
   rocket: 'rocketed',
   railgun: 'RAILED',
   fall: 'fell',
+  scroll: 'got left behind',
   left: 'left',
+  finish: 'crossed the line!',
 };
+
+/** m:ss.cc */
+export function raceTime(ms: number): string {
+  const cs = Math.floor(ms / 10);
+  const m = Math.floor(cs / 6000);
+  const s = Math.floor(cs / 100) % 60;
+  return `${m}:${String(s).padStart(2, '0')}.${String(cs % 100).padStart(2, '0')}`;
+}
+
+/** Width of the course progress track (HUD units, before the UI scale). */
+const TRACK_W = 520;
 
 type Card = {
   id: string;
   root: Phaser.GameObjects.Container;
   bg: Phaser.GameObjects.Image;
-  dmg: Phaser.GameObjects.Text;
+  /** The big readout: course progress, finishing place, or OUT. */
+  big: Phaser.GameObjects.Text;
   name: Phaser.GameObjects.Text;
   pips: Phaser.GameObjects.Image[];
-  /** Last applied pip state (stocks), to avoid redundant updates. */
-  pipStocks: number;
+  /** Last applied pip state (lives), to avoid redundant updates. */
+  pipLives: number;
   icon: Phaser.GameObjects.Image;
   ammo: Phaser.GameObjects.Text;
   portrait: Phaser.GameObjects.Sprite;
-  lastDmg: number;
   bump: number;
 };
 
@@ -60,6 +73,11 @@ export class Hud {
   private cards = new Map<string, Card>();
   private cardsKey = '';
   private arrows = new Map<string, Phaser.GameObjects.Container>();
+  /** Course progress bar: track + one marker per runner. */
+  private track: Phaser.GameObjects.Container;
+  private trackLevel = -1;
+  private trackDots = new Map<string, Phaser.GameObjects.Image>();
+  private trackWall!: Phaser.GameObjects.Rectangle;
   private results: Phaser.GameObjects.Container | null = null;
   private lastCount = -1;
   private centerPunch = 0;
@@ -76,6 +94,7 @@ export class Hud {
     this.center = text(scene, 640, 290, '', 84 * k, '#ffd166', 10).setOrigin(0.5).setDepth(110);
     this.sub = text(scene, 640, 290 + 70 * k, '', 26 * k, '#ffffff', 6).setOrigin(0.5).setDepth(110);
     this.status = text(scene, 640, 56, '', 18 * k, '#cfe9ff', 5).setOrigin(0.5, 0).setDepth(100);
+    this.track = scene.add.container(640 - (TRACK_W * k) / 2, 60).setDepth(100).setScale(k).setVisible(false);
     this.placeTop(14);
   }
 
@@ -83,11 +102,12 @@ export class Hud {
   private placeTop(y: number): void {
     this.topY = y;
     this.timer.setY(y - 2);
-    this.status.setY(y + 40 * this.k);
+    this.track.setY(y + 46 * this.k);
+    this.status.setY(y + 62 * this.k);
     this.feedKey = ''; // re-layout the feed
   }
 
-  /** Big transient center text ("KO!", "FIGHT!"). */
+  /** Big transient center text ("GO!"). */
   flash(msg: string, color = '#ffd166', sub = ''): void {
     this.center.setText(msg).setColor(color).setVisible(true).setScale(1.6).setAlpha(1);
     this.sub.setText(sub).setVisible(!!sub);
@@ -105,10 +125,15 @@ export class Hud {
     let tick: number | null = null;
     // ---- timer
     if (snap.phase === 'playing' && snap.timeLeftMs !== null) {
-      const total = Math.ceil(snap.timeLeftMs / 1000);
-      setTextIf(this.timer, `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`);
-      const hurry = total <= 15;
-      setTextIf(this.timer, this.timer.text, hurry ? '#ff7b7b' : '#ffe9b0');
+      // the race clock counts up; once someone has finished (or time is nearly up) it's a red countdown
+      const left = snap.graceMs !== null ? Math.min(snap.graceMs, snap.timeLeftMs) : snap.timeLeftMs;
+      const hurry = snap.graceMs !== null || left <= 15_000;
+      if (hurry) {
+        setTextIf(this.timer, `⏱ ${Math.ceil(left / 1000)}`, '#ff7b7b');
+      } else {
+        const total = Math.floor((MATCH.durationMs - snap.timeLeftMs) / 1000);
+        setTextIf(this.timer, `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`, '#ffe9b0');
+      }
       this.timer.setScale(hurry ? 1 + 0.08 * Math.abs(Math.sin(snap.simTimeMs / 160)) : 1);
       this.timer.setVisible(true);
     } else this.timer.setVisible(false);
@@ -129,7 +154,7 @@ export class Hud {
     } else if (this.lastCount > 0 && snap.phase === 'playing') {
       this.lastCount = -1;
       tick = 0;
-      this.flash('FIGHT!', '#7dffb0');
+      this.flash('GO!', '#7dffb0');
     } else if (this.centerPunch > 0) {
       this.centerPunch -= dtMs;
       this.center.setScale(Math.max(1, this.center.scale - dtMs / 160));
@@ -147,7 +172,8 @@ export class Hud {
     const me = players.find((p) => p.id === selfId);
     let status = '';
     if (me && snap.phase === 'playing') {
-      if (me.life === 'respawning') status = 'Respawning…';
+      if (me.place > 0) status = `🏁 You finished ${ordinal(me.place)}!`;
+      else if (me.life === 'respawning') status = 'Respawning…';
       else if (me.life === 'out') status = 'Out of lives: spectating';
       else if (me.life === 'waiting') status = 'You joined mid-round: you play next round';
     }
@@ -155,13 +181,14 @@ export class Hud {
     this.status.setVisible(!!status);
 
     this.updateFeed(snap.feed);
-    this.updateCards(players, selfId, snap.simTimeMs);
+    this.updateCards(players, selfId, snap);
+    this.updateTrack(snap, players, selfId);
     this.updateArrows(players, snap.phase, view);
     this.updateResults(snap, selfId);
     return tick;
   }
 
-  // ------------------------------------------------------------ KO feed
+  // ------------------------------------------------------------ feed
 
   private updateFeed(feed: FeedEntry[]): void {
     const key = feed.map((f) => f.n).join(',');
@@ -188,7 +215,9 @@ export class Hud {
 
   // ------------------------------------------------------------ player cards
 
-  private updateCards(players: PlayerState[], selfId: string | null, simNow: number): void {
+  private updateCards(players: PlayerState[], selfId: string | null, snap: SnapshotMessage): void {
+    const simNow = snap.simTimeMs;
+    const finishX = levelAt(snap.level).finishX;
     const active = players.filter((p) => p.life !== 'waiting');
     const key = active.map((p) => p.id).join(',');
     if (key !== this.cardsKey) {
@@ -201,22 +230,75 @@ export class Hud {
       const c = this.cards.get(p.id);
       if (!c) continue;
       const out = p.life === 'out';
-      if (Math.floor(p.dmg) !== c.lastDmg) {
-        if (p.dmg > c.lastDmg) c.bump = 1;
-        c.lastDmg = Math.floor(p.dmg);
-      }
       c.bump *= 0.88;
-      setTextIf(c.dmg, out ? 'OUT' : `${Math.floor(p.dmg)}%`, out ? '#8a7fa0' : dmgColor(p.dmg));
-      c.dmg.setScale(1 + c.bump * 0.35).setX(c.dmg.getData('x') + (c.bump > 0.2 ? (Math.random() - 0.5) * 4 * c.bump : 0));
-      if (c.pipStocks !== p.stocks) {
-        c.pipStocks = p.stocks;
-        c.pips.forEach((pip, i) => pip.setTint(i < p.stocks ? hexNum(p.color) : 0x2a2140));
+      if (p.place > 0) setTextIf(c.big, ordinal(p.place), placeColor(p.place));
+      else if (out) setTextIf(c.big, 'OUT', '#8a7fa0');
+      else if (p.life === 'alive') {
+        const pct = Phaser.Math.Clamp(Math.floor(((p.x + PHYS.playerW / 2) / finishX) * 100), 0, 99);
+        setTextIf(c.big, `${pct}%`, '#ffffff');
+      }
+      c.big.setScale(1 + c.bump * 0.35).setX(c.big.getData('x') + (c.bump > 0.2 ? (Math.random() - 0.5) * 4 * c.bump : 0));
+      if (c.pipLives !== p.lives) {
+        if (p.lives < c.pipLives) c.bump = 1; // lost a life: shake the card
+        c.pipLives = p.lives;
+        c.pips.forEach((pip, i) => pip.setTint(i < p.lives ? hexNum(p.color) : 0x2a2140));
       }
       c.root.setAlpha(out ? 0.5 : p.life === 'respawning' ? 0.75 : 1);
       const iconKey = `icon-${p.weapon}`;
       if (c.icon.texture.key !== iconKey) c.icon.setTexture(iconKey);
       setTextIf(c.ammo, p.ammo > 0 ? `×${p.ammo}` : '');
       c.portrait.setFrame(p.life === 'alive' && p.launched ? 8 : Math.floor(simNow / 450) % 2);
+    }
+  }
+
+  // ------------------------------------------------------------ course progress bar
+
+  /** A strip under the clock: where everyone is on the course, the gates, and the creeping left edge. */
+  private updateTrack(snap: SnapshotMessage, players: PlayerState[], selfId: string | null): void {
+    const show = snap.phase === 'playing' || snap.phase === 'starting';
+    this.track.setVisible(show);
+    if (!show) return;
+    const s = this.scene;
+    const level = levelAt(snap.level);
+    const at = (x: number) => Phaser.Math.Clamp(x / level.finishX, 0, 1) * TRACK_W;
+    if (this.trackLevel !== snap.level) {
+      this.trackLevel = snap.level;
+      this.track.removeAll(true);
+      this.trackDots.clear();
+      const g = s.add.graphics();
+      g.fillStyle(0x0d0820, 0.8).fillRoundedRect(-8, -7, TRACK_W + 30, 14, 7);
+      g.fillStyle(0x3a2c58, 1).fillRect(0, -2, TRACK_W, 4);
+      // gates: little yellow posts
+      g.fillStyle(0xffc23d, 1);
+      for (const gate of level.gates) g.fillRect(at(gate.x) - 2, -6, 4, 12);
+      // finish flag: a checkered square at the end
+      for (let i = 0; i < 2; i++) {
+        for (let j = 0; j < 2; j++) g.fillStyle((i + j) % 2 ? 0x14111c : 0xf5f6fa, 1).fillRect(TRACK_W + 4 + i * 6, -6 + j * 6, 6, 6);
+      }
+      this.trackWall = s.add.rectangle(0, 0, 0, 4, 0xff5d5d, 0.9).setOrigin(0, 0.5);
+      this.track.add([g, this.trackWall]);
+    }
+    // the part of the course the screen has already swallowed
+    this.trackWall.setDisplaySize(Math.max(0.001, at(snap.scrollX)), 4);
+    const seen = new Set<string>();
+    for (const p of players) {
+      if (p.life !== 'alive') continue;
+      seen.add(p.id);
+      let dot = this.trackDots.get(p.id);
+      if (!dot) {
+        dot = s.add.image(0, 0, 'pip').setTint(hexNum(p.color));
+        this.trackDots.set(p.id, dot);
+        this.track.add(dot);
+      }
+      const self = p.id === selfId;
+      dot.setPosition(p.place > 0 ? TRACK_W : at(p.x + PHYS.playerW / 2), self ? 0 : (hash(p.id) % 5) - 2).setScale(self ? 2 : 1.3);
+      if (self) this.track.bringToTop(dot);
+    }
+    for (const [id, dot] of this.trackDots) {
+      if (!seen.has(id)) {
+        dot.destroy();
+        this.trackDots.delete(id);
+      }
     }
   }
 
@@ -266,20 +348,20 @@ export class Hud {
     const name = text(s, compact ? 40 : 48, compact ? 3 : 5, p.name + (p.bot ? ' 🤖' : ''), nameSize, self ? '#ffe680' : '#e9e2ff', 3);
     if (name.width > w - (compact ? 44 : 52)) name.setScale((w - (compact ? 44 : 52)) / name.width);
     root.add(name);
-    const dmgX = compact ? 40 : 48;
-    const dmg = text(s, dmgX, compact ? 17 : 22, '0%', compact ? 20 : 26, '#ffffff', 5).setData('x', dmgX);
-    root.add(dmg);
+    const bigX = compact ? 40 : 48;
+    const big = text(s, bigX, compact ? 17 : 22, '0%', compact ? 20 : 26, '#ffffff', 5).setData('x', bigX);
+    root.add(big);
     const pips: Phaser.GameObjects.Image[] = [];
-    for (let i = 0; i < MATCH.stocks; i++) {
-      // compact pips so 5 lives fit beside the damage number (tinted images, not shapes)
-      const pip = s.add.image(w - 10 - i * 8.5, h - 8, 'pip').setTint(hexNum(p.color));
+    for (let i = 0; i < RUN.lives; i++) {
+      // lives: tinted images, not shapes (cheap to draw)
+      const pip = s.add.image(w - 10 - i * 9.5, h - 8, 'pip').setTint(hexNum(p.color));
       pips.push(pip);
       root.add(pip);
     }
     const icon = s.add.image(w - 18, compact ? 16 : 20, 'icon-pistol').setScale(compact ? 0.55 : 0.7);
     const ammo = text(s, w - 34, compact ? 9 : 12, '', 11, '#ffe9b0', 3).setOrigin(1, 0);
     root.add([icon, ammo]);
-    return { id: p.id, root, bg, dmg, name, pips, pipStocks: MATCH.stocks, icon, ammo, portrait, lastDmg: 0, bump: 0 };
+    return { id: p.id, root, bg, big, name, pips, pipLives: RUN.lives, icon, ammo, portrait, bump: 0 };
   }
 
   // ------------------------------------------------------------ off-screen markers
@@ -362,17 +444,16 @@ export class Hud {
     s.tweens.add({ targets: root, alpha: 1, duration: 350, delay: 900 });
 
     const winner = snap.players.find((p) => p.id === snap.winnerId);
-    const title = winner ? `${winner.name} WINS!` : snap.timeLeftMs === 0 ? "TIME'S UP: DRAW!" : 'DRAW!';
+    const title = winner ? `${winner.name} WINS!` : snap.timeLeftMs === 0 ? "TIME'S UP!" : 'NOBODY MADE IT!';
     const t = text(s, 640, py + 18, title, 38, winner ? winner.color : '#ffd166', 7).setOrigin(0.5, 0);
     if (t.width > 560) t.setScale(560 / t.width);
     root.add(t);
     if (winner) root.add(s.add.sprite(640 - t.displayWidth / 2 - 30, py + 40, fighterTexture(s, winner.color), 0).setScale(1.2));
     const hdrY = py + 74;
     root.add(text(s, 400, hdrY, 'PLAYER', 13, '#9d8cc4', 3));
-    root.add(text(s, 700, hdrY, 'KOs', 13, '#9d8cc4', 3).setOrigin(0.5, 0));
-    root.add(text(s, 780, hdrY, 'FALLS', 13, '#9d8cc4', 3).setOrigin(0.5, 0));
-    root.add(text(s, 870, hdrY, 'DAMAGE', 13, '#9d8cc4', 3).setOrigin(0.5, 0));
-    const medals = ['#ffd166', '#d7e1f0', '#e0a96d'];
+    root.add(text(s, 700, hdrY, 'TIME', 13, '#9d8cc4', 3).setOrigin(0.5, 0));
+    root.add(text(s, 800, hdrY, 'LIVES LOST', 13, '#9d8cc4', 3).setOrigin(0.5, 0));
+    root.add(text(s, 890, hdrY, 'SMASHED', 13, '#9d8cc4', 3).setOrigin(0.5, 0));
     rows.forEach((r, i) => {
       const y = hdrY + 24 + i * 34;
       if (r.id === selfId) {
@@ -380,23 +461,32 @@ export class Hud {
         hl.fillStyle(0xffe066, 0.12).fillRoundedRect(356, y - 4, 568, 30, 6);
         root.add(hl);
       }
-      root.add(text(s, 372, y, `${r.place}`, 18, medals[r.place - 1] ?? '#c9b8e6', 4).setOrigin(0.5, 0));
+      root.add(text(s, 372, y, `${r.place}`, 18, r.timeMs !== null ? placeColor(r.place) : '#8a7fa0', 4).setOrigin(0.5, 0));
       root.add(s.add.circle(400, y + 11, 7, hexNum(r.color)).setStrokeStyle(2, 0x120a20));
       const nm = text(s, 414, y, r.name + (r.bot ? ' 🤖' : ''), 18, '#ffffff', 4);
-      if (nm.width > 250) nm.setScale(250 / nm.width);
+      if (nm.width > 230) nm.setScale(230 / nm.width);
       root.add(nm);
-      root.add(text(s, 700, y, String(r.kos), 18, '#7dffb0', 4).setOrigin(0.5, 0));
-      root.add(text(s, 780, y, String(r.falls), 18, '#ff9d99', 4).setOrigin(0.5, 0));
-      root.add(text(s, 870, y, `${r.dmgDealt}%`, 18, '#ffe9b0', 4).setOrigin(0.5, 0));
+      // finishers show their time; everyone else how far they got
+      const time = r.timeMs !== null ? raceTime(r.timeMs) : `${r.progress}%`;
+      root.add(text(s, 700, y, time, 18, r.timeMs !== null ? '#7dffb0' : '#8a7fa0', 4).setOrigin(0.5, 0));
+      root.add(text(s, 800, y, String(r.deaths), 18, '#ff9d99', 4).setOrigin(0.5, 0));
+      root.add(text(s, 890, y, String(r.smash), 18, '#ffe9b0', 4).setOrigin(0.5, 0));
     });
     root.add(text(s, 640, py + ph - 30, '', 15, '#c9b8e6', 3).setOrigin(0.5, 0).setName('foot'));
   }
 
   destroy(): void {
-    for (const o of [this.timer, this.center, this.sub, this.status]) o.destroy();
+    for (const o of [this.timer, this.center, this.sub, this.status, this.track]) o.destroy();
     for (const r of this.feedRows) r.destroy();
     for (const c of this.cards.values()) c.root.destroy();
     for (const a of this.arrows.values()) a.destroy();
     this.results?.destroy();
   }
+}
+
+/** Small stable hash (spreads markers so they don't sit exactly on top of each other). */
+function hash(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return h;
 }

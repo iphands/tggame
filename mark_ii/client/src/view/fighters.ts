@@ -1,7 +1,7 @@
-/** On-screen fighters: animated sprite, name/damage tag, weapon, shield, shadow. */
+/** On-screen runners: animated sprite, name tag, finishing place, weapon, shield, shadow. */
 import Phaser from 'phaser';
 import { PHYS } from '../../../shared/src/constants';
-import type { PlatformState, PlayerState } from '../../../shared/src/types';
+import type { PlayerState } from '../../../shared/src/types';
 import { store } from '../store';
 import { FRAMES, fighterTexture } from '../art/sprites';
 import { hexNum } from '../art/color';
@@ -9,12 +9,16 @@ import { hexNum } from '../art/color';
 const W = PHYS.playerW;
 const H = PHYS.playerH;
 
-export function dmgColor(dmg: number): string {
-  if (dmg < 35) return '#ffffff';
-  if (dmg < 70) return '#ffe066';
-  if (dmg < 110) return '#ff9f43';
-  if (dmg < 150) return '#ff5d5d';
-  return '#d63c8a';
+/** "1st", "2nd", "3rd", "4th"… */
+export function ordinal(n: number): string {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return `${n}th`;
+  return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
+}
+
+/** Gold, silver, bronze, then plain. */
+export function placeColor(place: number): string {
+  return ['#ffd166', '#d7e1f0', '#e0a96d'][place - 1] ?? '#c9b8e6';
 }
 
 /** Render text at device resolution (capped) so it stays crisp on high-DPI phones. */
@@ -35,7 +39,8 @@ const TEXT_FONT = '"Trebuchet MS", "Segoe UI", system-ui, sans-serif';
 export class FighterView {
   readonly sprite: Phaser.GameObjects.Sprite;
   private readonly name: Phaser.GameObjects.Text;
-  private readonly dmg: Phaser.GameObjects.Text;
+  /** Finishing place, shown over the name once across the line. */
+  private readonly tag: Phaser.GameObjects.Text;
   private readonly marker: Phaser.GameObjects.Triangle | null;
   private readonly gun: Phaser.GameObjects.Image;
   private readonly shield: Phaser.GameObjects.Image;
@@ -74,8 +79,8 @@ export class FighterView {
       .setOrigin(0.5, 1)
       .setDepth(20)
       .setResolution(TEXT_RES);
-    this.dmg = scene.add
-      .text(0, 0, '0%', { fontFamily: TEXT_FONT, fontSize: '12px', fontStyle: 'bold', color: '#fff', stroke: '#120a20', strokeThickness: 4 })
+    this.tag = scene.add
+      .text(0, 0, '', { fontFamily: TEXT_FONT, fontSize: '12px', fontStyle: 'bold', color: '#fff', stroke: '#120a20', strokeThickness: 4 })
       .setOrigin(0.5, 1)
       .setDepth(20)
       .setResolution(TEXT_RES);
@@ -94,7 +99,8 @@ export class FighterView {
     if (power > 900) this.spin = (Math.random() < 0.5 ? -1 : 1) * Math.min(22, power / 70);
   }
 
-  update(p: PlayerState, simNow: number, dtMs: number, plats: PlatformState[] = []): void {
+  /** `groundBelow(cx, feet)` gives the surface under a point (for the contact shadow). */
+  update(p: PlayerState, simNow: number, dtMs: number, groundBelow?: (cx: number, feet: number) => number): void {
     const shown = p.life === 'alive';
     if (!shown) {
       if (this.lastShown) this.setVisible(false);
@@ -139,13 +145,7 @@ export class FighterView {
     this.glow.setPosition(cx, feet - 2).setVisible(p.grounded);
 
     // ---- contact shadow: shrinks and fades with height above the platform below
-    let ground = Infinity;
-    if (store.quality.flags.shadows) {
-      for (const pl of plats) {
-        if (pl.state === 'gone' || cx < pl.x || cx > pl.x + pl.w || pl.y < feet - 4) continue;
-        if (pl.y < ground) ground = pl.y;
-      }
-    }
+    const ground = store.quality.flags.shadows && groundBelow ? groundBelow(cx, feet) : Infinity;
     const h = ground - feet;
     if (h < 340) {
       const k = 1 - Math.max(0, h) / 340;
@@ -180,16 +180,18 @@ export class FighterView {
     }
     if (p.shield) this.shield.setScale(1 + Math.sin(simNow / 120) * 0.04).setAlpha(0.8 + Math.sin(simNow / 70) * 0.15);
 
-    // ---- name + damage tag
+    // ---- name tag (+ finishing place once across the line)
     const top = p.y - 6;
-    this.dmg.setPosition(cx, top);
-    setTextIf(this.dmg, `${Math.floor(p.dmg)}%`, dmgColor(p.dmg));
-    this.name.setPosition(cx, top - 13);
-    if (this.marker) this.marker.setPosition(cx, top - 38 + Math.sin(simNow / 160) * 2);
+    const done = p.place > 0;
+    this.name.setPosition(cx, top);
+    this.tag.setPosition(cx, top - 14).setVisible(done);
+    if (done) setTextIf(this.tag, `🏁 ${ordinal(p.place)}`, placeColor(p.place));
+    if (this.marker) this.marker.setPosition(cx, top - (done ? 40 : 26) + Math.sin(simNow / 160) * 2);
   }
 
   setVisible(v: boolean): void {
-    for (const o of [this.sprite, this.name, this.dmg, this.gun, this.glow]) o.setVisible(v);
+    for (const o of [this.sprite, this.name, this.gun, this.glow]) o.setVisible(v);
+    if (!v) this.tag.setVisible(false);
     if (!v) this.shadow.setVisible(false);
     this.crown.setVisible(v && this.leader);
     this.marker?.setVisible(v);
@@ -200,7 +202,7 @@ export class FighterView {
   }
 
   destroy(): void {
-    for (const o of [this.sprite, this.name, this.dmg, this.gun, this.shield, this.glow, this.crown, this.sight, this.shadow]) o.destroy();
+    for (const o of [this.sprite, this.name, this.tag, this.gun, this.shield, this.glow, this.crown, this.sight, this.shadow]) o.destroy();
     this.marker?.destroy();
   }
 }

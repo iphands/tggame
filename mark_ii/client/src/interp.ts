@@ -74,6 +74,15 @@ export function lerpPlayer(a: PlayerState | undefined, b: PlayerState, alpha: nu
   return { ...b, x: a.x + (b.x - a.x) * alpha, y: a.y + (b.y - a.y) * alpha };
 }
 
+/**
+ * Interpolated screen scroll. It only ever moves right within a round, so a
+ * decrease (new round) or a big jump is a cut, not a pan.
+ */
+export function lerpScroll(a: number, b: number, alpha: number): number {
+  if (b < a || b - a > 220) return b;
+  return a + (b - a) * alpha;
+}
+
 export function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
