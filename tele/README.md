@@ -33,7 +33,7 @@ origin; `?ws=ws://host:port` overrides it.
 
 1. **Lobby.** Everyone who opens the page lands at the same table (one game per server). The first
    player is the host: they add or remove Doodlebots and start the game.
-2. **Pick.** Each player is dealt four words and secretly picks one.
+2. **Pick.** Each player is dealt four words and secretly picks one, or writes a word or phrase of their own.
 3. **Draw / guess turns.** Everyone works at once, then all sketchbooks pass to the next player.
    You only ever see the single page before yours. There is no timer: a turn ends when everyone has
    handed in. You can reopen your page until then.
@@ -78,7 +78,7 @@ tests/        vitest unit tests        scripts/  icon generator, smoke test
 |---|---|
 | `join {name?, token?}` | sit down, or reclaim a seat with its token |
 | `addBot` `removeBot` `start` | host, in the lobby |
-| `pick {index}` `draw {strokes}` `guess {text}` | hand in this turn's page |
+| `pick {index}` `write {text}` `draw {strokes}` `guess {text}` | hand in this turn's page (`write`: your own starting word) |
 | `skip {playerId}` | host: blank page for a stalled player |
 | `next` | reveal: flip (book owner or host) |
 | `heart {book, page}` | toggle a heart on a revealed page |
