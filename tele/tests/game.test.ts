@@ -217,6 +217,33 @@ describe('connections', () => {
   });
 });
 
+describe('abandoned games', () => {
+  it('bots leave the lobby with the last human', () => {
+    const { g, ids } = table(2);
+    g.addBot(ids[0]);
+    g.drop(ids[0]);
+    expect(g.players.size).toBe(2);
+    g.drop(ids[1]);
+    expect(g.players.size).toBe(0);
+  });
+
+  it('reset clears the table, bots and all', () => {
+    const { g, ids } = table(1);
+    g.addBot(ids[0]);
+    g.addBot(ids[0]);
+    g.start(ids[0]);
+    expect(g.humansConnected()).toBe(1);
+    g.drop(ids[0]);
+    expect(g.humansConnected()).toBe(0);
+    g.reset();
+    expect(g.phase).toBe('lobby');
+    expect(g.players.size).toBe(0);
+    const fresh = g.join('New')!;
+    expect(g.viewFor(fresh.id).players.map((p) => p.spectator)).toEqual([false]);
+    expect(g.hostId()).toBe(fresh.id);
+  });
+});
+
 describe('reveal and finale', () => {
   it('pages turn one at a time, by the book owner or the host only', () => {
     const { g, ids } = table(3);

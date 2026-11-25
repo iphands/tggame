@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import { WebSocketServer, WebSocket } from 'ws';
 import { Game } from './game.js';
 import { isClientMessage, type ClientMessage, type ServerMessage } from '../../shared/src/protocol.js';
-import { BOT_DELAY_MS, MAX_PAYLOAD_BYTES } from '../../shared/src/constants.js';
+import { ABANDON_MS, BOT_DELAY_MS, MAX_PAYLOAD_BYTES } from '../../shared/src/constants.js';
 
 const PORT = Number(process.env.PORT ?? 8082);
 const STATIC_DIR = path.resolve(process.cwd(), process.env.STATIC_DIR ?? path.join('client', 'dist'));
@@ -232,6 +232,22 @@ function sync(): void {
     }
   }
   scheduleBots();
+  watchAbandoned();
+}
+
+// An abandoned table (everyone closed the tab) must not strand the next visitor in a dead game.
+let abandonTimer: ReturnType<typeof setTimeout> | null = null;
+function watchAbandoned(): void {
+  const empty = game.humansConnected() === 0 && game.players.size > 0;
+  if (!empty) {
+    if (abandonTimer) clearTimeout(abandonTimer);
+    abandonTimer = null;
+  } else if (!abandonTimer) {
+    abandonTimer = setTimeout(() => {
+      abandonTimer = null;
+      if (game.humansConnected() === 0) game.reset();
+    }, ABANDON_MS);
+  }
 }
 
 // Bots hand their pages in one at a time after a short "thinking" pause.
@@ -241,6 +257,7 @@ function scheduleBots(): void {
   const delay = BOT_DELAY_MS.min + Math.random() * (BOT_DELAY_MS.max - BOT_DELAY_MS.min);
   botTimer = setTimeout(() => {
     botTimer = null;
+    if (game.humansConnected() === 0) return; // nobody to play for
     game.stepBot();
     sync();
   }, delay);

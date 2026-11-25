@@ -61,3 +61,6 @@ export const BOT_DELAY_MS = { min: 900, max: 2600 };
 
 /** Largest WebSocket frame a client may send (a full drawing fits comfortably). */
 export const MAX_PAYLOAD_BYTES = 512 * 1024;
+
+/** A game with no connected humans is cleared after this long (a reload or a dropped phone gets time to return). */
+export const ABANDON_MS = 90_000;

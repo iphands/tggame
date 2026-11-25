@@ -85,6 +85,8 @@ export class Game {
     if (!p) return;
     if (this.phase === 'lobby' || p.spectator) {
       this.players.delete(id);
+      // bots do not wait around in an empty lobby
+      if (this.phase === 'lobby' && this.humansConnected() === 0) this.players.clear();
       this.promoteSpectators();
     } else {
       p.connected = false;
@@ -209,6 +211,18 @@ export class Game {
   /** Host bails out of a running game. */
   abort(by: string): void {
     if (this.phase !== 'lobby' && by === this.hostId()) this.toLobby();
+  }
+
+  /** Nobody is left: clear the table (bots included) so the next visitor finds an open lobby. */
+  reset(): void {
+    this.players.clear();
+    this.toLobby();
+  }
+
+  humansConnected(): number {
+    let n = 0;
+    for (const p of this.players.values()) if (!p.bot && p.connected) n++;
+    return n;
   }
 
   // ---- bots
