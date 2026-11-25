@@ -11,11 +11,11 @@ describe('rotation', () => {
         const holders = [];
         for (let t = 1; t <= turns; t++) holders.push(holderOf(book, t, n));
         expect(new Set(holders).size).toBe(holders.length);
-        // the owner only handles their book again when they draw their own word (even tables)
-        expect(holders.includes(book)).toBe(n % 2 === 0);
-        if (n % 2 === 0) expect(holders[0]).toBe(book);
-        // pages: the word plus one per turn; every player contributes
-        expect(new Set([book, ...holders]).size).toBe(n);
+        // the owner always draws their own word, and never sees the book again
+        expect(holders[0]).toBe(book);
+        expect(holders.slice(1).includes(book)).toBe(false);
+        // even tables: everyone contributes; odd tables: all but the seat before the owner
+        expect(new Set(holders).size).toBe(n % 2 === 0 ? n : n - 1);
       }
     });
 

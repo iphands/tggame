@@ -55,7 +55,7 @@ describe('lobby', () => {
 
 describe('a full game', () => {
   for (const n of [3, 4, 5, 8]) {
-    it(`${n} players: word → drawing → word … with every page from a different player`, () => {
+    it(`${n} players: word → drawing → word … each owner draws their own word`, () => {
       const { g, ids } = table(n);
       g.start(ids[0]);
       expect(g.turns).toBe(turnCount(n));
@@ -72,7 +72,8 @@ describe('a full game', () => {
         book.forEach((page, i) => expect(page.kind).toBe(i % 2 === 0 ? 'word' : 'drawing'));
         expect(book[0].by).toBe(ids[b]);
         expect(book[book.length - 1].kind).toBe('word');
-        expect(new Set(book.map((p) => p.by)).size).toBe(n);
+        expect(book[1].by).toBe(ids[b]);
+        expect(new Set(book.slice(1).map((p) => p.by)).size).toBe(book.length - 1);
       });
     });
   }
@@ -81,7 +82,7 @@ describe('a full game', () => {
     const { g, ids } = table(4);
     g.start(ids[0]);
     ids.forEach((id, i) => g.pick(id, i % 4));
-    // even table: everyone draws their own word first
+    // everyone draws their own word first
     ids.forEach((id, seat) => {
       const t = g.taskFor(id)!;
       expect(t.kind).toBe('draw');

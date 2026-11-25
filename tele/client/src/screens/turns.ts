@@ -20,7 +20,7 @@ export function pickScreen(): Screen {
     'section',
     { class: 'screen pick' },
     h('h2', { class: 'headline' }, 'Pick your secret word'),
-    h('p', { class: 'sub' }, "You'll draw it" + (store.state!.seats.length % 2 ? "… no wait, your neighbour will." : ' first.')),
+    h('p', { class: 'sub' }, "You'll draw it next."),
     h(
       'div',
       { class: 'cards' },
@@ -64,7 +64,7 @@ export function drawScreen(): Screen {
   const task = store.task;
   const word = task?.kind === 'draw' ? task.word : '';
   const from = task?.kind === 'draw' ? task.from : '';
-  const ownWord = s.turn === 1 && s.seats.length % 2 === 0;
+  const ownWord = s.turn === 1;
   const pad = new DrawPad(loadDraft(s.game, s.turn));
 
   const swatches = INK.map((color, i) =>
