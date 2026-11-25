@@ -188,8 +188,35 @@ $('end-game').addEventListener('click', () => {
 
 document.addEventListener('pointerdown', unlockAudio, { capture: true });
 document.addEventListener('keydown', unlockAudio, { capture: true });
-// iOS: keep pinch and double-tap zoom from hijacking the drawing surface
-document.addEventListener('gesturestart', (e) => e.preventDefault());
+// ---- no touch zoom
+// `touch-action` in styles.css covers most browsers; iOS Safari also needs the events cancelled.
+for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
+  document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
+}
+// pinch: any move with two or more fingers down
+document.addEventListener(
+  'touchmove',
+  (e) => {
+    if (e.touches.length > 1) e.preventDefault();
+  },
+  { passive: false },
+);
+// double-tap: swallow the second tap's default (the zoom) but still deliver its click,
+// so quick repeated taps on Undo, hearts and swatches keep working
+let lastTapAt = 0;
+document.addEventListener(
+  'touchend',
+  (e) => {
+    const now = e.timeStamp;
+    const quick = now - lastTapAt < 300;
+    lastTapAt = now;
+    const target = e.target as HTMLElement | null;
+    if (!quick || e.touches.length > 0 || !target || target.closest('input, textarea')) return;
+    e.preventDefault();
+    target.click();
+  },
+  { passive: false },
+);
 
 nameInput.maxLength = NAME_MAX;
 nameInput.value = saved.name();

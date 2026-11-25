@@ -28,6 +28,8 @@ html,
 body {
   height: 100%;
   margin: 0;
+  /* one-finger scrolling only: no pinch zoom, no double-tap zoom */
+  touch-action: pan-x pan-y;
 }
 
 body {
