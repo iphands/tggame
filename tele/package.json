@@ -1,0 +1,36 @@
+{
+  "name": "doodle-telephone",
+  "version": "0.1.0",
+  "description": "Turn-based telephone-drawing party game: word, doodle, guess, repeat, reveal",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "icons": "node scripts/make-icons.mjs",
+    "predev": "npm run icons",
+    "dev": "concurrently -n server,client -c blue,green \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "tsx watch server/src/index.ts",
+    "dev:client": "vite",
+    "prebuild": "npm run icons",
+    "build": "tsc -p tsconfig.server.json && vite build",
+    "start": "node dist/server/src/index.js",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.server.json --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ws": "^8.23.0"
+  },
+  "devDependencies": {
+    "@fontsource/chewy": "^5.0.0",
+    "@fontsource/patrick-hand": "^5.0.0",
+    "@types/node": "^22.20.5",
+    "@types/ws": "^8.18.2",
+    "concurrently": "^9.2.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.6",
+    "vitest": "^2.1.9"
+  }
+}
