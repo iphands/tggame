@@ -6,7 +6,7 @@ their tooling and conventions but no code. Read `README.md` for the rules and pr
 ## Commands
 
 ```sh
-npm run dev         # server :8082 (tsx watch) + Vite :5175
+npm run dev         # server :8088 (tsx watch) + Vite :5175
 npm test            # vitest, ~1 s, no server needed
 npm run typecheck   # tsc for client+shared, then server+shared
 npm run build       # tsc server → dist/, vite client → client/dist/
@@ -14,7 +14,7 @@ npm run build       # tsc server → dist/, vite client → client/dist/
 
 Before calling a change done: `npm test && npm run typecheck`.
 
-**Do not test on 8082/5175.** Someone may be playing there, and there is one game per server.
+**Do not test on 8088/5175.** Someone may be playing there, and there is one game per server.
 Start a private pair instead:
 
 ```sh

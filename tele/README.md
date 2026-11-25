@@ -12,7 +12,7 @@ Then everybody watches each sketchbook unravel, page by page.
 
 ```sh
 npm install
-npm run dev        # game server on :8082, client on :5175
+npm run dev        # game server on :8088, client on :5175
 ```
 
 Open `http://localhost:5175` (or `http://<your-LAN-ip>:5175` from a phone on the same Wi-Fi).
@@ -21,12 +21,12 @@ Playing alone? Add Doodlebots in the lobby.
 | Command | What it does |
 |---|---|
 | `npm run dev` | server (`tsx watch`) + Vite client with hot reload |
-| `npm run build && npm start` | production: one Node process serves client and WebSocket on `PORT` (default 8082) |
+| `npm run build && npm start` | production: one Node process serves client and WebSocket on `PORT` (default 8088) |
 | `npm test` | unit tests (rules, hidden information, drawing validation, protocol) |
 | `npm run typecheck` | client and server type checks |
 | `node scripts/smoke.mjs [ws://host:port]` | plays whole games over real sockets against a running server with an empty lobby |
 
-Environment: `PORT` (8082), `STATIC_DIR` (`client/dist`). The client connects to the page's own
+Environment: `PORT` (8088), `STATIC_DIR` (`client/dist`). The client connects to the page's own
 origin; `?ws=ws://host:port` overrides it.
 
 ## How a game goes
