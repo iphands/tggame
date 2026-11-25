@@ -182,6 +182,9 @@ function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
     case 'pick':
       game.pick(id, msg.index);
       break;
+    case 'write':
+      game.write(id, msg.text);
+      break;
     case 'draw':
       game.draw(id, msg.strokes);
       break;

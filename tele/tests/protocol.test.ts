@@ -7,7 +7,7 @@ describe('isClientMessage', () => {
     const ok: unknown[] = [
       { type: 'join' }, { type: 'join', name: 'Mo', token: 'abc' }, { type: 'leave' },
       { type: 'addBot' }, { type: 'removeBot' }, { type: 'start' },
-      { type: 'pick', index: 2 }, { type: 'draw', strokes: [] }, { type: 'guess', text: 'cat' },
+      { type: 'pick', index: 2 }, { type: 'write', text: 'my cat Bob' }, { type: 'draw', strokes: [] }, { type: 'guess', text: 'cat' },
       { type: 'skip', playerId: 'p3' }, { type: 'next' }, { type: 'heart', book: 0, page: 4 },
       { type: 'again' }, { type: 'abort' },
     ];
@@ -20,7 +20,7 @@ describe('isClientMessage', () => {
       { type: 'join', name: 5 }, { type: 'join', token: 'x'.repeat(65) },
       { type: 'pick' }, { type: 'pick', index: -1 }, { type: 'pick', index: 1.5 }, { type: 'pick', index: '1' },
       { type: 'draw' }, { type: 'draw', strokes: 'x' },
-      { type: 'guess' }, { type: 'guess', text: 'x'.repeat(401) },
+      { type: 'guess' }, { type: 'write' }, { type: 'write', text: 7 }, { type: 'write', text: 'x'.repeat(401) }, { type: 'guess', text: 'x'.repeat(401) },
       { type: 'skip' }, { type: 'skip', playerId: 3 },
       { type: 'heart', book: 0 }, { type: 'heart', book: -1, page: 0 },
     ];

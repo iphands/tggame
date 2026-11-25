@@ -11,11 +11,32 @@ import { isHost, isSeated, refresh, saved, send, store } from '../store';
 import { applyTextEdit } from '../textedit';
 import type { Screen } from './index';
 
+/**
+ * A single-line text field whose edits are applied by script, which keeps
+ * iPadOS from offering "Undo Typing" on every shake (see textedit.ts).
+ */
+function textField(props: Record<string, unknown>, onChange: () => void): HTMLInputElement {
+  const input = h('input', { type: 'text', maxLength: GUESS_MAX, autocomplete: 'off', autocapitalize: 'off', spellcheck: false, ...props });
+  input.addEventListener('beforeinput', (e) => {
+    const edit = applyTextEdit(input.value, input.selectionStart ?? input.value.length, input.selectionEnd ?? input.value.length, e.inputType, e.data, GUESS_MAX);
+    if (!edit) return;
+    e.preventDefault();
+    input.value = edit.value;
+    input.setSelectionRange(edit.caret, edit.caret);
+    onChange();
+  });
+  input.addEventListener('input', onChange);
+  return input;
+}
+
 // ---- pick
 
 export function pickScreen(): Screen {
   const task = store.task;
   const card = task?.kind === 'pick' ? task.card : [];
+  const sync = () => (submit.disabled = !sanitizeGuess(own.value) || store.status !== 'connected');
+  const own = textField({ class: 'guess-input', placeholder: 'your own word or phrase', enterKeyHint: 'go', 'aria-label': 'Your own word' }, sync);
+  const submit = h('button', { class: 'btn primary', type: 'submit' }, 'Use it');
   const el = h(
     'section',
     { class: 'screen pick' },
@@ -41,8 +62,26 @@ export function pickScreen(): Screen {
         ),
       ),
     ),
+    h('p', { class: 'sub or' }, '…or write your own'),
+    h(
+      'form',
+      {
+        class: 'guess-form',
+        onsubmit: (e: Event) => {
+          e.preventDefault();
+          const text = sanitizeGuess(own.value);
+          if (!text) return;
+          sfx.done();
+          store.editingTurn = -1;
+          send({ type: 'write', text });
+        },
+      },
+      own,
+      submit,
+    ),
   );
-  return { el, update() {} };
+  sync();
+  return { el, update: sync };
 }
 
 // ---- draw
@@ -185,30 +224,9 @@ export function guessScreen(): Screen {
   const blank = !hasInk(strokes);
   const canvas = drawingCanvas([]);
   const stop = replay(canvas, strokes);
-  const input = h('input', {
-    class: 'guess-input',
-    type: 'text',
-    maxLength: GUESS_MAX,
-    placeholder: 'What on earth is this?',
-    autocomplete: 'off',
-    autocapitalize: 'off',
-    spellcheck: false,
-    enterKeyHint: 'send',
-    'aria-label': 'Your guess',
-  });
-  const submit = h('button', { class: 'btn primary', type: 'submit' }, 'Guess!');
   const sync = () => (submit.disabled = !sanitizeGuess(input.value) || store.status !== 'connected');
-
-  // Scripted edits keep iPadOS from offering "Undo Typing" on every shake (see textedit.ts).
-  input.addEventListener('beforeinput', (e) => {
-    const edit = applyTextEdit(input.value, input.selectionStart ?? input.value.length, input.selectionEnd ?? input.value.length, e.inputType, e.data, GUESS_MAX);
-    if (!edit) return;
-    e.preventDefault();
-    input.value = edit.value;
-    input.setSelectionRange(edit.caret, edit.caret);
-    sync();
-  });
-  input.addEventListener('input', sync);
+  const input = textField({ class: 'guess-input', placeholder: 'What on earth is this?', enterKeyHint: 'send', 'aria-label': 'Your guess' }, sync);
+  const submit = h('button', { class: 'btn primary', type: 'submit' }, 'Guess!');
 
   const el = h(
     'section',

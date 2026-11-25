@@ -148,6 +148,15 @@ export class Game {
     this.submit(seat, { kind: 'word', text, by: id });
   }
 
+  /** Start the book with a word of the player's own instead of one from their card. */
+  write(id: string, rawText: unknown): void {
+    const seat = this.seatOf(id);
+    if (this.phase !== 'pick' || seat < 0) return;
+    const text = sanitizeGuess(rawText);
+    if (!text) return;
+    this.submit(seat, { kind: 'word', text, by: id });
+  }
+
   draw(id: string, rawStrokes: unknown): void {
     const seat = this.seatOf(id);
     if (this.phase !== 'draw' || seat < 0) return;

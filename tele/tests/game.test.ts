@@ -116,6 +116,26 @@ describe('a full game', () => {
     expect(g.books[0][0]).toMatchObject({ kind: 'word', text: card.kind === 'pick' ? card.card[2] : '' });
   });
 
+  it('a player can write their own word instead of picking from the card', () => {
+    const { g, ids } = table(3);
+    g.start(ids[0]);
+    g.write(ids[0], '   ');
+    expect(g.viewFor(ids[0]).submitted).toBe(false);
+    g.write(ids[0], '  my  cat\nBob ' + 'x'.repeat(100));
+    expect(g.viewFor(ids[0]).submitted).toBe(true);
+    g.pick(ids[1], 0);
+    g.pick(ids[2], 0);
+    const first = g.books[0][0];
+    expect(first.kind === 'word' && first.text.startsWith('my cat Bob x')).toBe(true);
+    expect(first.kind === 'word' && [...first.text].length).toBe(40);
+    // the owner then draws exactly what they wrote
+    const task = g.taskFor(ids[0])!;
+    expect(task.kind === 'draw' && task.word).toBe(first.kind === 'word' && first.text);
+    // only while picking
+    g.write(ids[1], 'too late');
+    expect(g.viewFor(ids[1]).submitted).toBe(false);
+  });
+
   it('rejects out-of-phase, invalid and empty submissions', () => {
     const { g, ids } = table(3);
     g.start(ids[0]);

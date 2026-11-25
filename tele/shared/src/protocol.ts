@@ -9,6 +9,7 @@ export type ClientMessage =
   | { type: 'removeBot' }
   | { type: 'start' }
   | { type: 'pick'; index: number }
+  | { type: 'write'; text: string }
   | { type: 'draw'; strokes: unknown }
   | { type: 'guess'; text: string }
   | { type: 'skip'; playerId: string }
@@ -46,6 +47,7 @@ export function isClientMessage(x: unknown): x is ClientMessage {
       return isIndex(m.index);
     case 'draw':
       return Array.isArray(m.strokes);
+    case 'write':
     case 'guess':
       return typeof m.text === 'string' && m.text.length <= 400;
     case 'skip':

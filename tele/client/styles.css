@@ -715,6 +715,9 @@ input[type='text']::placeholder {
 .word-card:active {
   transform: scale(0.96);
 }
+.pick .or {
+  margin-top: 6px;
+}
 @keyframes deal {
   from {
     translate: 0 60vh;
