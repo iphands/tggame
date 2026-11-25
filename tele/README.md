@@ -37,8 +37,8 @@ origin; `?ws=ws://host:port` overrides it.
 3. **Draw / guess turns.** Everyone works at once, then all sketchbooks pass to the next player.
    You only ever see the single page before yours. There is no timer: a turn ends when everyone has
    handed in. You can reopen your page until then.
-   - Even number of players: you draw your own word first. Odd: your neighbour draws it.
-     Either way each book visits every player once and ends on a guess.
+   - You always draw the word you picked, then pass the book on. Every book ends on a guess, so
+     with an odd number of players each book stops one player short of a full lap.
    - Someone stuck or gone? The host can **Skip** them (they hand in a blank page).
 4. **Reveal.** One book at a time; its owner (or the host) flips the pages. Drawings replay stroke by
    stroke. Tap ♥ on pages you love. Each book ends with a verdict: *It survived!* or *Lost in translation*.
