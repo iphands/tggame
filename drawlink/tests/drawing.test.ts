@@ -31,6 +31,17 @@ describe('sanitizeStroke', () => {
     expect(sanitizeStroke({ c: ERASER, w: 5, p: Array(DRAW_LIMITS.maxPointsPerStroke * 2).fill(1) })).not.toBeNull();
   });
 
+  it('a fill is one point in a real colour', () => {
+    expect(sanitizeStroke({ c: 3, w: 5, p: [10.2, 20], f: 1 })).toEqual({ c: 3, w: 5, p: [10, 20], f: 1 });
+    expect(sanitizeStroke({ c: 3, w: 5, p: [10, 20] })).not.toHaveProperty('f');
+    for (const bad of [
+      { c: ERASER, w: 5, p: [1, 2], f: 1 },
+      { c: 3, w: 5, p: [1, 2, 3, 4], f: 1 },
+      { c: 3, w: 5, p: [1, 2], f: true },
+      { c: 3, w: 5, p: [1, 2], f: 0 },
+    ]) expect(sanitizeStroke(bad)).toBeNull();
+  });
+
   it('clamps widths', () => {
     expect(sanitizeStroke({ c: 0, w: 9999, p: [1, 2] })!.w).toBe(DRAW_LIMITS.maxWidth);
     expect(sanitizeStroke({ c: 0, w: 0, p: [1, 2] })!.w).toBe(DRAW_LIMITS.minWidth);

@@ -69,7 +69,7 @@ function onMessage(msg: ServerMessage): void {
     case 'ink': {
       const strokes = store.canvas.strokes;
       if (msg.turn !== store.canvas.turn || msg.i > strokes.length) break;
-      if (msg.i === strokes.length) strokes.push({ c: msg.c, w: msg.w, p: [] });
+      if (msg.i === strokes.length) strokes.push({ c: msg.c, w: msg.w, p: [], ...(msg.f ? { f: 1 as const } : {}) });
       const stroke = strokes[msg.i];
       const from = stroke.p.length / 2;
       for (const v of msg.p) stroke.p.push(v);

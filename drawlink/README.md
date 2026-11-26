@@ -44,7 +44,7 @@ origin; `?ws=ws://host:port` overrides it.
 3. **Between rounds** the answer and the drawing stay up for a few seconds.
 4. **Final scores** after the last round; equal scores share a place. The host deals again.
 
-Drawing tools: ten marker colours, three nib sizes, eraser, undo/redo (also Ctrl+Z / Ctrl+Shift+Z),
+Drawing tools: ten marker colours, three nib sizes, fill bucket, eraser, undo/redo (also Ctrl+Z / Ctrl+Shift+Z),
 clear. No letters or numbers: honour system! (The drawer cannot *type* the answer, though.)
 
 Around the table:
@@ -76,6 +76,9 @@ tests/        vitest unit tests        scripts/  icon generator, smoke test
   1000 × 750 page. The drawer streams points in small batches as they draw; the server validates,
   stores and relays them. Anyone arriving mid-turn (or a drawer who got out of step) is sent the
   whole canvas.
+- **Bucket fills** are one-point strokes with `f: 1`. Every client works the flood out on a copy of
+  the page at one pixel per page unit (`client/src/fill.ts`) and stamps the result at its own
+  scale, so a fill covers the same area on a phone as on a monitor.
 - **The server keeps time.** `Game` has no clock: every action and a 4 Hz tick pass in `now`.
   Clients learn the server's clock on `welcome` and run the countdown locally from `startedAt`.
 - **No assets in git.** Icons are generated (`scripts/make-icons.mjs`), sounds are synthesized, fonts
@@ -89,7 +92,7 @@ Every number above (points, step, hint times, pause, seats) is a constant in `sh
 |---|---|
 | `join {name?, token?}` | sit down, or reclaim a seat with its token |
 | `addBot` `removeBot` `settings {rounds?, hints?}` `start` | host, in the lobby |
-| `ink {i, c, w, p}` | drawer: append points to stroke `i` (the last stroke, or a new one) |
+| `ink {i, c, w, p, f?}` | drawer: append points to stroke `i` (the last stroke, or a new one); `f: 1` = a bucket fill |
 | `undo` `clear` `pass` | drawer |
 | `chat {text, to?}` | a guess or a chat line; with `to`, a whisper |
 | `boot {playerId}` | toggle a vote to remove a player |

@@ -9,8 +9,8 @@ export type ClientMessage =
   | { type: 'removeBot' }
   | { type: 'settings'; rounds?: number; hints?: boolean }
   | { type: 'start' }
-  /** Drawer: append points to stroke `i` (the last stroke, or a new one right after it). */
-  | { type: 'ink'; i: number; c: number; w: number; p: unknown[] }
+  /** Drawer: append points to stroke `i` (the last stroke, or a new one right after it). `f: 1` makes a new stroke a bucket fill. */
+  | { type: 'ink'; i: number; c: number; w: number; p: unknown[]; f?: 1 }
   | { type: 'undo' }
   | { type: 'clear' }
   | { type: 'pass' }
@@ -24,7 +24,7 @@ export type ClientMessage =
 
 /** Changes to the shared canvas; `turn` says which canvas they belong to. */
 export type InkEvent =
-  | { type: 'ink'; turn: number; i: number; c: number; w: number; p: number[] }
+  | { type: 'ink'; turn: number; i: number; c: number; w: number; p: number[]; f?: 1 }
   | { type: 'undo'; turn: number }
   | { type: 'clear'; turn: number };
 
@@ -59,7 +59,7 @@ export function isClientMessage(x: unknown): x is ClientMessage {
     case 'settings':
       return (m.rounds === undefined || typeof m.rounds === 'number') && (m.hints === undefined || typeof m.hints === 'boolean');
     case 'ink':
-      return typeof m.i === 'number' && Number.isInteger(m.i) && m.i >= 0 && typeof m.c === 'number' && typeof m.w === 'number' && Array.isArray(m.p);
+      return typeof m.i === 'number' && Number.isInteger(m.i) && m.i >= 0 && typeof m.c === 'number' && typeof m.w === 'number' && Array.isArray(m.p) && (m.f === undefined || m.f === 1);
     case 'chat':
       return typeof m.text === 'string' && m.text.length <= 400 && (m.to === undefined || isId(m.to));
     case 'boot':

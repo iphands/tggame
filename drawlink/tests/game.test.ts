@@ -180,6 +180,25 @@ describe('the canvas', () => {
     expect(ink(g)).toEqual(['ink']);
   });
 
+  it('takes bucket fills as strokes of their own, up to a limit', () => {
+    const { g, ids } = table(3);
+    g.start(ids[0], T0);
+    g.inkAdd(ids[0], 0, 0, 5, [10, 10, 20, 20]);
+    g.inkAdd(ids[0], 1, 3, 5, [400, 300], 1);
+    expect(g.strokes[1]).toEqual({ c: 3, w: 5, p: [400, 300], f: 1 });
+    expect(g.takeInk()[1]).toEqual({ type: 'ink', turn: g.turnNo, i: 1, c: 3, w: 5, p: [400, 300], f: 1 });
+    g.inkAdd(ids[0], 1, 3, 5, [5, 5]); // a fill cannot grow
+    g.inkAdd(ids[0], 2, 0, 5, [1, 1]);
+    g.inkAdd(ids[0], 2, 3, 5, [5, 5], 1); // nor can a line turn into one
+    expect(g.strokes).toHaveLength(3);
+    expect(g.strokes[2]).toEqual({ c: 0, w: 5, p: [1, 1] });
+    expect(g.takeResync()).toBe(true);
+    for (let i = 3; i < 3 + DRAW_LIMITS.maxFills + 5; i++) g.inkAdd(ids[0], g.strokes.length, 1, 5, [i, i], 1);
+    expect(g.strokes.filter((s) => s.f)).toHaveLength(DRAW_LIMITS.maxFills);
+    g.inkUndo(ids[0]);
+    expect(g.strokes.filter((s) => s.f)).toHaveLength(DRAW_LIMITS.maxFills - 1);
+  });
+
   it('is wiped for the next turn but stays up while the answer is shown', () => {
     const { g, ids } = table(3);
     g.start(ids[0], T0);

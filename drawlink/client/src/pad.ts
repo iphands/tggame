@@ -5,7 +5,8 @@
  */
 import { DRAW_LIMITS, ERASER, ERASER_NIBS, NIBS, PAGE_H, PAGE_W } from '../../shared/src/constants';
 import type { Drawing, Stroke } from '../../shared/src/types';
-import { paint, paintStroke } from './render';
+import { isFill } from './fill';
+import { paint, paintFill, paintStroke } from './render';
 
 /** Ink is sent at most this often while a stroke is in progress. */
 const FLUSH_MS = 45;
@@ -29,8 +30,10 @@ export class DrawPad {
   color = 0;
   nib = 1;
   erasing = false;
-  /** New points for stroke `i` (a new stroke when `i` is one past the last one sent). */
-  onInk: (i: number, c: number, w: number, p: number[]) => void = () => {};
+  /** Bucket mode: a tap floods with the current colour instead of starting a line. */
+  filling = false;
+  /** New points for stroke `i` (a new stroke when `i` is one past the last one sent). `f` marks a bucket fill. */
+  onInk: (i: number, c: number, w: number, p: number[], f?: 1) => void = () => {};
   onUndo: () => void = () => {};
   onClear: () => void = () => {};
   /** Called after every change to the stroke list made here. */
@@ -92,7 +95,9 @@ export class DrawPad {
   /** Stroke `i` of the list grew from point `from` on (someone else drew it): paint just that. */
   grew(i: number, from: number): void {
     const s = this.strokes[i];
-    if (s) paintStroke(this.ctx, s, this.scale, Math.max(0, from - 1));
+    if (!s) return;
+    if (isFill(s)) paintFill(this.ctx, this.strokes.slice(0, i), s, this.scale);
+    else paintStroke(this.ctx, s, this.scale, Math.max(0, from - 1));
   }
 
   repaint(): void {
@@ -112,7 +117,7 @@ export class DrawPad {
     const s = this.undone.pop()!;
     this.strokes.push(s);
     this.repaint();
-    this.onInk(this.strokes.length - 1, s.c, s.w, s.p);
+    this.onInk(this.strokes.length - 1, s.c, s.w, s.p, s.f);
     this.onChange();
   }
 
@@ -161,6 +166,17 @@ export class DrawPad {
     return true;
   }
 
+  /** Bucket tap: one fill stroke, painted and sent at once. */
+  private pour(x: number, y: number): void {
+    if (this.strokes.length >= DRAW_LIMITS.maxStrokes || this.strokes.filter(isFill).length >= DRAW_LIMITS.maxFills) return this.onFull();
+    const s: Stroke = { c: this.color, w: NIBS[0], p: [x, y], f: 1 };
+    paintFill(this.ctx, this.strokes, s, this.scale);
+    this.strokes.push(s);
+    this.undone = [];
+    this.onInk(this.strokes.length - 1, s.c, s.w, s.p, 1);
+    this.onChange();
+  }
+
   private flush(): void {
     const s = this.live;
     if (!s || s.p.length / 2 <= this.sent) return;
@@ -191,6 +207,7 @@ export class DrawPad {
     if (!this.canDraw || this.pointerId !== null || (e.pointerType === 'mouse' && e.button !== 0)) return;
     e.preventDefault();
     const [x, y] = this.toPage(e);
+    if (this.filling && !this.erasing) return this.pour(x, y);
     if (!this.begin(this.erasing ? ERASER : this.color, (this.erasing ? ERASER_NIBS : NIBS)[this.nib], x, y)) {
       this.onFull();
       return;

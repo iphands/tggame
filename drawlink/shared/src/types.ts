@@ -1,5 +1,8 @@
-/** One marker stroke: colour index (or ERASER), width in page units, flat `x,y,x,y…` page coordinates. */
-export type Stroke = { c: number; w: number; p: number[] };
+/**
+ * One marker stroke: colour index (or ERASER), width in page units, flat `x,y,x,y…` page coordinates.
+ * With `f: 1` it is a fill-bucket tap instead: one point, flooded with colour `c`.
+ */
+export type Stroke = { c: number; w: number; p: number[]; f?: 1 };
 export type Drawing = Stroke[];
 
 /** `draw`: a round is running. `between`: the answer is on show before the next round. */

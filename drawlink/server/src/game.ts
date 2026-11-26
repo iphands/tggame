@@ -275,23 +275,24 @@ export class Game {
   // ---- the canvas (drawer only)
 
   /** Append points to stroke `i`: the last stroke, or a new one right after it. */
-  inkAdd(id: string, i: number, c: number, w: number, p: unknown): void {
+  inkAdd(id: string, i: number, c: number, w: number, p: unknown, f?: 1): void {
     if (this.phase !== 'draw' || id !== this.drawerId) return;
-    const s = sanitizeStroke({ c, w, p });
+    const s = sanitizeStroke({ c, w, p, f });
     const n = s ? s.p.length / 2 : 0;
     const last = this.strokes[this.strokes.length - 1];
     if (!s || this.points + n > DRAW_LIMITS.maxPoints) return this.outOfSync();
+    if (s.f && this.strokes.filter((k) => k.f).length >= DRAW_LIMITS.maxFills) return this.outOfSync();
     if (i === this.strokes.length && i < DRAW_LIMITS.maxStrokes) {
       // the stored stroke keeps growing; the event must not grow with it
       this.strokes.push({ ...s, p: s.p.slice() });
-    } else if (last && i === this.strokes.length - 1 && last.p.length / 2 + n <= DRAW_LIMITS.maxPointsPerStroke) {
+    } else if (last && !last.f && !s.f && i === this.strokes.length - 1 && last.p.length / 2 + n <= DRAW_LIMITS.maxPointsPerStroke) {
       for (const v of s.p) last.p.push(v);
     } else {
       return this.outOfSync();
     }
     this.points += n;
     const stroke = this.strokes[i];
-    this.ink.push({ type: 'ink', turn: this.turnNo, i, c: stroke.c, w: stroke.w, p: s.p });
+    this.ink.push({ type: 'ink', turn: this.turnNo, i, c: stroke.c, w: stroke.w, p: s.p, ...(s.f ? { f: 1 as const } : {}) });
   }
 
   inkUndo(id: string): void {

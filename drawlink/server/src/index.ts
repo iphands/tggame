@@ -186,7 +186,7 @@ function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
       game.start(id, now);
       break;
     case 'ink':
-      game.inkAdd(id, msg.i, msg.c, msg.w, msg.p);
+      game.inkAdd(id, msg.i, msg.c, msg.w, msg.p, msg.f);
       break;
     case 'undo':
       game.inkUndo(id);

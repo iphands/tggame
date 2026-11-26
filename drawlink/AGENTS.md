@@ -40,6 +40,7 @@ node scripts/smoke.mjs ws://localhost:8193    # needs an empty lobby
 | `client/src/main.ts` | join flow, connection, message handling, header, screen switching |
 | `client/src/screens/` | `lobby`, `play` (the whole game is one screen), `finale`; `index.ts` maps state → screen key |
 | `client/src/pad.ts` | the shared page: pointer input → streamed strokes for the drawer, painting for everyone |
+| `client/src/render.ts` `fill.ts` | stroke painting; bucket fills, flooded at a fixed resolution so every screen agrees |
 | `client/src/chat.ts` `players.ts` | chat/guess box, player list with whisper and vote-out |
 | `client/styles.css` | all styling |
 

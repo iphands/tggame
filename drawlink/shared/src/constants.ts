@@ -48,6 +48,8 @@ export const DRAW_LIMITS = {
   maxStrokes: 600,
   maxPointsPerStroke: 1500,
   maxPoints: 40000,
+  /** Bucket fills per drawing: each one is a flood on every screen, every repaint. */
+  maxFills: 40,
   minWidth: 2,
   maxWidth: 90,
 };
