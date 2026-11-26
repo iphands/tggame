@@ -2,7 +2,7 @@
 // the results screen. Usage: node scripts/round-smoke.mjs [ws-url]
 import WebSocket from 'ws';
 
-const URL = process.argv[2] ?? process.env.WS_URL ?? 'ws://localhost:8081';
+const URL = process.argv[2] ?? process.env.WS_URL ?? 'ws://localhost:8091';
 const ws = new WebSocket(URL);
 let last = null;
 let gatesDown = 0;

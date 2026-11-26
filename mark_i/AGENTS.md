@@ -11,11 +11,11 @@ everywhere. The server is authoritative. Clients send input and render snapshots
 
 ```bash
 npm install
-npm run dev          # tsx watch server (:8080) + vite client (:5173, LAN-visible) via concurrently
+npm run dev          # tsx watch server (:8090) + vite client (:5173, LAN-visible) via concurrently
 npm test             # vitest run (tests/**/*.test.ts), ~1s, no server needed
 npm run typecheck    # client tsconfig + server tsconfig (both must pass)
 npm run build        # tsc server -> dist/, vite client -> client/dist/
-npm start            # node dist/server/src/index.js; serves client/dist + WS on :8080
+npm start            # node dist/server/src/index.js; serves client/dist + WS on :8090
 node scripts/smoke.mjs [ws://host:port]        # protocol smoke test against a running server
 node scripts/round-smoke.mjs [ws://host:port]  # plays a full bot round to results
 ```
@@ -23,7 +23,7 @@ node scripts/round-smoke.mjs [ws://host:port]  # plays a full bot round to resul
 Before you call a change done, run `npm test && npm run typecheck`. Both pass on
 `main`.
 
-Env vars: `PORT` (default 8080) and `STATIC_DIR` (default `client/dist`).
+Env vars: `PORT` (default 8090) and `STATIC_DIR` (default `client/dist`).
 
 ## Layout
 
@@ -42,7 +42,7 @@ server/src/sim/platforms.ts buildPlats, updatePlats (motion + crumble), findLand
 server/src/sim/bots.ts      thinkBot: targeting, edge safety, gap jumps, recovery, attacks
 server/src/sim/rng.ts       seedable PRNG (all sim randomness goes through World.rng)
 client/src/main.ts       bootstrap (Phaser config, join flow, touch + audio unlock)
-client/src/net.ts        GameClient (reconnect, input de-dupe) + defaultWsUrl() (same-origin; 5173 → 8080)
+client/src/net.ts        GameClient (reconnect, input de-dupe) + defaultWsUrl() (same-origin; 5173 → 8090)
 client/src/interp.ts     SnapshotBuffer: server-clock sync + interpolation (pure, unit-tested)
 client/src/store.ts      shared client state; onSnapshot() feeds buffer + fx queue
 client/src/lobby.ts      DOM overlay: join/lobby/game screens, roster, arena picker, buttons
@@ -124,7 +124,7 @@ body (it splices `selfId` into the JSON string).
   section dividers like `// ---- input`.
 - Client modules imported by tests (`controls.ts`, `interp.ts`, `net.ts`) must
   not touch `document`/`window` at import time. Tests run in node.
-- WebSocket URL: same origin as the page, except the Vite dev port 5173 → 8080.
+- WebSocket URL: same origin as the page, except the Vite dev port 5173 → 8090.
   `?ws=` overrides it.
 - The client is touch-first: landscape-only, forced 16:9 stage. On touch
   devices the HUD cards move to the top so the thumb buttons don't cover them.

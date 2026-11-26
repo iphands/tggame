@@ -9,7 +9,7 @@ faster it happens the more it is worth.
 
 ```sh
 npm install
-npm run dev        # game server on :8089, client on :5176
+npm run dev        # game server on :8093, client on :5176
 ```
 
 Open `http://localhost:5176` (or `http://<your-LAN-ip>:5176` from a phone on the same Wi-Fi).
@@ -18,12 +18,12 @@ Playing alone? Add Guessbots in the lobby.
 | Command | What it does |
 |---|---|
 | `npm run dev` | server (`tsx watch`) + Vite client with hot reload |
-| `npm run build && npm start` | production: one Node process serves client and WebSocket on `PORT` (default 8089) |
+| `npm run build && npm start` | production: one Node process serves client and WebSocket on `PORT` (default 8093) |
 | `npm test` | unit tests (rules, scoring, hints, hidden word, protocol) |
 | `npm run typecheck` | client and server type checks |
 | `node scripts/smoke.mjs [ws://host:port]` | plays a short game over real sockets against a running server with an empty lobby |
 
-Environment: `PORT` (8089), `STATIC_DIR` (`client/dist`). The client connects to the page's own
+Environment: `PORT` (8093), `STATIC_DIR` (`client/dist`). The client connects to the page's own
 origin; `?ws=ws://host:port` overrides it.
 
 ## How a game goes

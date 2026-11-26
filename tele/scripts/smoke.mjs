@@ -1,8 +1,8 @@
 // Plays whole games over real WebSockets and checks the result.
-// Usage: node scripts/smoke.mjs [ws://localhost:8088]   (needs a server with an empty lobby)
+// Usage: node scripts/smoke.mjs [ws://localhost:8092]   (needs a server with an empty lobby)
 import WebSocket from 'ws';
 
-const URL = process.argv[2] ?? 'ws://localhost:8088';
+const URL = process.argv[2] ?? 'ws://localhost:8092';
 const fail = (msg) => {
   console.error('FAIL:', msg);
   process.exit(1);

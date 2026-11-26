@@ -7,14 +7,14 @@ type LocationLike = Pick<Location, 'protocol' | 'hostname' | 'host' | 'port' | '
 /**
  * Where the game server lives:
  * - `?ws=ws://host:port` overrides everything
- * - the Vite dev server (port 5174) talks to the game server on :8081
+ * - the Vite dev server (port 5174) talks to the game server on :8091
  * - otherwise the page was served by the game server itself → same origin
  */
 export function defaultWsUrl(loc: LocationLike): string {
   const override = new URLSearchParams(loc.search).get('ws');
   if (override) return override;
   const proto = loc.protocol === 'https:' ? 'wss' : 'ws';
-  const host = loc.port === '5174' ? `${loc.hostname}:8081` : loc.host || 'localhost:8081';
+  const host = loc.port === '5174' ? `${loc.hostname}:8091` : loc.host || 'localhost:8091';
   return `${proto}://${host}`;
 }
 

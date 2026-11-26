@@ -6,7 +6,7 @@ tooling, look and conventions, but no code. Read `README.md` for the rules and p
 ## Commands
 
 ```sh
-npm run dev         # server :8089 (tsx watch) + Vite :5176
+npm run dev         # server :8093 (tsx watch) + Vite :5176
 npm test            # vitest, ~1 s, no server needed
 npm run typecheck   # tsc for client+shared, then server+shared
 npm run build       # tsc server → dist/, vite client → client/dist/
@@ -14,7 +14,7 @@ npm run build       # tsc server → dist/, vite client → client/dist/
 
 Before calling a change done: `npm test && npm run typecheck`.
 
-**Do not test on 8089/5176.** Someone may be playing there, and there is one game per server.
+**Do not test on 8093/5176.** Someone may be playing there, and there is one game per server.
 Start a private pair instead, and stop them by PID (never `pkill` by name: the sibling games run
 the same commands):
 

@@ -7,7 +7,7 @@ import { Game } from './game.js';
 import { isClientMessage, type ClientMessage, type ServerMessage } from '../../shared/src/protocol.js';
 import { ABANDON_MS, BOT_DELAY_MS, MAX_PAYLOAD_BYTES } from '../../shared/src/constants.js';
 
-const PORT = Number(process.env.PORT ?? 8088);
+const PORT = Number(process.env.PORT ?? 8092);
 const STATIC_DIR = path.resolve(process.cwd(), process.env.STATIC_DIR ?? path.join('client', 'dist'));
 /** Max messages a socket may send per second before extras are dropped. */
 const MSG_BUDGET_PER_SEC = 40;

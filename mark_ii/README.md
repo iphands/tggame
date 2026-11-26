@@ -29,8 +29,8 @@ press **+ BOT** a few times, then **START**.
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | Game server on **:8081** (`tsx watch`) + Vite client on **:5174** (also reachable from the LAN) |
-| `npm run build && npm start` | Builds both, then one Node process serves the client **and** the WebSocket on **:8081** |
+| `npm run dev` | Game server on **:8091** (`tsx watch`) + Vite client on **:5174** (also reachable from the LAN) |
+| `npm run build && npm start` | Builds both, then one Node process serves the client **and** the WebSocket on **:8091** |
 | `npm test` | Vitest: physics, combat, scroll/boxes/gates, match flow, bots, courses, interpolation, protocol |
 | `npm run typecheck` | Client + server TypeScript configs |
 | `node scripts/smoke.mjs [ws://host:port]` | Protocol smoke test against a running server |
@@ -38,8 +38,8 @@ press **+ BOT** a few times, then **START**.
 | `npx tsx scripts/bot-run.ts [bots] [seeds] [course]` | Offline: bots run every course; prints finish times and where they died (for tuning courses) |
 
 **LAN party:** run `npm run build && npm start`, then open
-`http://<your-ip>:8081` on every phone and laptop. (The original brawler
-uses ports 8080/5173, so both games can run side by side.)
+`http://<your-ip>:8091` on every phone and laptop. (The original brawler
+uses ports 8090/5173, so both games can run side by side.)
 
 ### Phones: full screen and size
 
@@ -250,10 +250,10 @@ the full shape.
 `npm run build && npm start` serves everything from one port. The client
 connects its WebSocket to the **same origin it was loaded from**, so this
 works behind a reverse proxy or TLS (`wss://`). The Vite dev server is the
-one exception: from port 5174 it targets `:8081`. To point a client at a
+one exception: from port 5174 it targets `:8091`. To point a client at a
 different server, add `?ws=ws://host:port` to the URL.
 
-- `PORT`: listen port (default `8081`)
+- `PORT`: listen port (default `8091`)
 - `STATIC_DIR`: built client directory (default `client/dist`)
 - `GET /health` returns `{ ok, phase, players, bots }`
 

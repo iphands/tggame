@@ -1,8 +1,8 @@
 // Plays a short game over real WebSockets and checks what each socket was sent.
-// Usage: node scripts/smoke.mjs [ws://localhost:8089]   (needs a server with an empty lobby)
+// Usage: node scripts/smoke.mjs [ws://localhost:8093]   (needs a server with an empty lobby)
 import WebSocket from 'ws';
 
-const URL = process.argv[2] ?? 'ws://localhost:8089';
+const URL = process.argv[2] ?? 'ws://localhost:8093';
 const fail = (msg) => {
   console.error('FAIL:', msg);
   process.exit(1);

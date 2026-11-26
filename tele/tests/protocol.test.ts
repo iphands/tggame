@@ -31,10 +31,10 @@ describe('isClientMessage', () => {
 describe('defaultWsUrl', () => {
   const loc = (o: Partial<Location>) => ({ protocol: 'http:', hostname: 'h', host: 'h', port: '', search: '', ...o }) as Location;
   it('maps the Vite dev port to the game server', () => {
-    expect(defaultWsUrl(loc({ port: '5175', host: 'h:5175' }))).toBe('ws://h:8088');
+    expect(defaultWsUrl(loc({ port: '5175', host: 'h:5175' }))).toBe('ws://h:8092');
   });
   it('uses the same origin otherwise, wss under https', () => {
-    expect(defaultWsUrl(loc({ port: '8088', host: 'h:8088' }))).toBe('ws://h:8088');
+    expect(defaultWsUrl(loc({ port: '8092', host: 'h:8092' }))).toBe('ws://h:8092');
     expect(defaultWsUrl(loc({ protocol: 'https:', host: 'play.example' }))).toBe('wss://play.example');
   });
   it('honours ?ws=', () => {

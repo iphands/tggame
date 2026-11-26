@@ -7,18 +7,18 @@ render snapshots.
 
 > The git root is the parent directory (`../`). This project lives in `mark_ii/`,
 > and every command below runs from here. It is a fork of `../mark_i/` (the
-> brawler, ports 8080/5173); the two are separate projects and share no code.
+> brawler, ports 8090/5173); the two are separate projects and share no code.
 > `../demo/` is unrelated.
 
 ## Commands
 
 ```bash
 npm install
-npm run dev          # tsx watch server (:8081) + vite client (:5174, LAN-visible) via concurrently
+npm run dev          # tsx watch server (:8091) + vite client (:5174, LAN-visible) via concurrently
 npm test             # vitest run (tests/**/*.test.ts), ~1s, no server needed
 npm run typecheck    # client tsconfig + server tsconfig (both must pass)
 npm run build        # tsc server -> dist/, vite client -> client/dist/
-npm start            # node dist/server/src/index.js; serves client/dist + WS on :8081
+npm start            # node dist/server/src/index.js; serves client/dist + WS on :8091
 node scripts/smoke.mjs [ws://host:port]        # protocol smoke test against a running server
 node scripts/round-smoke.mjs [ws://host:port]  # bots run a full course to results
 npx tsx scripts/bot-run.ts [bots] [seeds] [id] # offline: bots run every course; prints times and where they died
@@ -27,9 +27,9 @@ npx tsx scripts/bot-run.ts [bots] [seeds] [id] # offline: bots run every course;
 Before you call a change done, run `npm test && npm run typecheck`. Both pass on
 `main`.
 
-Env vars: `PORT` (default 8081) and `STATIC_DIR` (default `client/dist`).
+Env vars: `PORT` (default 8091) and `STATIC_DIR` (default `client/dist`).
 
-Someone may already have `npm run dev` running on 8081/5174. There is one
+Someone may already have `npm run dev` running on 8091/5174. There is one
 global game per server, so don't point smoke scripts or a test browser at it:
 start your own (`PORT=8191 npx tsx server/src/index.ts`, `npx vite --port 5199
 --strictPort`, then open `http://localhost:5199/?ws=ws://localhost:8191`).
@@ -54,7 +54,7 @@ server/src/sim/platforms.ts buildPlats (platforms, then one Plat per box), updat
 server/src/sim/bots.ts      thinkBot: run right, jump pits/blocks, shoot boxes and gates, stuck detector
 server/src/sim/rng.ts       seedable PRNG (all sim randomness goes through World.rng)
 client/src/main.ts       bootstrap (Phaser config, join flow, touch + audio unlock)
-client/src/net.ts        GameClient (reconnect, input de-dupe) + defaultWsUrl() (same-origin; 5174 → 8081)
+client/src/net.ts        GameClient (reconnect, input de-dupe) + defaultWsUrl() (same-origin; 5174 → 8091)
 client/src/interp.ts     SnapshotBuffer: server-clock sync + interpolation, lerpScroll (pure, unit-tested)
 client/src/store.ts      shared client state; onSnapshot() feeds buffer + fx queue
 client/src/lobby.ts      DOM overlay: join/lobby/game screens, roster, course picker, buttons
@@ -168,7 +168,7 @@ body (it splices `selfId` into the JSON string).
   section dividers like `// ---- input`.
 - Client modules imported by tests (`controls.ts`, `interp.ts`, `net.ts`) must
   not touch `document`/`window` at import time. Tests run in node.
-- WebSocket URL: same origin as the page, except the Vite dev port 5174 → 8081.
+- WebSocket URL: same origin as the page, except the Vite dev port 5174 → 8091.
   `?ws=` overrides it.
 - The client is touch-first: landscape-only, forced 16:9 stage. On touch
   devices the HUD cards move to the top so the thumb buttons don't cover them.

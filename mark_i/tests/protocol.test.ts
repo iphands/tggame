@@ -49,8 +49,8 @@ describe('websocket url', () => {
     search,
   });
 
-  it('dev server on 5173 talks to the game server on 8080', () => {
-    expect(defaultWsUrl(loc('http:', '192.168.1.5:5173', '5173'))).toBe('ws://192.168.1.5:8080');
+  it('dev server on 5173 talks to the game server on 8090', () => {
+    expect(defaultWsUrl(loc('http:', '192.168.1.5:5173', '5173'))).toBe('ws://192.168.1.5:8090');
   });
 
   it('otherwise uses the same origin (any port, behind proxies, https → wss)', () => {
