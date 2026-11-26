@@ -40,6 +40,32 @@ alarm clock|grandfather clock|hourglass|calendar|light bulb|candle|flashlight|la
 remote control|joystick|headphones|record player|walkie-talkie|megaphone|typewriter|fax machine|payphone|satellite dish
 hammock|bunk bed|sleeping bag|rocking chair|high chair|throne|bean bag|waterbed|trapdoor|secret passage
 escape room|ball pit|bouncy castle|water slide|lazy river|mini golf|go-kart|laser tag|haunted hayride|petting zoo
+fart|silent but deadly|whoopee cushion|stink bomb|dutch oven|burp|belch|armpit fart|wet willy|wedgie
+booger|nose picker|snot rocket|loogie|drool|toe jam|foot fungus|stinky socks|morning hair|eye boogers
+butt crack|plumber's crack|mooning|skinny dipping|tighty-whities|granny panties|man bun|mullet|comb-over|back hair
+dad bod|beer belly|muffin top|cankles|uvula|love handles|outie belly button|butt cheek|moobs|chest hair
+porta-potty|clogged toilet|toilet paper mummy|skid mark|diaper blowout|potty training|outhouse|bidet|public restroom|peeing in the pool
+dog poop|poop emoji|pooper scooper|litter box|cow pie|bird poop on a car|seagull stealing fries|dog sniffing a butt|cat hairball|horse fart
+puke|projectile vomit|hangover|food poisoning|seasick|spit take|dog breath|garlic breath|onion breath|cheese breath
+zit|pimple popping|ingrown toenail|wart|blister|bunion|hickey|black eye|wedding hangover|bed wetter
+walk of shame|awkward hug|third wheel|friend zone|blind date|bad kisser|speed dating|ugly cry|man cold|mom jeans
+ugly sweater|socks with sandals|crocs|fanny pack|speedo|mankini|toupee|fake tan|duck face|resting grumpy face
+twerking|dabbing|the worm|chicken dance|macarena|conga line|mosh pit|crowd surfing|karaoke fail|dad dancing
+streaker|naked mole rat|nude beach|hot tub|cannonball contest|birthday suit|towel whip|locker room|sauna|skinny jeans
+zombie cheerleader|vampire dentist|ninja grandma|pirate accountant|robot butler|wizard plumber|caveman on a date|alien abduction|mummy on a treadmill|ghost on the toilet
+t-rex doing push-ups|shark in a bathtub|llama with sunglasses|sloth on a skateboard|pigeon in a suit|squirrel with a jetpack|goat on a trampoline|cow in a tutu|chicken crossing the road|cat in a business meeting
+hamster wheel of doom|angry goose|judgmental llama|grumpy cat|sneezing panda|drunk giraffe|fainting goat|constipated bulldog|karate kangaroo|disco chicken
+sasquatch selfie|bigfoot at the beach|unicorn fart|dragon with heartburn|mermaid at the dentist|werewolf at the barber|grim reaper on vacation|santa stuck in a chimney|tooth fairy robbery|easter bunny hangover
+grandma's dentures|grandpa's toupee|false teeth in a glass|nose hair trimmer|ear hair|back scratcher|bedpan|walker race|mobility scooter chase|bingo night brawl
+banana peel slip|pie in the face|wardrobe malfunction|pants on fire|pants falling down|stepping on a rake|stepping on a lego|walking into a glass door|tripping up the stairs|texting into a pole
+brain fart|butt dial|photocopying your butt|reply all|zoom call with no pants|autocorrect fail|selfie stick|doomscrolling|low battery panic|wifi rage
+hot dog eating contest|pizza for breakfast|mystery meat|cafeteria lady|spaghetti in a pocket|burrito blanket|cheese puff fingers|soda burp|milk out the nose|chili regret
+belly dancer|sumo wrestler|sumo wedgie|bodybuilder in a thong|yoga fart|hot yoga|goat yoga|jazzercise|sweatband|protein shake explosion
+mad cow|killer rabbit|vampire mosquito|radioactive hamster|haunted toilet|possessed toaster|evil clown|creepy doll|cursed sock|sentient meatloaf
+tinfoil hat|flat earth|area 51|men in black|alien probe|crop duster|lizard people|time-travelling toddler|clone army|evil twin
+bachelor party|bridezilla|drunk uncle|awkward family photo|mother-in-law|baby shower|gender reveal gone wrong|prom photo|wedding crasher|honeymoon sunburn
+nacho libre|pro wrestler|rodeo clown|mime in a box|human cannonball|bearded lady|fire breather|snake charmer|knife thrower|bed of nails
+couch fort|pillow fort|blanket burrito|bedhead|snooze button|sleep drooling|snoring|morning person|midnight snack|fridge raid
 `
   .trim()
   .split(/[|\n]/)

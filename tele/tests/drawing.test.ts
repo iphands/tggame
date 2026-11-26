@@ -3,6 +3,8 @@ import { DRAW_LIMITS, ERASER, INK, PAGE_H, PAGE_W } from '../shared/src/constant
 import { hasInk, sameWord, sanitizeDrawing, sanitizeGuess, sanitizeName, simplify, splitStroke } from '../shared/src/drawing';
 import { computeAwards, survived } from '../shared/src/awards';
 import type { Page } from '../shared/src/types';
+import { BOT_ADJECTIVES, WORDS } from '../shared/src/words';
+import { CARD_SIZE, GUESS_MAX, MAX_PLAYERS } from '../shared/src/constants';
 
 describe('sanitizeDrawing', () => {
   it('accepts a normal drawing and rounds/clamps coordinates', () => {
@@ -119,5 +121,21 @@ describe('awards', () => {
 
   it('gives nothing when nobody hearted anything', () => {
     expect(computeAwards(books, {})).toEqual({ bestDoodle: null, bestGuess: null, crowdFavourite: null });
+  });
+});
+
+describe('word deck', () => {
+  it('has no duplicates, so no two cards share a word', () => {
+    const seen = new Set<string>();
+    const dupes = WORDS.filter((w) => seen.size === seen.add(w.toLowerCase()).size);
+    expect(dupes).toEqual([]);
+  });
+
+  it('is big enough for a full table and every word survives sanitising unchanged', () => {
+    expect(WORDS.length).toBeGreaterThanOrEqual(MAX_PLAYERS * CARD_SIZE * 4);
+    for (const w of WORDS) expect(sanitizeGuess(w)).toBe(w);
+    // a bot guess may add an adjective; it must still fit
+    const longestAdjective = Math.max(...BOT_ADJECTIVES.map((a) => a.length));
+    for (const w of WORDS) expect(w.length + longestAdjective + 1).toBeLessThanOrEqual(GUESS_MAX);
   });
 });
