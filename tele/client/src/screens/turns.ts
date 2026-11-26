@@ -111,8 +111,11 @@ export function drawScreen(): Screen {
   );
   const eraser = h('button', { class: 'swatch eraser', type: 'button', title: 'Eraser', 'aria-label': 'Eraser', onclick: () => choose(ERASER) }, '⌫');
   const nibs = [0, 1, 2].map((n) =>
-    h('button', { class: 'tool nib', type: 'button', 'aria-label': `Nib ${n + 1}`, onclick: () => ((pad.nib = n), syncTools()) }, h('i', { style: `--s:${6 + n * 7}px` })),
+    h('button', { class: 'tool nib', type: 'button', 'aria-label': `Nib ${n + 1}`, onclick: () => ((pad.nib = n), (pad.filling = false), syncTools()) }, h('i', { style: `--s:${6 + n * 7}px` })),
   );
+  const bucket = h('button', { class: 'tool bucket', type: 'button', title: 'Fill bucket', 'aria-label': 'Fill bucket', onclick: () => ((pad.filling = !pad.filling), (pad.erasing = false), syncTools()) });
+  bucket.innerHTML =
+    '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5 12 5l7 7-6.5 6.5a2 2 0 0 1-2.8 0L4.5 13.3a.6.6 0 0 1 0-.8z"/><path d="M9.5 2.5 13 6"/><path d="M5 12.5h14"/><path d="M20.5 16c1 1.5 1.5 2.4 1.5 3.2a1.5 1.5 0 0 1-3 0c0-.8.5-1.7 1.5-3.2z" fill="currentColor"/></svg>';
   const undo = h('button', { class: 'tool', type: 'button', title: 'Undo', 'aria-label': 'Undo', onclick: () => pad.undo() }, '↶');
   const redo = h('button', { class: 'tool', type: 'button', title: 'Redo', 'aria-label': 'Redo', onclick: () => pad.redo() }, '↷');
   let armed = 0;
@@ -155,13 +158,15 @@ export function drawScreen(): Screen {
 
   function choose(c: number): void {
     pad.erasing = c === ERASER;
-    if (c !== ERASER) pad.color = c;
+    if (c === ERASER) pad.filling = false;
+    else pad.color = c;
     syncTools();
   }
   function syncTools(): void {
     swatches.forEach((el, i) => el.classList.toggle('on', !pad.erasing && pad.color === i));
     eraser.classList.toggle('on', pad.erasing);
-    nibs.forEach((el, i) => el.classList.toggle('on', pad.nib === i));
+    nibs.forEach((el, i) => el.classList.toggle('on', pad.nib === i && !pad.filling));
+    bucket.classList.toggle('on', pad.filling);
     undo.disabled = !pad.canUndo;
     redo.disabled = !pad.canRedo;
     clear.disabled = !pad.canUndo;
@@ -173,7 +178,7 @@ export function drawScreen(): Screen {
   };
   pad.onFull = () => {
     sfx.nope();
-    toast('This page is full! Undo something or hand it in.');
+    toast(pad.filling ? 'That is a lot of paint! Undo a fill or hand it in.' : 'This page is full! Undo something or hand it in.');
   };
 
   const keys = (e: KeyboardEvent) => {
@@ -199,7 +204,7 @@ export function drawScreen(): Screen {
       'div',
       { class: 'tools' },
       h('div', { class: 'swatches' }, swatches, eraser),
-      h('div', { class: 'tool-row' }, nibs, h('span', { class: 'gap' }), undo, redo, clear),
+      h('div', { class: 'tool-row' }, nibs, bucket, h('span', { class: 'gap' }), undo, redo, clear),
     ),
     done,
   );

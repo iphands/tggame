@@ -831,6 +831,9 @@ input[type='text']::placeholder {
 .tool:disabled {
   opacity: 0.4;
 }
+.tool.bucket svg {
+  display: block;
+}
 .nib i {
   width: var(--s);
   height: var(--s);

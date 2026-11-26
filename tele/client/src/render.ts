@@ -2,6 +2,7 @@
 import { ERASER, INK, PAGE_H, PAGE_W } from '../../shared/src/constants';
 import type { Drawing, Page, Stroke } from '../../shared/src/types';
 import { reducedMotion } from './dom';
+import { flood, isFill, newCanon, stamp, type Canon } from './fill';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -13,7 +14,7 @@ type Ctx = CanvasRenderingContext2D;
 export function paintStroke(ctx: Ctx, s: Stroke, scale: number, from = 0, to = s.p.length / 2 - 1): void {
   const n = s.p.length / 2;
   to = Math.min(to, n - 1);
-  if (n === 0 || to < from) return;
+  if (n === 0 || to < from || isFill(s)) return; // fills need the strokes before them: see paintFill
   const X = (i: number) => s.p[i * 2] * scale;
   const Y = (i: number) => s.p[i * 2 + 1] * scale;
   ctx.save();
@@ -42,9 +43,36 @@ export function paintStroke(ctx: Ctx, s: Stroke, scale: number, from = 0, to = s
   ctx.restore();
 }
 
+/** The page at one pixel per page unit, which is where bucket fills are worked out (see fill.ts). */
+function canonOf(strokes: Drawing): Canon {
+  const canon = newCanon();
+  for (const s of strokes) {
+    if (isFill(s)) flood(canon, s);
+    else paintStroke(canon, s, 1);
+  }
+  return canon;
+}
+
+/** Paint a bucket fill that comes right after the strokes in `before`. */
+export function paintFill(ctx: Ctx, before: Drawing, s: Stroke, scale: number): void {
+  const patch = flood(canonOf(before), s);
+  if (patch) stamp(ctx, patch, scale);
+}
+
 export function paint(ctx: Ctx, strokes: Drawing, scale: number): void {
   ctx.clearRect(0, 0, PAGE_W * scale + 1, PAGE_H * scale + 1);
-  for (const s of strokes) paintStroke(ctx, s, scale);
+  // the canon copy is only kept up once a fill needs it
+  let canon: Canon | null = null;
+  strokes.forEach((s, i) => {
+    if (isFill(s)) {
+      canon ??= canonOf(strokes.slice(0, i));
+      const patch = flood(canon, s);
+      if (patch) stamp(ctx, patch, scale);
+    } else {
+      paintStroke(ctx, s, scale);
+      if (canon) paintStroke(canon, s, 1);
+    }
+  });
 }
 
 /** A canvas with a fixed backing size that CSS scales (`width:100%`, 4:3). */
@@ -88,7 +116,8 @@ export function replay(canvas: HTMLCanvasElement, strokes: Drawing, onDone?: () 
       const n = s.p.length / 2;
       const upto = Math.min(n, Math.floor(target - spent));
       if (upto > pi) {
-        paintStroke(ctx, s, scale, Math.max(0, pi - 1), upto - 1);
+        if (isFill(s)) paintFill(ctx, strokes.slice(0, si), s, scale);
+        else paintStroke(ctx, s, scale, Math.max(0, pi - 1), upto - 1);
         pi = upto;
       }
       if (pi < n || target < spent + n + LIFT) break;

@@ -45,7 +45,7 @@ origin; `?ws=ws://host:port` overrides it.
 5. **Finale.** Awards from the hearts (Best Doodle, Best Guess, Crowd Favourite), every book to
    re-read and save as a PNG, then play again.
 
-Drawing tools: ten marker colours, three nib sizes, eraser, undo/redo (also Ctrl+Z / Ctrl+Shift+Z),
+Drawing tools: ten marker colours, three nib sizes, fill bucket, eraser, undo/redo (also Ctrl+Z / Ctrl+Shift+Z),
 clear. No letters or numbers: honour system!
 
 Good to know:

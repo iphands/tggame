@@ -2,7 +2,8 @@
 import { DRAW_LIMITS, ERASER, ERASER_NIBS, NIBS, PAGE_H, PAGE_W } from '../../shared/src/constants';
 import { simplify, splitStroke } from '../../shared/src/drawing';
 import type { Drawing, Stroke } from '../../shared/src/types';
-import { paint, paintStroke } from './render';
+import { isFill } from './fill';
+import { paint, paintFill, paintStroke } from './render';
 
 export class DrawPad {
   readonly el: HTMLDivElement;
@@ -18,6 +19,8 @@ export class DrawPad {
   color = 0;
   nib = 1;
   erasing = false;
+  /** Bucket mode: a tap floods with the current colour instead of starting a line. */
+  filling = false;
   /** Called after every committed change (stroke, undo, redo, clear). */
   onChange: () => void = () => {};
   /** Called when a stroke is refused because the page is full. */
@@ -118,9 +121,19 @@ export class DrawPad {
       this.onFull();
       return;
     }
+    const [x, y] = this.toPage(e);
+    if (this.filling && !this.erasing) {
+      // bucket tap: one fill stroke, no dragging
+      if (this.strokes.filter(isFill).length >= DRAW_LIMITS.maxFills) return this.onFull();
+      const s: Stroke = { c: this.color, w: NIBS[0], p: [x, y], f: 1 };
+      paintFill(this.ctx, this.strokes, s, this.scale);
+      this.strokes.push(s);
+      this.undone = [];
+      this.onChange();
+      return;
+    }
     this.pointerId = e.pointerId;
     this.canvas.setPointerCapture(e.pointerId);
-    const [x, y] = this.toPage(e);
     this.live = {
       c: this.erasing ? ERASER : this.color,
       w: (this.erasing ? ERASER_NIBS : NIBS)[this.nib],

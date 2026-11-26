@@ -39,7 +39,7 @@ node scripts/smoke.mjs ws://localhost:8192    # needs an empty lobby
 | `client/src/main.ts` | join flow, connection, header, screen switching |
 | `client/src/screens/` | one module per screen; `index.ts` maps state → screen key |
 | `client/src/pad.ts` | drawing input (pointer events → strokes, undo/redo) |
-| `client/src/render.ts` | stroke painting, replay animation, PNG export |
+| `client/src/render.ts` `fill.ts` | stroke painting, replay animation, PNG export; bucket fills, flooded at a fixed resolution so every screen agrees |
 | `client/styles.css` | all styling |
 
 ## Rules that must hold

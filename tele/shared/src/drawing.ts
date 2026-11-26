@@ -9,9 +9,13 @@ export function sanitizeDrawing(input: unknown): Drawing | null {
   if (!Array.isArray(input) || input.length > DRAW_LIMITS.maxStrokes) return null;
   const out: Drawing = [];
   let total = 0;
+  let fills = 0;
   for (const raw of input) {
     if (typeof raw !== 'object' || raw === null) return null;
-    const { c, w, p } = raw as Record<string, unknown>;
+    const { c, w, p, f } = raw as Record<string, unknown>;
+    // a fill is one point in a real colour
+    if (f !== undefined && (f !== 1 || c === ERASER || !Array.isArray(p) || p.length !== 2)) return null;
+    if (f === 1 && ++fills > DRAW_LIMITS.maxFills) return null;
     if (typeof c !== 'number' || !Number.isInteger(c) || c < ERASER || c >= INK.length) return null;
     if (typeof w !== 'number' || !Number.isFinite(w)) return null;
     if (!Array.isArray(p) || p.length < 2 || p.length % 2 !== 0) return null;
@@ -24,7 +28,9 @@ export function sanitizeDrawing(input: unknown): Drawing | null {
       if (typeof v !== 'number' || !Number.isFinite(v)) return null;
       pts[i] = clamp(Math.round(v), 0, i % 2 === 0 ? PAGE_W : PAGE_H);
     }
-    out.push({ c, w: clamp(Math.round(w), DRAW_LIMITS.minWidth, DRAW_LIMITS.maxWidth), p: pts });
+    const stroke: Stroke = { c, w: clamp(Math.round(w), DRAW_LIMITS.minWidth, DRAW_LIMITS.maxWidth), p: pts };
+    if (f === 1) stroke.f = 1;
+    out.push(stroke);
   }
   return out;
 }

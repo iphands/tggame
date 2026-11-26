@@ -44,6 +44,20 @@ describe('sanitizeDrawing', () => {
     expect(sanitizeDrawing(Array(many).fill(long))).toBeNull();
   });
 
+  it('a fill is one point in a real colour, and there is a limit to them', () => {
+    expect(sanitizeDrawing([{ c: 3, w: 5, p: [10.2, 20], f: 1 }])).toEqual([{ c: 3, w: 5, p: [10, 20], f: 1 }]);
+    expect(sanitizeDrawing([{ c: 3, w: 5, p: [10, 20] }])![0]).not.toHaveProperty('f');
+    for (const bad of [
+      { c: ERASER, w: 5, p: [1, 2], f: 1 },
+      { c: 3, w: 5, p: [1, 2, 3, 4], f: 1 },
+      { c: 3, w: 5, p: [1, 2], f: true },
+      { c: 3, w: 5, p: [1, 2], f: 0 },
+    ]) expect(sanitizeDrawing([bad])).toBeNull();
+    const fill = { c: 1, w: 5, p: [1, 2], f: 1 };
+    expect(sanitizeDrawing(Array(DRAW_LIMITS.maxFills).fill(fill))).not.toBeNull();
+    expect(sanitizeDrawing(Array(DRAW_LIMITS.maxFills + 1).fill(fill))).toBeNull();
+  });
+
   it('clamps widths', () => {
     expect(sanitizeDrawing([{ c: 0, w: 9999, p: [1, 2] }])![0].w).toBe(DRAW_LIMITS.maxWidth);
     expect(sanitizeDrawing([{ c: 0, w: 0, p: [1, 2] }])![0].w).toBe(DRAW_LIMITS.minWidth);
