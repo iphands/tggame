@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Pushes the image from ./build to Docker Hub as iphands/tggame. Log in first (docker login).
+#   ./publish              pushes :latest and :<git commit>
+#   TAG=v1 ./publish       pushes :v1 instead of the commit tag
+#   REPO=other/name ./publish
+set -euo pipefail
+cd "$(dirname "$0")"
+
+ENGINE=${ENGINE:-$(command -v docker || command -v podman || true)}
+[ -n "$ENGINE" ] || { echo "Neither docker nor podman is installed." >&2; exit 1; }
+
+IMAGE=${IMAGE:-tggame}
+REPO=${REPO:-docker.io/iphands/tggame}
+TAG=${TAG:-$(git rev-parse --short HEAD 2>/dev/null || true)}
+
+"$ENGINE" image inspect "$IMAGE" >/dev/null 2>&1 || { echo "No image \"$IMAGE\" yet. Run ./build first." >&2; exit 1; }
+
+for tag in latest $TAG; do
+  "$ENGINE" tag "$IMAGE" "$REPO:$tag"
+  "$ENGINE" push "$REPO:$tag"
+  echo "Published $REPO:$tag"
+done

@@ -23,7 +23,9 @@ Only port 8081 leaves the container. The landing page is at `/` and each game at
 
 - `PORT=9000 ./run` publishes another port.
 - `./run -d` runs in the background; stop it with `docker stop tggame` or `podman stop tggame`.
-- Both scripts use `docker` when it is installed and `podman` otherwise (`ENGINE=podman` to choose).
+- `./publish` pushes the built image to Docker Hub as `iphands/tggame`, tagged `latest` and with
+  the current commit (`TAG=v1 ./publish` to name the tag). Log in first.
+- The scripts use `docker` when it is installed and `podman` otherwise (`ENGINE=podman` to choose).
 
 ## Without a container
 
