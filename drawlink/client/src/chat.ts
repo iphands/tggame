@@ -76,6 +76,12 @@ export function chatPanel(): { el: HTMLElement; update(): void } {
   );
   const el = h('div', { class: 'chat' }, log, form);
 
+  // Follow the newest line unless the reader has scrolled up to look at something.
+  let stick = true;
+  log.addEventListener('scroll', () => (stick = log.scrollHeight - log.scrollTop - log.clientHeight < 40));
+  const toEnd = () => stick && (log.scrollTop = log.scrollHeight);
+  new ResizeObserver(toEnd).observe(log);
+
   let epoch = -1;
   let lastSeq = 0;
   let lastWhisper: string | null = null;
@@ -89,16 +95,13 @@ export function chatPanel(): { el: HTMLElement; update(): void } {
         lastSeq = 0;
         log.replaceChildren();
       }
-      const pinned = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
-      let added = false;
       for (const line of store.chat) {
         if (line.seq <= lastSeq) continue;
         lastSeq = line.seq;
         log.append(lineEl(line, s.selfId));
-        added = true;
       }
       while (log.childElementCount > SHOWN) log.firstElementChild!.remove();
-      if (added && pinned) log.scrollTop = log.scrollHeight;
+      toEnd();
 
       const target = player(store.whisperTo);
       if (store.whisperTo && !target) store.whisperTo = null;

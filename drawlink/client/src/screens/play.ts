@@ -177,7 +177,12 @@ export function playScreen(): Screen {
         banner.className = `banner${res.winnerId ? ' won' : ''}`;
         banner.replaceChildren(
           res.winnerId
-            ? h('span', null, h('b', null, res.winnerId === s.selfId ? 'You' : nameOf(res.winnerId)), ` got it! +${res.award} each for the guesser and ${res.drawerId === s.selfId ? 'you' : nameOf(res.drawerId)}.`)
+            ? h(
+                'span',
+                null,
+                h('b', null, res.winnerId === s.selfId ? 'You' : nameOf(res.winnerId)),
+                ` got it! +${res.award} for ${res.winnerId === s.selfId ? 'you' : nameOf(res.winnerId)} and ${res.drawerId === s.selfId ? 'you' : nameOf(res.drawerId)}.`,
+              )
             : h('span', null, "Time's up! Nobody scores."),
         );
       }
