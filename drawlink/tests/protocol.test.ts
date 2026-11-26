@@ -31,13 +31,17 @@ describe('isClientMessage', () => {
 });
 
 describe('defaultWsUrl', () => {
-  const loc = (o: Partial<Location>) => ({ protocol: 'http:', hostname: 'h', host: 'h', port: '', search: '', ...o }) as Location;
+  const loc = (o: Partial<Location>) => ({ protocol: 'http:', hostname: 'h', host: 'h', port: '', search: '', pathname: '/', ...o }) as Location;
   it('maps the Vite dev port to the game server', () => {
     expect(defaultWsUrl(loc({ port: '5176', host: 'h:5176' }))).toBe('ws://h:8093');
   });
   it('uses the same origin otherwise, wss under https', () => {
     expect(defaultWsUrl(loc({ port: '8093', host: 'h:8093' }))).toBe('ws://h:8093');
     expect(defaultWsUrl(loc({ protocol: 'https:', host: 'play.example' }))).toBe('wss://play.example');
+  });
+  it('keeps the directory when a proxy mounts the game under a path', () => {
+    expect(defaultWsUrl(loc({ host: 'h:8081', port: '8081', pathname: '/play/x/' }))).toBe('ws://h:8081/play/x/');
+    expect(defaultWsUrl(loc({ host: 'h:8081', port: '8081', pathname: '/play/x/index.html' }))).toBe('ws://h:8081/play/x/');
   });
   it('honours ?ws=', () => {
     expect(defaultWsUrl(loc({ search: '?ws=ws://x:1' }))).toBe('ws://x:1');

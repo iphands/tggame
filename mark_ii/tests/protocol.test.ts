@@ -40,7 +40,8 @@ describe('client message validation', () => {
 });
 
 describe('websocket url', () => {
-  const loc = (protocol: string, host: string, port: string, search = '') => ({
+  const loc = (protocol: string, host: string, port: string, search = '', pathname = '/') => ({
+    pathname,
     protocol,
     hostname: host.split(':')[0],
     host,
@@ -55,6 +56,11 @@ describe('websocket url', () => {
   it('otherwise uses the same origin (any port, behind proxies, https → wss)', () => {
     expect(defaultWsUrl(loc('http:', 'game.lan:9000', '9000'))).toBe('ws://game.lan:9000');
     expect(defaultWsUrl(loc('https:', 'arena.example.com', ''))).toBe('wss://arena.example.com');
+  });
+
+  it('keeps the directory when a proxy mounts the game under a path', () => {
+    expect(defaultWsUrl(loc('http:', 'h:8081', '8081', '', '/play/x/'))).toBe('ws://h:8081/play/x/');
+    expect(defaultWsUrl(loc('http:', 'h:8081', '8081', '', '/play/x/index.html'))).toBe('ws://h:8081/play/x/');
   });
 
   it('?ws= overrides', () => {

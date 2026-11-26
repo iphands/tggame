@@ -2,20 +2,22 @@ import type { ClientMessage, ServerMessage } from '../../shared/src/protocol';
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'full' | 'booted';
 
-type LocationLike = Pick<Location, 'protocol' | 'hostname' | 'host' | 'port' | 'search'>;
+type LocationLike = Pick<Location, 'protocol' | 'hostname' | 'host' | 'port' | 'search' | 'pathname'>;
 
 /**
  * Where the game server lives:
  * - `?ws=ws://host:port` overrides everything
  * - the Vite dev server (port 5176) talks to the game server on :8093
- * - otherwise the page was served by the game server itself → same origin
+ * - otherwise the page was served by the game server itself → same origin, and the same
+ *   directory, so the game also works behind a proxy that mounts it under a path
  */
 export function defaultWsUrl(loc: LocationLike): string {
   const override = new URLSearchParams(loc.search).get('ws');
   if (override) return override;
   const proto = loc.protocol === 'https:' ? 'wss' : 'ws';
-  const host = loc.port === '5176' ? `${loc.hostname}:8093` : loc.host || 'localhost:8093';
-  return `${proto}://${host}`;
+  if (loc.port === '5176') return `${proto}://${loc.hostname}:8093`;
+  const dir = loc.pathname.replace(/[^/]*$/, '');
+  return `${proto}://${loc.host || 'localhost:8093'}${dir === '/' ? '' : dir}`;
 }
 
 export type GameClientOptions = {
