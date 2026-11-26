@@ -4,7 +4,7 @@
 /**
  * @typedef {{
  *   id: string, title: string, tagline: string, port: number, players: string, accent: string,
- *   phases: Record<string, string>, cover: string,
+ *   phases: Record<string, string>, cover: string, url: string,
  *   up: boolean, phase: string, humans: number, bots: number, capacity: number,
  * }} Game
  */
@@ -39,9 +39,6 @@ function el(tag, cls, text) {
 
 /** @param {number} n @param {string} one @param {string} many */
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-
-/** Games live on the same machine as this page, each on its own port. @param {Game} g */
-const gameUrl = (g) => `${location.protocol}//${location.hostname}:${g.port}/`;
 
 /** @param {Game} g @param {number} index */
 function buildCard(g, index) {
@@ -99,7 +96,7 @@ function paintCard(a, g, before) {
   const busy = g.up && g.humans > 0;
   const state = !g.up ? 'down' : busy ? 'busy' : 'open';
   a.dataset.state = state;
-  a.href = gameUrl(g);
+  a.href = g.url;
   a.setAttribute('aria-disabled', String(!g.up));
 
   setText(q('.badge-text'), !g.up ? 'Offline' : busy ? 'Live' : 'Open');

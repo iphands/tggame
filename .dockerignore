@@ -1,0 +1,7 @@
+.git
+**/node_modules
+**/dist
+**/.vite
+**/client/public/icons
+**/*.log
+demo

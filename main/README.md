@@ -33,9 +33,24 @@ Environment: `PORT` (8081), `GAMES_DIR` (`..`, the directory that holds the game
 | 8092 | `tele`: Doodle Telephone |
 | 8093 | `drawlink`: Drawlink |
 
-A card links to the game's own port on whatever host the page was opened from. That port serves
-the built client, so run a game with `npm run build && npm start` for visitors; under
-`npm run dev` the port serves the last build, not the live Vite client.
+A card links to `/play/<game>/` on the landing page's own port, and the landing page passes
+that address (pages and WebSockets alike) on to the game's server. So visitors only ever need
+port 8081; the games' own ports still work directly. The game ports serve the built client, so
+build a game (`npm run build`) before sending people to it; under `npm run dev` they serve the
+last build, not the live Vite client.
+
+## Everything at once
+
+```sh
+npm run build && npm run all
+```
+
+`npm run all` starts every game it finds (each from its own build, on the port in its
+`game.json`) and then the landing page, with each line of output labelled by game. Ctrl-C stops
+them all, and if one stops the rest follow. Build each game first with
+`npm install && npm run build` in its directory.
+
+The container image does the same with only port 8081 published: see `../README.md`.
 
 ## Adding a game
 
@@ -74,6 +89,10 @@ The game must answer `GET /health` with JSON:
 
 - `server/src/games.ts` scans `GAMES_DIR` for `game.json` files and asks each game's `/health`.
 - `server/src/index.ts` serves the page, `/api/games` (manifests plus status, reused for 1.5 s so
-  many open phones cost each game one request), `/covers/<game>` and the two fonts.
+  many open phones cost each game one request), `/covers/<game>` and the two fonts, and proxies
+  `/play/<game>/` to the game. A game's client must load its files and open its WebSocket
+  relative to its page's directory for that to work (Vite `base: './'`, and see `defaultWsUrl`
+  in any game's `client/src/net.ts`).
+- `server/src/all.ts` is the `npm run all` launcher.
 - `client/` is plain HTML, CSS and JavaScript with no build step. It polls `/api/games` every
   3 seconds while the page is visible.

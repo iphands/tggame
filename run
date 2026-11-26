@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Runs the image from ./build. Everything is served on one port:
+#   ./run              http://localhost:8081
+#   PORT=9000 ./run    another port
+#   ./run -d           in the background (extra arguments go to the run command)
+# Stop a background container with: docker stop tggame  (or podman stop tggame)
+set -euo pipefail
+
+ENGINE=${ENGINE:-$(command -v docker || command -v podman || true)}
+[ -n "$ENGINE" ] || { echo "Neither docker nor podman is installed." >&2; exit 1; }
+
+PORT=${PORT:-8081}
+TTY=()
+[ -t 0 ] && [ -t 1 ] && TTY=(-it)
+
+echo "Game Night on http://localhost:$PORT"
+exec "$ENGINE" run --rm --init --name "${NAME:-tggame}" -p "$PORT:8081" "${TTY[@]}" "$@" "${IMAGE:-tggame}"

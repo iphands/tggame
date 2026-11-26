@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Builds the image that holds every game and the landing page.
+#   ./build            image "tggame"
+#   IMAGE=foo ./build  another name; extra arguments go to the build command
+set -euo pipefail
+cd "$(dirname "$0")"
+
+ENGINE=${ENGINE:-$(command -v docker || command -v podman || true)}
+[ -n "$ENGINE" ] || { echo "Neither docker nor podman is installed." >&2; exit 1; }
+
+exec "$ENGINE" build -t "${IMAGE:-tggame}" "$@" .
