@@ -12,12 +12,21 @@ import type { Screen } from './index';
 
 /** The word as guessers see it: a box per letter, filled in where a letter has been given away. */
 function hintBoxes(hint: string): HTMLElement {
+  // One unbreakable group per word: a long answer puts its second word on a new
+  // line, and the boxes shrink (via --n) before a single word would ever split.
+  const words = hint.split(' ').filter(Boolean);
+  const longest = Math.max(1, ...words.map((w) => [...w].length));
   return h(
     'span',
-    { class: 'hint', 'aria-label': 'Letters so far' },
-    [...hint].map((ch) =>
-      ch === ' ' ? h('i', { class: 'gap' }) : ch === HINT_BLANK ? h('i', { class: 'box' }) : h('i', { class: /[\p{L}\p{N}]/u.test(ch) ? 'box open' : 'mark' }, ch),
+    { class: 'hint', 'aria-label': 'Letters so far', style: `--n:${longest}` },
+    words.map((w) =>
+      h(
+        'span',
+        { class: 'hint-word' },
+        [...w].map((ch) => (ch === HINT_BLANK ? h('i', { class: 'box' }) : h('i', { class: /[\p{L}\p{N}]/u.test(ch) ? 'box open' : 'mark' }, ch))),
+      ),
     ),
+    words.length > 1 ? h('span', { class: 'hint-count' }, `${words.length} words`) : null,
   );
 }
 
@@ -171,7 +180,7 @@ export function playScreen(): Screen {
         word.replaceChildren(h('span', { class: 'word-label' }, 'It was'), h('span', { class: 'prompt-word', style: `--tilt:${tilt(res.word, 1.5)}deg` }, res.word));
       } else if (drawing) {
         const w = store.task?.word ?? '…';
-        word.replaceChildren(h('span', { class: 'word-label' }, 'Draw'), h('span', { class: 'prompt-word', style: `--tilt:${tilt(w, 1.5)}deg` }, w), h('span', { class: 'prompt-rule' }, 'No letters or numbers!'));
+        word.replaceChildren(h('span', { class: 'word-label' }, 'Draw'), h('span', { class: 'prompt-word', style: `--tilt:${tilt(w, 1.5)}deg;--n:${Math.max(1, ...w.split(' ').map((p) => [...p].length))}` }, w), h('span', { class: 'prompt-rule' }, 'No letters or numbers!'));
       } else {
         const label = h('span', { class: 'word-label' }, h('b', null, nameOf(r.drawerId)), ' is drawing');
         word.replaceChildren(...(r.hint === null ? [label] : [label, hintBoxes(r.hint)]));

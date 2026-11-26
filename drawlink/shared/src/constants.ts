@@ -20,14 +20,13 @@ export const BETWEEN_MS = 6_000;
 /** A drawer whose connection is gone this long passes automatically. */
 export const DRAWER_GRACE_MS = 12_000;
 
-/** Letter hints: blanks first, then single letters, by elapsed time. */
-export const HINT_BLANKS_MS = 20_000;
-export const HINT_REVEALS: readonly { at: number; letter: 'first' | 'last' | 'second' | 'secondLast' }[] = [
-  { at: 40_000, letter: 'first' },
-  { at: 60_000, letter: 'last' },
-  { at: 80_000, letter: 'second' },
-  { at: 100_000, letter: 'secondLast' },
-];
+/** Letter hints: a blank per letter from this moment (0 = as soon as the round starts)… */
+export const HINT_BLANKS_MS = 0;
+/** …the first letter at this moment, and another every `HINT_STEP_MS` after it. */
+export const HINT_FIRST_MS = 10_000;
+export const HINT_STEP_MS = 10_000;
+/** The deck only deals answers of at most this many words (hyphens count as spaces). */
+export const MAX_ANSWER_WORDS = 2;
 /** Stands for a hidden letter in a hint. */
 export const HINT_BLANK = '_';
 

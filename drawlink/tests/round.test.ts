@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { HINT_BLANKS_MS, MAX_AWARD, ROUND_MS } from '../shared/src/constants';
+import { HINT_BLANKS_MS, MAX_ANSWER_WORDS, MAX_AWARD, ROUND_MS } from '../shared/src/constants';
 import { awardAt, hintAt } from '../shared/src/round';
+import { WORDS } from '../shared/src/words';
 
 describe('awardAt', () => {
   it('starts at the maximum and drops ten every full ten seconds', () => {
@@ -16,27 +17,50 @@ describe('awardAt', () => {
 });
 
 describe('hintAt', () => {
-  it('shows nothing, then blanks, then first, last, second, second-to-last', () => {
-    expect(hintAt('elephant', 0)).toBeNull();
-    expect(hintAt('elephant', HINT_BLANKS_MS - 1)).toBeNull();
-    expect(hintAt('elephant', 20_000)).toBe('________');
-    expect(hintAt('elephant', 40_000)).toBe('e_______');
-    expect(hintAt('elephant', 60_000)).toBe('e______t');
-    expect(hintAt('elephant', 80_000)).toBe('el_____t');
-    expect(hintAt('elephant', 100_000)).toBe('el____nt');
-    expect(hintAt('elephant', 119_000)).toBe('el____nt');
+  it('shows blanks from the start, then a letter every ten seconds', () => {
+    expect(hintAt('elephant', -1)).toBeNull();
+    expect(hintAt('elephant', HINT_BLANKS_MS)).toBe('________');
+    expect(hintAt('elephant', 9_999)).toBe('________');
+    expect(hintAt('elephant', 10_000)).toBe('e_______');
+    expect(hintAt('elephant', 20_000)).toBe('e______t');
+    const three = hintAt('elephant', 30_000)!;
+    expect(three.replaceAll('_', '')).toHaveLength(3);
+    expect(hintAt('elephant', 30_000)).toBe(three);
   });
 
-  it('keeps spaces and punctuation in place and counts letters across words', () => {
-    expect(hintAt('ice cream', 20_000)).toBe('___ _____');
-    expect(hintAt('ice cream', 100_000)).toBe('ic_ ___am');
-    expect(hintAt('jack-in-the-box', 60_000)).toBe('j___-__-___-__x');
+  it('stops at half the letters, rounded up, and never gives the last one away', () => {
+    const open = (w: string): number => [...hintAt(w, ROUND_MS)!].filter((ch) => /[a-z]/.test(ch)).length;
+    expect(open('elephant')).toBe(4);
+    expect(open('bee')).toBe(2);
+    expect(hintAt('ox', ROUND_MS)).toBe('o_');
+    expect(hintAt('a', ROUND_MS)).toBe('_');
   });
 
-  it('never opens more than half of a short word', () => {
-    expect(hintAt('bee', 100_000)).toBe('b__');
-    expect(hintAt('ox', 100_000)).toBe('o_');
-    expect(hintAt('taco', 100_000)).toBe('t__o');
-    expect(hintAt('a', 100_000)).toBe('_');
+  it('only ever adds letters, and they are the right ones', () => {
+    for (const w of ['grandfather clock', 'taco', 'walkie-talkie', "grandma's dentures"]) {
+      let prev = hintAt(w, 0)!;
+      for (let t = 0; t <= ROUND_MS; t += 5_000) {
+        const now = hintAt(w, t)!;
+        [...now].forEach((ch, i) => {
+          expect(ch === '_' || ch === [...w][i]).toBe(true);
+          if ([...prev][i] !== '_') expect(ch).toBe([...prev][i]);
+        });
+        prev = now;
+      }
+    }
+  });
+
+  it('keeps spaces and punctuation in place and starts with each word\'s first letter', () => {
+    expect(hintAt('ice cream', 0)).toBe('___ _____');
+    expect(hintAt('ice cream', 20_000)).toBe('i__ c____');
+    expect(hintAt('ice cream', 40_000)).toBe('i_e c___m');
+    expect(hintAt('walkie-talkie', 20_000)).toBe('w_____-t_____');
+  });
+});
+
+describe('the deck', () => {
+  it('deals nothing longer than two words', () => {
+    expect(WORDS.length).toBeGreaterThan(400);
+    for (const w of WORDS) expect(w.split(/[\s-]+/).length, w).toBeLessThanOrEqual(MAX_ANSWER_WORDS);
   });
 });

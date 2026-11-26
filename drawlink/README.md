@@ -36,8 +36,9 @@ origin; `?ws=ws://host:port` overrides it.
    - **Scoring.** A round opens at 120 points and loses 10 every 10 seconds. The first correct
      guesser and the drawer each get whatever it is worth at that moment. Nobody else scores.
    - **Time's up** after two minutes: nobody scores, and the next round starts.
-   - **Letter hints** (if on): after 20 s a blank for every letter, then the first letter at 40 s,
-     the last at 60 s, the second at 80 s and the second-to-last at 100 s. Never more than half the word.
+   - **Letter hints** (if on): a blank for every letter from the start, one line per word, then a
+     letter every 10 s: the first letter of each word, the last of each, then others. Stops at half the letters.
+   - **Answers** are one or two words; longer entries in the word list are never dealt.
    - **Pass.** The drawer can give a word up; the next player gets a new one and the round number
      does not move.
    - Guesses forgive case, spacing, punctuation, a leading "the/a/an" and a plural "s".

@@ -20,7 +20,7 @@ export function lobbyScreen(): Screen {
     'div',
     { class: 'settings' },
     h('span', { class: 'setting' }, h('span', null, 'Rounds'), roundBtns),
-    h('span', { class: 'setting' }, h('span', { title: 'Blanks for each letter after 20 seconds, then a letter every 20 seconds' }, 'Letter hints'), hintBtns),
+    h('span', { class: 'setting' }, h('span', { title: 'A blank for each letter from the start, then a letter every 10 seconds' }, 'Letter hints'), hintBtns),
   );
   const summary = h('p', { class: 'share' });
   const chat = chatPanel();

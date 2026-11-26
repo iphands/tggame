@@ -38,13 +38,12 @@ describe('hidden information', () => {
     const { g, ids } = table(3);
     g.start(ids[0], T0);
     const word = wordOf(g);
-    expect(g.viewFor(ids[1]).round!.hint).toBeNull();
-    g.tick(T0 + 25_000);
+    g.tick(T0 + 5_000);
     const blanks = g.viewFor(ids[1]).round!.hint!;
     expect([...blanks]).toHaveLength([...word].length);
     expect(blanks).toContain(HINT_BLANK);
     expect(bare(blanks)).toBe('');
-    g.tick(T0 + 45_000);
+    g.tick(T0 + 15_000);
     expect(g.viewFor(ids[1]).round!.hint![0]).toBe(word[0]);
 
     const off = table(3);

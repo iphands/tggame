@@ -1,4 +1,6 @@
 /** The word deck. Things that are fun to doodle and easy to get gloriously wrong. */
+import { MAX_ANSWER_WORDS } from './constants.js';
+
 export const WORDS: readonly string[] = `
 elephant|giraffe|penguin|octopus|hedgehog|kangaroo|flamingo|jellyfish|crocodile|sloth
 unicorn|dragon|mermaid|werewolf|vampire|zombie|ghost|wizard|robot|alien
@@ -70,7 +72,8 @@ couch fort|pillow fort|blanket burrito|bedhead|snooze button|sleep drooling|snor
   .trim()
   .split(/[|\n]/)
   .map((w) => w.trim())
-  .filter(Boolean);
+  .filter(Boolean)
+  .filter((w) => w.split(/[\s-]+/).length <= MAX_ANSWER_WORDS);
 
 /** Flavour words Doodlebots sometimes bolt onto their guesses. */
 export const BOT_ADJECTIVES: readonly string[] = [
