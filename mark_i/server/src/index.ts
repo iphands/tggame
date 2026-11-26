@@ -57,7 +57,7 @@ function serveHttp(req: http.IncomingMessage, res: http.ServerResponse): void {
 
   if (route === '/health') {
     res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
-    res.end(JSON.stringify({ ok: true, phase: game.phase, players: game.players.size, bots: game.botCount() }));
+    res.end(JSON.stringify({ ok: true, phase: game.phase, players: game.players.size, bots: game.botCount(), capacity: MATCH.capacity }));
     return;
   }
 

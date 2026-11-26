@@ -1,0 +1,9 @@
+{
+  "title": "Drawlink",
+  "tagline": "One player draws a secret word. Everyone else races to shout it first.",
+  "port": 8093,
+  "players": "3–16 players",
+  "accent": "#5ec8ff",
+  "order": 4,
+  "phases": { "lobby": "Lobby open", "draw": "Drawing now", "between": "Between rounds", "finale": "Game over" }
+}

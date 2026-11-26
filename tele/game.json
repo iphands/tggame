@@ -1,0 +1,9 @@
+{
+  "title": "Doodle Telephone",
+  "tagline": "Word, doodle, guess, repeat. Then watch every sketchbook unravel.",
+  "port": 8092,
+  "players": "3–12 players",
+  "accent": "#ffd23f",
+  "order": 3,
+  "phases": { "lobby": "Lobby open", "pick": "Picking words", "draw": "Doodling", "guess": "Guessing", "reveal": "The big reveal", "finale": "Game over" }
+}

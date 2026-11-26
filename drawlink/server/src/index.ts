@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import { WebSocketServer, WebSocket } from 'ws';
 import { Game } from './game.js';
 import { isClientMessage, type ClientMessage, type ServerMessage } from '../../shared/src/protocol.js';
-import { ABANDON_MS, MAX_PAYLOAD_BYTES, TICK_MS } from '../../shared/src/constants.js';
+import { ABANDON_MS, MAX_PLAYERS, MAX_PAYLOAD_BYTES, TICK_MS } from '../../shared/src/constants.js';
 
 const PORT = Number(process.env.PORT ?? 8093);
 const STATIC_DIR = path.resolve(process.cwd(), process.env.STATIC_DIR ?? path.join('client', 'dist'));
@@ -69,7 +69,7 @@ function serveHttp(req: http.IncomingMessage, res: http.ServerResponse): void {
 
   if (route === '/health') {
     res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
-    res.end(JSON.stringify({ ok: true, phase: game.phase, players: game.players.size, bots: game.botCount() }));
+    res.end(JSON.stringify({ ok: true, phase: game.phase, players: game.players.size, bots: game.botCount(), capacity: MAX_PLAYERS }));
     return;
   }
 

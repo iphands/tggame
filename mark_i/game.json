@@ -1,0 +1,9 @@
+{
+  "title": "Last Survivor Arena",
+  "tagline": "Shoot, stomp and bomb your friends off floating arenas. Last one standing wins.",
+  "port": 8090,
+  "players": "1–16 players",
+  "accent": "#ff5d73",
+  "order": 1,
+  "phases": { "lobby": "Lobby open", "starting": "Starting!", "playing": "Brawl in progress", "ended": "Round over" }
+}

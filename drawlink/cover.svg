@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="desk" cx=".5" cy="0" r="1.1"><stop offset="0" stop-color="#3d6fe0"/><stop offset=".6" stop-color="#2b59c3"/><stop offset="1" stop-color="#1e3f94"/></radialGradient>
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="12" cy="12" r="1.8" fill="#1f2440" fill-opacity=".13"/></pattern>
+  </defs>
+  <rect width="800" height="500" fill="url(#desk)"/>
+  <g fill="none" stroke="#fff" stroke-opacity=".13" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M30 60c12-16 24 16 36 0s24 16 36 0"/><circle cx="740" cy="440" r="22"/><path d="M40 430l20 20 20-20 20 20"/><path d="M700 40l8 18 20 2-15 13 5 19-18-10-18 10 5-19-15-13 20-2z"/>
+  </g>
+  <!-- the sheet -->
+  <g transform="rotate(-3 330 260)">
+    <rect x="98" y="70" width="470" height="380" rx="22" fill="#0c143c" fill-opacity=".4" transform="translate(10 12)"/>
+    <rect x="98" y="70" width="470" height="380" rx="22" fill="#fffaf0" stroke="#1f2440" stroke-width="7"/>
+    <rect x="98" y="70" width="470" height="380" rx="22" fill="url(#dots)"/>
+    <!-- a rocket, half drawn -->
+    <g fill="none" stroke="#1f2440" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M330 120c50 40 66 110 50 200h-100c-16-90 0-160 50-200z" fill="#fffaf0"/>
+      <circle cx="330" cy="220" r="26" fill="#5ec8ff"/>
+      <path d="M280 290l-46 46 54-8m92-38l46 46-54-8" fill="#ff5d73"/>
+      <path d="M300 334c0 40 14 56 30 76 16-20 30-36 30-76" fill="#ffd23f"/>
+    </g>
+    <g fill="none" stroke="#1f2440" stroke-width="7" stroke-linecap="round">
+      <path d="M150 150l10 22 22 4-16 16 4 22-20-10-20 10 4-22-16-16 22-4z" stroke-linejoin="round"/>
+      <path d="M470 330l8 16 18 3-13 12 3 18-16-9-16 9 3-18-13-12 18-3z" stroke-linejoin="round"/>
+      <path d="M176 330c-30 0-34 40-6 40m14-58c-20-20 20-44 34-20" stroke-dasharray="1 15"/>
+    </g>
+    <!-- the pencil -->
+    <g transform="translate(486 150) rotate(38)">
+      <path d="M-18 100l18 44 18-44z" fill="#ffe7be" stroke="#1f2440" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M-6 130l6 14 6-14z" fill="#1f2440"/>
+      <rect x="-18" y="-70" width="36" height="170" fill="#ffd23f" stroke="#1f2440" stroke-width="6"/>
+      <path d="M-6-70v170m12-170v170" stroke="#f0aa28" stroke-width="5"/>
+      <rect x="-18" y="-92" width="36" height="24" fill="#c9ccd9" stroke="#1f2440" stroke-width="6"/>
+      <rect x="-18" y="-126" width="36" height="36" rx="12" fill="#ff5d73" stroke="#1f2440" stroke-width="6"/>
+    </g>
+  </g>
+  <!-- guesses flying in -->
+  <g stroke="#1f2440" stroke-width="6" stroke-linejoin="round">
+    <path d="M600 60h150q16 0 16 16v54q0 16-16 16h-96l-30 28 6-28h-30q-16 0-16-16V76q0-16 16-16z" fill="#fffaf0"/>
+    <path d="M620 196h130q16 0 16 16v50q0 16-16 16h-80l-28 26 6-26h-28q-16 0-16-16v-50q0-16 16-16z" fill="#fffaf0"/>
+    <path d="M590 324h160q16 0 16 16v64q0 16-16 16h-100l-32 30 6-30h-34q-16 0-16-16v-64q0-16 16-16z" fill="#3ddc97"/>
+  </g>
+  <g fill="none" stroke="#1f2440" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M620 92c16-12 28 12 44 0s28 12 44 0 20 6 28 6"/><path d="M620 120c16-12 28 12 44 0"/>
+    <path d="M640 232c16-12 28 12 44 0s28 12 40 2"/>
+    <path d="M640 372l26 26 56-58" stroke-width="13"/>
+  </g>
+</svg>

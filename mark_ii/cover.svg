@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b1f5e"/><stop offset=".5" stop-color="#8a3d8f"/><stop offset=".85" stop-color="#ff8a5c"/><stop offset="1" stop-color="#ffd27a"/>
+    </linearGradient>
+    <linearGradient id="dirt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6b4a3a"/><stop offset="1" stop-color="#33221f"/>
+    </linearGradient>
+    <g id="runner">
+      <rect x="-24" y="-58" width="48" height="50" rx="12" fill="currentColor" stroke="#0b0e1a" stroke-width="5"/>
+      <rect x="-13" y="-46" width="38" height="17" rx="7" fill="#0b0e1a"/>
+      <rect x="-1" y="-42" width="7" height="9" rx="2" fill="#fff"/><rect x="13" y="-42" width="7" height="9" rx="2" fill="#fff"/>
+      <rect x="-26" y="-10" width="15" height="12" rx="4" fill="currentColor" stroke="#0b0e1a" stroke-width="5" transform="rotate(-28 -18 -4)"/>
+      <rect x="8" y="-12" width="15" height="12" rx="4" fill="currentColor" stroke="#0b0e1a" stroke-width="5" transform="rotate(24 16 -6)"/>
+    </g>
+    <g id="crate">
+      <rect x="-26" y="-52" width="52" height="52" rx="5" fill="#d9a15a" stroke="#0b0e1a" stroke-width="5"/>
+      <path d="M-20-46l40 40m0-40l-40 40" stroke="#8a5a2b" stroke-width="6" stroke-linecap="round"/>
+    </g>
+  </defs>
+  <rect width="800" height="500" fill="url(#sky)"/>
+  <circle cx="600" cy="300" r="90" fill="#ffe9a8" fill-opacity=".9"/>
+  <g fill="#fff"><circle cx="90" cy="50" r="2.5"/><circle cx="240" cy="90" r="2"/><circle cx="420" cy="40" r="2.5"/><circle cx="700" cy="70" r="2"/><circle cx="560" cy="120" r="1.8"/></g>
+  <path d="M0 360l90-80 80 60 110-110 120 110 90-70 110 90 100-60 100 70v130H0z" fill="#4a2a6b" fill-opacity=".75"/>
+  <!-- the wall that eats slowpokes -->
+  <path d="M0 0h46l26 42-26 42 26 42-26 42 26 42-26 42 26 42-26 42 26 42-26 42 26 42-26 38H0z" fill="#ff3d5a" stroke="#0b0e1a" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M0 0h20l22 42-22 42 22 42-22 42 22 42-22 42 22 42-22 42 22 42-22 42 22 42-22 38H0z" fill="#ffd23f" fill-opacity=".55"/>
+  <!-- ground with a pit -->
+  <g stroke="#0b0e1a" stroke-width="5" stroke-linejoin="round">
+    <path d="M-10 400h330v110H-10z" fill="url(#dirt)"/><rect x="-10" y="386" width="336" height="26" rx="10" fill="#3ddc97"/>
+    <path d="M430 400h390v110H430z" fill="url(#dirt)"/><rect x="424" y="386" width="400" height="26" rx="10" fill="#3ddc97"/>
+  </g>
+  <path d="M352 470l12-26 12 26m14 0l12-26 12 26" fill="#c9ccd9" stroke="#0b0e1a" stroke-width="4" stroke-linejoin="round"/>
+  <!-- the finish -->
+  <rect x="716" y="170" width="10" height="220" rx="4" fill="#c9ccd9" stroke="#0b0e1a" stroke-width="5"/>
+  <g stroke="#0b0e1a" stroke-width="5" stroke-linejoin="round">
+    <path d="M726 176h-100l22 34-22 34h100z" fill="#fff"/>
+  </g>
+  <g fill="#0b0e1a"><rect x="660" y="179" width="22" height="21"/><rect x="704" y="179" width="20" height="21"/><rect x="682" y="200" width="22" height="21"/><rect x="660" y="221" width="22" height="21"/><rect x="704" y="221" width="20" height="21"/><path d="M642 200h18v21h-12z"/></g>
+  <!-- crates -->
+  <use href="#crate" x="560" y="386"/><use href="#crate" x="612" y="386"/><use href="#crate" x="586" y="334"/>
+  <!-- runners -->
+  <path d="M84 340h44m-60 22h50m44-128h46m-64 22h50m90-60h46m-60 22h48" stroke="#fff" stroke-opacity=".75" stroke-width="6" stroke-linecap="round"/>
+  <g transform="translate(180 380) rotate(8)" color="#5ec8ff"><use href="#runner"/></g>
+  <g transform="translate(290 290) rotate(-14)" color="#ffd23f"><use href="#runner"/></g>
+  <g transform="translate(420 250) rotate(10)" color="#ff5d73"><use href="#runner"/></g>
+  <path d="M258 372q30-10 44-40" stroke="#fff" stroke-opacity=".5" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="2 12"/>
+  <!-- pellet at the crates -->
+  <path d="M462 222h26m12 0h16" stroke="#ffd23f" stroke-width="7" stroke-linecap="round"/>
+</svg>

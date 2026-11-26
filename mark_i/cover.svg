@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b0e1a"/><stop offset=".6" stop-color="#231a4d"/><stop offset="1" stop-color="#5a2a6e"/>
+    </linearGradient>
+    <linearGradient id="rock" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6d6f8f"/><stop offset="1" stop-color="#34365a"/>
+    </linearGradient>
+    <g id="fighter">
+      <rect x="-24" y="-58" width="48" height="50" rx="12" fill="currentColor" stroke="#0b0e1a" stroke-width="5"/>
+      <rect x="-17" y="-46" width="38" height="17" rx="7" fill="#0b0e1a"/>
+      <rect x="-9" y="-42" width="7" height="9" rx="2" fill="#fff"/><rect x="7" y="-42" width="7" height="9" rx="2" fill="#fff"/>
+      <rect x="-20" y="-10" width="15" height="12" rx="4" fill="currentColor" stroke="#0b0e1a" stroke-width="5"/>
+      <rect x="5" y="-10" width="15" height="12" rx="4" fill="currentColor" stroke="#0b0e1a" stroke-width="5"/>
+    </g>
+    <g id="isle">
+      <path d="M-110 0h220l-22 34q-14 22-40 22h-96q-26 0-40-22z" fill="url(#rock)" stroke="#0b0e1a" stroke-width="5" stroke-linejoin="round"/>
+      <rect x="-116" y="-14" width="232" height="24" rx="10" fill="#3ddc97" stroke="#0b0e1a" stroke-width="5"/>
+      <path d="M-80 10v10m40-10v16m50-16v9m45-9v14" stroke="#0b0e1a" stroke-width="5" stroke-linecap="round"/>
+    </g>
+  </defs>
+  <rect width="800" height="500" fill="url(#sky)"/>
+  <g fill="#fff">
+    <circle cx="70" cy="60" r="3"/><circle cx="190" cy="120" r="2"/><circle cx="300" cy="40" r="2.5"/><circle cx="430" cy="90" r="2"/>
+    <circle cx="520" cy="36" r="3"/><circle cx="740" cy="150" r="2"/><circle cx="40" cy="220" r="2"/><circle cx="760" cy="300" r="2.5"/><circle cx="360" cy="170" r="1.8"/>
+  </g>
+  <circle cx="660" cy="92" r="52" fill="#ffe9a8"/><circle cx="642" cy="80" r="10" fill="#f0d27c"/><circle cx="678" cy="108" r="7" fill="#f0d27c"/>
+  <use href="#isle" x="400" y="150" transform="translate(400 150) scale(.8) translate(-400 -150)"/>
+  <use href="#isle" x="190" y="330"/>
+  <use href="#isle" x="610" y="390"/>
+  <!-- the jumper up top -->
+  <g transform="translate(400 96) rotate(-8)" color="#ffd23f"><use href="#fighter"/></g>
+  <path d="M376 128q24 12 48 0" stroke="#fff" stroke-opacity=".5" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <!-- the shooter -->
+  <g transform="translate(180 316)" color="#ff5d73"><use href="#fighter"/></g>
+  <rect x="200" y="282" width="34" height="13" rx="4" fill="#c9ccd9" stroke="#0b0e1a" stroke-width="5"/>
+  <path d="M250 288h60m18 0h34m16 0h18" stroke="#ffd23f" stroke-width="7" stroke-linecap="round"/>
+  <!-- the one being launched -->
+  <path d="M455 290l22-34 8 30 34-14-14 32 32 10-32 12 10 32-30-16-12 32-10-34-34 8 22-26-28-20z" fill="#ffd23f" stroke="#0b0e1a" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M470 290l12-16 6 16 18-6-8 16 16 6-16 8 4 16-16-8-8 14-4-18-18 2 12-12z" fill="#fff"/>
+  <g transform="translate(570 250) rotate(32)" color="#5ec8ff"><use href="#fighter"/></g>
+  <path d="M520 300q20-6 30-22m-40 44q26-2 44-22" stroke="#fff" stroke-opacity=".7" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <!-- bomb -->
+  <circle cx="690" cy="330" r="22" fill="#1b1e33" stroke="#0b0e1a" stroke-width="5"/><circle cx="683" cy="322" r="6" fill="#fff" fill-opacity=".5"/>
+  <path d="M700 310q10-18 24-10" stroke="#c9a26b" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M726 290l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z" fill="#ff8a3d" stroke="#0b0e1a" stroke-width="3" stroke-linejoin="round"/>
+  <!-- hearts -->
+  <g fill="#ff5d73" stroke="#0b0e1a" stroke-width="4" stroke-linejoin="round">
+    <path d="M40 440c-14-12-4-28 8-18 12-10 22 6 8 18l-8 8z" transform="translate(-6 -2)"/>
+    <path d="M40 440c-14-12-4-28 8-18 12-10 22 6 8 18l-8 8z" transform="translate(30 -2)"/>
+    <path d="M40 440c-14-12-4-28 8-18 12-10 22 6 8 18l-8 8z" transform="translate(66 -2)" fill="#3a3d5c"/>
+  </g>
+</svg>

@@ -1,0 +1,9 @@
+{
+  "title": "Last Survivor Run",
+  "tagline": "A co-op dash that never stops scrolling. Jump the pits, smash the gates, don't fall behind.",
+  "port": 8091,
+  "players": "1–16 players",
+  "accent": "#3ddc97",
+  "order": 2,
+  "phases": { "lobby": "Lobby open", "starting": "Starting!", "playing": "Race in progress", "ended": "Race over" }
+}
