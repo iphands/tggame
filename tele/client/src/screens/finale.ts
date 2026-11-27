@@ -2,7 +2,7 @@
 import { computeAwards, survived } from '../../../shared/src/awards';
 import type { Page } from '../../../shared/src/types';
 import { sfx } from '../audio';
-import { h, tilt } from '../dom';
+import { h, tilt } from '@tggame/base/client/dom';
 import { confetti } from '../fx';
 import { downloadBook, drawingCanvas } from '../render';
 import { isHost, nameOf, player, send, store } from '../store';

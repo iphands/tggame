@@ -4,8 +4,10 @@
 #   IMAGE=foo ./build  another name; extra arguments go to the build command
 #   ./build --print    show the Dockerfile this script generates, without building
 #
-# The Dockerfile is generated: each directory with a package.json gets its own build stage, so
-# changing one game rebuilds only that game, and a new game is picked up without editing this.
+# The Dockerfile is generated. Dependencies are installed once for the whole workspace, base/ is
+# built once, and each other directory with a package.json gets its own build stage. So changing
+# one game rebuilds only that game, changing base/ rebuilds the games but not the install, and a
+# new game is picked up without editing this (add it to "workspaces" in package.json).
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -15,29 +17,56 @@ dockerfile() {
   local dir projects=()
   for dir in */; do
     dir=${dir%/}
-    [ -f "$dir/package.json" ] || continue
-    if [[ ! $dir =~ ^[a-z0-9_-]+$ ]] || [ ! -f "$dir/package-lock.json" ]; then
-      echo "Skipping $dir: needs a lowercase name and a package-lock.json." >&2
+    [ -f "$dir/package.json" ] && [ "$dir" != base ] || continue
+    if [[ ! $dir =~ ^[a-z0-9_-]+$ ]]; then
+      echo "Skipping $dir: its name must be lowercase letters, digits, _ or -." >&2
       continue
     fi
     projects+=("$dir")
-    cat <<STAGE
-FROM $NODE AS build-$dir
-WORKDIR /app/$dir
-# dependencies first: this layer is reused until the lockfile changes
-COPY $dir/package.json $dir/package-lock.json ./
-RUN npm ci --no-audit --no-fund
-COPY $dir/ ./
-# build, then drop what only the build needed
-RUN npm run build && npm prune --omit=dev --no-audit --no-fund
-
-STAGE
   done
   [ ${#projects[@]} -gt 0 ] || { echo "No projects found." >&2; return 1; }
 
-  echo "# Every game plus the landing page in one image, all reached through one port."
-  echo "FROM $NODE"
-  echo "ENV NODE_ENV=production"
+  # the manifests alone decide what gets installed, so these layers survive source changes
+  local manifests="COPY package.json package-lock.json ./"$'\n'"COPY base/package.json base/"
+  for dir in "${projects[@]}"; do
+    manifests+=$'\n'"COPY $dir/package.json $dir/"
+  done
+
+  cat <<STAGES
+FROM $NODE AS deps
+WORKDIR /app
+$manifests
+RUN npm ci --no-audit --no-fund
+
+FROM deps AS build-base
+COPY base/ base/
+RUN npm run build --prefix base
+
+STAGES
+  for dir in "${projects[@]}"; do
+    cat <<STAGE
+FROM deps AS build-$dir
+COPY --from=build-base /app/base/ base/
+COPY $dir/ $dir/
+# base is already built, so skip the pre-scripts that would build it again
+RUN cd $dir && npm run --if-present icons && npm run build --ignore-scripts
+
+STAGE
+  done
+
+  cat <<STAGES
+# what the servers need at run time, without the build tools
+FROM $NODE AS prod
+WORKDIR /app
+$manifests
+RUN npm ci --omit=dev --no-audit --no-fund
+
+# Every game plus the landing page in one image, all reached through one port.
+FROM $NODE
+ENV NODE_ENV=production
+COPY --from=prod --chown=node:node /app /app
+COPY --from=build-base --chown=node:node /app/base/dist /app/base/dist
+STAGES
   for dir in "${projects[@]}"; do
     echo "COPY --from=build-$dir --chown=node:node /app/$dir /app/$dir"
   done

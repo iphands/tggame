@@ -3,7 +3,7 @@ import { ERASER } from '../../../shared/src/constants';
 import { heartKey, survived } from '../../../shared/src/awards';
 import type { Page } from '../../../shared/src/types';
 import { sfx } from '../audio';
-import { h, tilt } from '../dom';
+import { h, tilt } from '@tggame/base/client/dom';
 import { drawingCanvas, replay } from '../render';
 import { nameOf, player, send, store } from '../store';
 

@@ -1,7 +1,7 @@
 /** Painting vector drawings: static, animated replay, and a book as a PNG. */
 import { ERASER, INK, PAGE_H, PAGE_W } from '../../shared/src/constants';
 import type { Drawing, Page, Stroke } from '../../shared/src/types';
-import { reducedMotion } from './dom';
+import { reducedMotion } from '@tggame/base/client/dom';
 import { flood, isFill, newCanon, stamp, type Canon } from './fill';
 
 type Ctx = CanvasRenderingContext2D;

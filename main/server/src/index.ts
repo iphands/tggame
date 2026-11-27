@@ -7,13 +7,15 @@ import net from 'node:net';
 import type { Duplex } from 'node:stream';
 import path from 'node:path';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import { discover, probe, type Manifest, type Status } from './games.js';
 
 const PORT = Number(process.env.PORT ?? 8081);
 /** The directory whose sub-directories are the games. */
 const GAMES_DIR = path.resolve(process.cwd(), process.env.GAMES_DIR ?? '..');
 const STATIC_DIR = path.resolve(process.cwd(), process.env.STATIC_DIR ?? 'client');
-const FONT_DIR = path.resolve(process.cwd(), 'node_modules', '@fontsource');
+/** Wherever npm put the font packages (next to this project, or hoisted to the workspace root). */
+const FONT_DIR = path.dirname(path.dirname(createRequire(import.meta.url).resolve('@fontsource/chewy/package.json')));
 /** Where the game servers are reached from this process. */
 const PROBE_HOST = process.env.PROBE_HOST ?? '127.0.0.1';
 /** How long one round of answers is reused, so many open phones cost the games one request each. */

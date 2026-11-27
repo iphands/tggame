@@ -1,6 +1,6 @@
 import { MAX_PLAYERS, MIN_PLAYERS } from '../../../shared/src/constants';
 import { sfx } from '../audio';
-import { h, tilt } from '../dom';
+import { h, tilt } from '@tggame/base/client/dom';
 import { isHost, nameOf, send, store } from '../store';
 import type { Screen } from './index';
 

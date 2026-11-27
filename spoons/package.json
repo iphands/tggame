@@ -6,20 +6,25 @@
   "private": true,
   "scripts": {
     "icons": "node scripts/make-icons.mjs",
-    "predev": "npm run icons",
-    "dev": "concurrently -n server,client -c blue,green \"npm:dev:server\" \"npm:dev:client\"",
+    "predev": "npm run base && npm run icons",
+    "dev": "concurrently -n base,server,client -c gray,blue,green \"npm:dev:base\" \"npm:dev:server\" \"npm:dev:client\"",
     "dev:server": "tsx watch server/src/index.ts",
     "dev:client": "vite",
-    "prebuild": "npm run icons",
+    "prebuild": "npm run base && npm run icons",
     "build": "tsc -p tsconfig.server.json && vite build",
     "start": "node dist/server/src/index.js",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.server.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.server.json --noEmit",
+    "base": "npm run -s build --prefix ../base",
+    "pretest": "npm run base",
+    "pretypecheck": "npm run base",
+    "dev:base": "npm run dev --prefix ../base"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "@tggame/base": "*",
     "ws": "^8.23.0"
   },
   "devDependencies": {

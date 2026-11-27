@@ -3,7 +3,7 @@ import { ERASER, GUESS_MAX, INK } from '../../../shared/src/constants';
 import { hasInk, sanitizeGuess } from '../../../shared/src/drawing';
 import type { Drawing } from '../../../shared/src/types';
 import { sfx } from '../audio';
-import { h, tilt } from '../dom';
+import { h, tilt } from '@tggame/base/client/dom';
 import { toast } from '../fx';
 import { DrawPad } from '../pad';
 import { drawingCanvas, replay } from '../render';

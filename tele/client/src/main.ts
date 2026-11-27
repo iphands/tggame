@@ -4,7 +4,7 @@ import { NAME_MAX } from '../../shared/src/constants';
 import { sanitizeName } from '../../shared/src/drawing';
 import type { ServerMessage } from '../../shared/src/protocol';
 import { isMuted, setMuted, sfx, unlockAudio } from './audio';
-import { h } from './dom';
+import { h } from '@tggame/base/client/dom';
 import { GameClient, type ConnectionStatus } from './net';
 import { makeScreen, screenKey, type Screen } from './screens/index';
 import { isHost, isSeated, saved, send, store, wire } from './store';

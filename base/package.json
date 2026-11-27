@@ -1,0 +1,35 @@
+{
+  "name": "@tggame/base",
+  "version": "0.1.0",
+  "description": "Code shared by every game in this repo: servers, clients, drawing, platformer core",
+  "type": "module",
+  "private": true,
+  "exports": {
+    "./icons": "./scripts/icons.mjs",
+    "./css/*": "./css/*",
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ws": "^8.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/ws": "^8.18.2",
+    "phaser": "^3.90.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.6",
+    "vitest": "^2.1.9"
+  }
+}

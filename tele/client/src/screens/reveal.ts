@@ -1,6 +1,6 @@
 /** The shared show-and-tell: one book at a time, one page at a time. */
 import { sfx } from '../audio';
-import { h, reducedMotion } from '../dom';
+import { h, reducedMotion } from '@tggame/base/client/dom';
 import { isHost, nameOf, player, send, store } from '../store';
 import type { Screen } from './index';
 import { pageCard, syncHearts, verdictCard } from './thread';
