@@ -33,8 +33,9 @@ Phones on the same Wi-Fi join at `http://<your-ip>:5180`.
 - **Caught.** Every catch stops the round for everybody for 2.5 seconds, clock and all, while it
   is shown: Hilder bites, the Cousin turns, and two of her sayings flash across the screen. When
   the round goes on, the new Beast stands frozen for a moment longer before it can hunt.
-- **The first Beast** waits in the Cellar for 6 seconds while the Cousins scatter. Players take
-  turns at starting as the Beast.
+- **The start.** The Cousins can run at once. The first Beast starts somewhere different each
+  round, never in sight of a Cousin or near one, and is held there for 3 seconds: a big, faint
+  3-2-1 counts it down on every screen. Players take turns at starting as the Beast.
 
 ### Last Cousin Standing
 

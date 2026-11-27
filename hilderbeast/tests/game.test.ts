@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { COUNTDOWN_MS, CUTSCENE_MS, DREAD_STEPS, ESCAPE_CLOCK_MS, F_HELD, HEAD_START_MS, LAST_CLOCK_MS, MAX_PLAYERS, TICK_MS, tasksFor } from '../shared/src/constants';
+import { BEAST_START_CLEAR, COUNTDOWN_MS, CUTSCENE_MS, DREAD_STEPS, ESCAPE_CLOCK_MS, F_HELD, HEAD_START_MS, LAST_CLOCK_MS, MAX_PLAYERS, TICK_MS, tasksFor } from '../shared/src/constants';
 import { MAP } from '../shared/src/maps';
 import { Game } from '../server/src/game';
+import { sees } from '../shared/src/sim';
 import { join, place, run, seeded, started, table } from './helpers';
 
 const snap = (g: Game, id: string) => g.snapFor(id, { fx: [], noisy: false })!;
@@ -68,17 +69,40 @@ describe('a round', () => {
     run(g, HEAD_START_MS);
     expect(w.flags(beast) & F_HELD).toBeFalsy();
   });
-  it('holds everyone still through the countdown', () => {
+  it('lets the Cousins run at once while the Beast is counted down for 3 seconds', () => {
     const { g, ids } = table(3);
     g.start(ids[0]);
     const w = g.world!;
     const c = w.cousins()[0];
-    const x = c.x;
+    const beast = w.beasts()[0];
+    const [cx, bx] = [c.x, beast.x];
     g.input(c.id, 1, 0, false, false);
-    run(g, COUNTDOWN_MS - 100);
-    expect(c.x).toBe(x);
-    run(g, 300);
-    expect(c.x).toBeGreaterThan(x);
+    g.input(beast.id, 1, 0, false, false);
+    run(g, 500);
+    expect(c.x).toBeGreaterThan(cx);
+    expect(beast.x).toBe(bx);
+    // everybody is told how long is left, whoever they are
+    for (const id of ids) expect(snap(g, id).go).toBeGreaterThan(HEAD_START_MS - 700);
+    run(g, HEAD_START_MS - 400);
+    expect(snap(g, ids[0]).go).toBe(0);
+    run(g, 200);
+    expect(beast.x).toBeGreaterThan(bx);
+  });
+  it('starts the Beast somewhere different from round to round, never in sight of a Cousin', () => {
+    const { g, ids } = table(4, 7);
+    const places = new Set<string>();
+    for (let i = 0; i < 12; i++) {
+      g.start(ids[0]);
+      const w = g.world!;
+      const beast = w.beasts()[0];
+      places.add(`${beast.x},${beast.y}`);
+      for (const c of w.cousins()) {
+        expect(sees(MAP, beast.x, beast.y, c.x, c.y)).toBe(false);
+        expect(Math.hypot(beast.x - c.x, beast.y - c.y)).toBeGreaterThanOrEqual(BEAST_START_CLEAR * 40);
+      }
+      g.abort(ids[0]);
+    }
+    expect(places.size).toBeGreaterThan(3);
   });
   it('takes turns at being the Beast', () => {
     const { g, ids } = table(3, 5);

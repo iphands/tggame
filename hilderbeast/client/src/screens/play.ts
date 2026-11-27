@@ -35,7 +35,7 @@ import { INK, NIGHT, drawBody, drawExit, drawHouse, drawPill, drawPortal, drawTa
 import { buzz, sfx } from '../audio';
 import { endCutscene, playCutscene } from '../cutscene';
 import { createInput } from '../input';
-import { clockLeft, countdownLeft, live } from '../live';
+import { clockLeft, goLeft, live } from '../live';
 import { noteStick, predictBody, type SentStick } from '../predict';
 import { isSeated, nameOf, player, send, store } from '../store';
 import type { Screen } from './index';
@@ -68,6 +68,8 @@ export function playScreen(): Screen {
   const chores = h('div', { class: 'chores' });
   /** A red edge to the screen that closes in as a Beast nears a Cousin. */
   const dreadEl = h('div', { class: 'dread' });
+  /** The count before the Beast is let loose: big, faint, and on every screen. */
+  const count = h('div', { class: 'count' });
   const watching = h('div', { class: 'watching', hidden: true });
   const boostFill = h('i');
   const boostPad = h('button', { class: 'pad boost', type: 'button' }, boostFill, h('span', null, 'BOOST'), h('small', null, 'Space'));
@@ -75,7 +77,7 @@ export function playScreen(): Screen {
   const actText = h('span', null, 'DASH');
   const actPad = h('button', { class: 'pad act', type: 'button' }, actFill, actText, h('small', null, 'E'));
   const mini = h('canvas', { class: 'minimap', width: MAP.cols * MINI, height: MAP.lines * MINI });
-  const hud = h('div', { class: 'hud' }, dreadEl, sides, clock, role, chores, watching, mini, boostPad, actPad);
+  const hud = h('div', { class: 'hud' }, dreadEl, sides, clock, role, chores, count, watching, mini, boostPad, actPad);
   const el = h('section', { class: 'screen play' }, canvas, hud);
 
   const input = createInput(el, boostPad, actPad);
@@ -541,21 +543,27 @@ export function playScreen(): Screen {
     const out = sideOf(s.selfId) === 'x';
     const ghost = sideOf(s.selfId) === 'g';
 
-    const cd = Math.ceil(countdownLeft(now, netClock.rtt / 2) / 1000);
+    // the count to the Beast being let loose: the Cousins are already running
+    const cd = s.phase === 'play' || s.phase === 'countdown' ? Math.ceil(goLeft(now, netClock.rtt / 2) / 1000) : 0;
     if (cd !== shownCount) {
       if (cd > 0) sfx.count();
       else if (shownCount > 0) sfx.go();
+      count.textContent = cd > 0 ? String(cd) : '';
+      // the number pops in afresh each second
+      count.classList.remove('tick');
+      void count.offsetWidth;
+      if (cd > 0) count.classList.add('tick');
       shownCount = cd;
     }
 
     // the one line of words: the countdown, then news while it is fresh, otherwise what you are
     let words: string;
     let kind = beast ? 'beast' : 'cousin';
-    if (cd > 0) words = !mine ? `Starting in ${cd}` : beast ? `You are the Hilder Beast · ${cd}` : `You are a Cousin · run in ${cd}`;
+    if (cd > 0) words = !mine ? `Hilder is loose in ${cd}` : beast ? `You are the Hilder Beast · loose in ${cd}` : `You are a Cousin · run! Hilder is loose in ${cd}`;
     else if (performance.now() < newsUntil) {
       words = news;
       kind = newsKind;
-    } else words = !mine ? '' : out ? 'You got out!' : ghost ? 'Ghost · roam and watch' : beast ? (flags & F_HELD ? 'Hilder Beast · the Cousins get a head start' : 'Hilder Beast') : 'Cousin';
+    } else words = !mine ? '' : out ? 'You got out!' : ghost ? 'Ghost · roam and watch' : beast ? 'Hilder Beast' : 'Cousin';
     setText(role, words);
     if (role.className !== `role ${kind}`) role.className = `role ${kind}`;
 

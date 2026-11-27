@@ -45,7 +45,7 @@ export function lobbyScreen(): Screen {
     h(
       'ol',
       { class: 'howto' },
-      h('li', null, h('span', null, 'One of you is the ', h('b', null, 'Hilder Beast'), '. Everyone else is a ', h('b', null, 'Cousin'), '. You are told which.')),
+      h('li', null, h('span', null, 'One of you is the ', h('b', null, 'Hilder Beast'), ', starting somewhere new each round. Everyone else is a ', h('b', null, 'Cousin'), ', with 3 seconds to get away.')),
       h('li', null, h('span', null, h('b', null, 'Move'), ' with WASD or the arrows, or drag a thumb anywhere. Walls hide you: nobody sees round a corner.')),
       h('li', null, h('span', null, 'Cousins: hold ', h('b', null, 'Boost'), ' (Space) to run. It burns energy; ', h('b', null, 'pills'), ' give it back.')),
       h('li', null, h('span', null, 'Beast: ', h('b', null, 'touch'), ' a Cousin to catch them. ', h('b', null, 'Boost'), ' (Space) is a big burst, ', h('b', null, 'Dash'), ' (E) a quick small one. Swirls in the floor are your ', h('b', null, 'Beast doors'), '.')),

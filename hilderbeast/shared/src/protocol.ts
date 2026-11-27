@@ -32,6 +32,8 @@ export type SnapMessage = {
   simTimeMs: number;
   /** Countdown left before the round starts (0 once it has). */
   cd: number;
+  /** Left until the first Beast is let loose (0 once it is): the count at the start of a round. */
+  go: number;
   /** Clock left on the round. */
   left: number;
   /** Left of the pause for a catch being shown (0 when the round is running): nothing moves meanwhile. */

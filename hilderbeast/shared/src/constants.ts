@@ -122,9 +122,12 @@ export const PORTAL_COOLDOWN_MS = 4000;
 
 // ---- a round
 
-export const COUNTDOWN_MS = 3000;
-/** The first Beast stays in its den this long after the countdown. */
-export const HEAD_START_MS = 8000;
+/** No wait before a round: the Cousins run at once, and the count everyone sees is the Beast's. */
+export const COUNTDOWN_MS = 0;
+/** The first Beast is held where it starts for this long, counted down on every screen, while the Cousins get away. */
+export const HEAD_START_MS = 3000;
+/** The Beast starts somewhere different each round, never this near (in squares) to where a Cousin starts, nor in sight of one. */
+export const BEAST_START_CLEAR = 9;
 /** Last Cousin Standing: Cousins still free when this runs out have won. */
 export const LAST_CLOCK_MS = 240_000;
 /** Escape: the Beasts win when this runs out. */

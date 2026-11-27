@@ -134,11 +134,13 @@ export class World {
     /** Indices into the map's chore spots; ignored outside Escape. */
     taskSpots: number[],
     readonly map: GameMap,
+    /** Where the first Beast starts. */
+    beastAt: Spot = map.den,
   ) {
     let seat = 0;
     for (const id of ids) {
       const beast = id === firstBeast;
-      const at = beast || !map.cousinStarts.length ? map.den : map.cousinStarts[seat++ % map.cousinStarts.length];
+      const at = beast || !map.cousinStarts.length ? beastAt : map.cousinStarts[seat++ % map.cousinStarts.length];
       this.bodies.push({
         id,
         role: beast ? 'beast' : 'cousin',
@@ -501,6 +503,13 @@ export class World {
     }
     const k = (DREAD_R - near) / (DREAD_R - DREAD_FULL_R);
     return Math.round(Math.min(1, Math.max(0, k)) * DREAD_STEPS);
+  }
+
+  /** Time left until every Beast held at the start is loose. */
+  heldLeft(): number {
+    let ms = 0;
+    for (const b of this.bodies) if (b.role === 'beast' && b.heldMs > ms) ms = b.heldMs;
+    return ms;
   }
 
   /** Bit `i` set while pill `i` is there. */

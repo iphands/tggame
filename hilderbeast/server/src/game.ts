@@ -4,6 +4,7 @@
  */
 import { randomBytes } from 'node:crypto';
 import {
+  BEAST_START_CLEAR,
   BOT_THINK_MS,
   COUNTDOWN_MS,
   CUTSCENE_MS,
@@ -16,8 +17,10 @@ import {
   PLAYER_COLORS,
   SIGHT_R,
   TICK_MS,
+  TILE,
   tasksFor,
 } from '../../shared/src/constants.js';
+import type { GameMap, Spot } from '../../shared/src/map.js';
 import { MAPS } from '../../shared/src/maps.js';
 import type { SnapMessage } from '../../shared/src/protocol.js';
 import { sees } from '../../shared/src/sim.js';
@@ -196,7 +199,7 @@ export class Game extends Roster<Player> {
       this.rng,
     ).slice(0, tasksFor(this.cousinsAtStart));
     // seats in the hall are dealt by lot too
-    this.world = new World(mode, [beast, ...shuffle(ids.filter((id) => id !== beast), this.rng)], beast, spots.sort((a, b) => a - b), map);
+    this.world = new World(mode, [beast, ...shuffle(ids.filter((id) => id !== beast), this.rng)], beast, spots.sort((a, b) => a - b), map, this.beastStart(map));
     this.bots = new Bots();
     this.roundClockMs = this.clockMs = mode === 'escape' ? ESCAPE_CLOCK_MS : LAST_CLOCK_MS;
     this.phase = 'countdown';
@@ -204,6 +207,17 @@ export class Game extends Roster<Player> {
     this.holdMs = 0;
     this.shown = 0;
     this.botThinkMs = 0;
+  }
+
+  /**
+   * Where the Beast starts this round: by lot among the den and the places Cousins will want to
+   * go, leaving out any in sight of where a Cousin starts or too near one.
+   */
+  private beastStart(map: GameMap): Spot {
+    const fair = [map.den, ...map.pills, ...map.tasks].filter((at) =>
+      map.cousinStarts.every((s) => Math.hypot(s.x - at.x, s.y - at.y) >= BEAST_START_CLEAR * TILE && !sees(map, at.x, at.y, s.x, s.y)),
+    );
+    return fair.length ? fair[Math.floor(this.rng() * fair.length)] : map.den;
   }
 
   /** A player's controls. Whatever they claim, the stick is cut to length 1 and the server does the moving. */
@@ -389,6 +403,7 @@ export class Game extends Roster<Player> {
       type: 'snap',
       simTimeMs: Math.round(this.simTimeMs),
       cd: this.phase === 'countdown' ? Math.max(0, Math.round(this.phaseLeftMs)) : 0,
+      go: this.phase === 'finale' ? 0 : Math.max(0, Math.round(world.heldLeft())),
       left: Math.max(0, Math.round(this.clockMs)),
       hold: Math.max(0, Math.round(this.holdMs)),
       bodies,
