@@ -59,7 +59,41 @@ function food(id: number, tier: number, x: number, y: number, now: number): Food
   return { id, tier, r: itemRadius(tier), x, y, tx: x, ty: y, state: 'on', at: now, by: '', nudge: 0 };
 }
 
+/** Bites shown going down our own hole before the server has said so (see `guessEat`). */
+const guesses = new Map<number, { food: FoodView; at: number }>();
+
+const count = (id: string, by: number): void => void live.eaten.set(id, Math.max(0, (live.eaten.get(id) ?? 0) + by));
+
+/**
+ * Our own hole, drawn where the server will have it, has run right over a bite: show it going
+ * down now. The server's word arrives a round trip later and is then only a confirmation; if it
+ * never comes (another hole had it first, or the bite was not quite where we saw it),
+ * `settleGuesses` puts the bite back.
+ */
+export function guessEat(f: FoodView, selfId: string, now: number): void {
+  if (f.state !== 'on' || f.tier >= TIERS.length || guesses.has(f.id)) return;
+  f.state = 'eaten';
+  f.by = selfId;
+  f.at = now;
+  guesses.set(f.id, { food: f, at: now });
+  count(selfId, 1);
+  live.onEvent?.({ kind: 'eat', food: f, hole: selfId });
+}
+
+/** Put back the bites the server has not confirmed within `patienceMs`. */
+export function settleGuesses(now: number, patienceMs: number): void {
+  for (const [id, g] of guesses) {
+    if (now - g.at <= patienceMs) continue;
+    guesses.delete(id);
+    count(g.food.by, -1);
+    g.food.state = 'on';
+    g.food.at = now - 1000; // not laid just now: it should not pop in
+    live.foods.set(id, g.food);
+  }
+}
+
 export function onCourse(msg: CourseMessage): void {
+  guesses.clear();
   const now = performance.now();
   live.seq = msg.seq;
   live.no = msg.no;
@@ -97,6 +131,18 @@ export function onSnap(msg: SnapMessage): void {
       live.onEvent?.({ kind: 'power', hole: fx[1], power: fx[2] });
       continue;
     }
+    const guess = guesses.get(fx[1]);
+    if (guess) {
+      // the server's word on a bite we already showed going down: only the tally may need mending
+      guesses.delete(fx[1]);
+      const by = fx[0] === 'e' ? fx[2] : '';
+      if (by !== guess.food.by) {
+        count(guess.food.by, -1);
+        if (by) count(by, 1);
+        guess.food.by = by || guess.food.by;
+      }
+      continue;
+    }
     const f = live.foods.get(fx[1]);
     if (!f || f.state !== 'on') continue;
     f.at = now;
@@ -115,6 +161,7 @@ export function onSnap(msg: SnapMessage): void {
 
 /** Forget the table (back in the lobby, or disconnected for good). */
 export function clearLive(): void {
+  guesses.clear();
   live.seq = -1;
   live.foods.clear();
   live.eaten.clear();

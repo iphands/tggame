@@ -4,6 +4,7 @@ import { h } from '@tggame/base/client/dom';
 import { netMeterShown, setNetExtra } from '@tggame/base/client/netMeter';
 import { lerp } from '@tggame/base/platformer/interp';
 import {
+  EAT_INSET,
   EXTRAS,
   FLAG_GRAVITY,
   FLAG_SLOW,
@@ -20,7 +21,7 @@ import { canEat, massForRadius, massForTier, moveHole, tiersEdible } from '../..
 import { GRASS, POWER_NAMES, TIER_NAMES, drawBlanket, drawFood, drawHole, foodSprites } from '../art';
 import { buzz, sfx } from '../audio';
 import { createInput, type View } from '../input';
-import { clockLeft, countdownLeft, live, type FoodView, type LiveEvent } from '../live';
+import { clockLeft, countdownLeft, guessEat, live, settleGuesses, type FoodView, type LiveEvent } from '../live';
 import { noteAim, predictHole, type SentAim } from '../predict';
 import { isSeated, player, send, store } from '../store';
 import type { Screen } from './index';
@@ -203,6 +204,14 @@ export function playScreen(): Screen {
     self.y += (ahead.y - self.y) * pull;
     shown.x = self.x;
     shown.y = self.y;
+    // a bite our hole has run right over goes down now, not a round trip from now
+    if (live.cd === 0) {
+      for (const f of live.foods.values()) {
+        if (f.state !== 'on' || f.tier >= TIERS.length || !canEat(self.r, f.r)) continue;
+        if (Math.hypot(f.x - self.x, f.y - self.y) <= self.r - f.r * EAT_INSET) guessEat(f, id, now);
+      }
+    }
+    settleGuesses(now, 1.5 * netClock.rtt + 500);
     offBy += (off - offBy) * 0.05;
     if (netMeterShown()) {
       setNetExtra('hole', `off by ${offBy.toFixed(1)}`);
