@@ -20,7 +20,7 @@ import { canEat, massForRadius, massForTier, moveHole, tiersEdible } from '../..
 import { GRASS, POWER_NAMES, TIER_NAMES, drawBlanket, drawFood, drawHole, foodSprites } from '../art';
 import { buzz, sfx } from '../audio';
 import { createInput, type View } from '../input';
-import { clockLeft, live, type FoodView, type LiveEvent } from '../live';
+import { clockLeft, countdownLeft, live, type FoodView, type LiveEvent } from '../live';
 import { noteAim, predictHole, type SentAim } from '../predict';
 import { isSeated, player, send, store } from '../store';
 import type { Screen } from './index';
@@ -481,7 +481,7 @@ export function playScreen(): Screen {
     const s = store.state;
     if (!s) return;
     // countdown
-    const c = live.cd > 0 ? Math.ceil(live.cd / 1000) : 0;
+    const c = Math.ceil(countdownLeft(now, netClock.rtt) / 1000);
     if (c !== shownCount) {
       if (c > 0) sfx.count();
       else if (shownCount > 0) sfx.go();
@@ -491,7 +491,7 @@ export function playScreen(): Screen {
       shownCount = c;
     }
     // clock
-    const ms = clockLeft(now);
+    const ms = clockLeft(now, netClock.rtt);
     const second = Math.ceil(ms / 1000);
     if (second !== shownSecond) {
       shownSecond = second;

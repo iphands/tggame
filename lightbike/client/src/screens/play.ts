@@ -455,7 +455,8 @@ export function playScreen(): Screen {
     const s = store.state;
     if (!s) return;
     // countdown
-    const c = live.cd > 0 ? Math.ceil(live.cd / 1000) : 0;
+    // counted on our own bike's timeline: it rides `lead` ahead of the snapshots, and starts there
+    const c = live.cd > 0 ? Math.ceil(Math.max(0, live.cd - (now - live.stampedAt) - lead * 1000) / 1000) : 0;
     if (c !== shownCount) {
       if (c > 0) sfx.count();
       else if (shownCount > 0) sfx.go();
@@ -469,7 +470,7 @@ export function playScreen(): Screen {
     }
 
     // the rim
-    const calmLeft = live.calm - (live.cd > 0 ? 0 : now - live.stampedAt);
+    const calmLeft = live.calm - (live.cd > 0 ? 0 : now - live.stampedAt + lead * 1000);
     const warn = live.ring > 0 ? 'The walls are closing in!' : live.cd === 0 && calmLeft < 5000 && live.seq >= 0 ? `Walls close in ${Math.max(1, Math.ceil(calmLeft / 1000))}…` : '';
     if (warn !== shownAlarm) {
       if (warn && (!shownAlarm || live.ring === 1)) sfx.alarm();

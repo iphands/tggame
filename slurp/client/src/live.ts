@@ -121,7 +121,16 @@ export function clearLive(): void {
   live.buffer.clear();
 }
 
-/** Clock left right now, counted down locally between snapshots. */
-export function clockLeft(now: number): number {
-  return live.cd > 0 ? live.left : Math.max(0, live.left - (now - live.stampedAt));
+/**
+ * Clock left right now, counted down locally between snapshots. `aheadMs` is how far ahead of
+ * the snapshots our own hole is drawn (the round trip): the clock is shown on that same timeline,
+ * the one on which what we do now will be judged.
+ */
+export function clockLeft(now: number, aheadMs = 0): number {
+  return live.cd > 0 ? live.left : Math.max(0, live.left - (now - live.stampedAt) - aheadMs);
+}
+
+/** Countdown left before the course starts, on that same timeline. */
+export function countdownLeft(now: number, aheadMs = 0): number {
+  return live.cd > 0 ? Math.max(0, live.cd - (now - live.stampedAt) - aheadMs) : 0;
 }
