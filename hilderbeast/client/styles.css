@@ -136,6 +136,29 @@ input[type='text'] {
   height: 96px;
 }
 
+/* ---- lobby: which map */
+
+.map-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.map-name {
+  min-width: 9.5em;
+  text-align: center;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.25em;
+}
+.map-pic {
+  width: 240px;
+  height: 156px;
+  background: #5a4a3a;
+  border: var(--line);
+  border-radius: 8px;
+}
+
 /* ---- play: the canvas fills the screen and the HUD floats over it */
 
 #game[data-screen='play'] #screen {

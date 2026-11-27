@@ -1,4 +1,6 @@
 import { MAX_PLAYERS, MIN_PLAYERS, MODES } from '../../../shared/src/constants';
+import { MAPS } from '../../../shared/src/maps';
+import { mapPicture } from '../art';
 import { sfx } from '../audio';
 import { h, tilt } from '@tggame/base/client/dom';
 import { isHost, nameOf, send, store } from '../store';
@@ -18,6 +20,18 @@ export function lobbyScreen(): Screen {
   const hostRow = h('div', { class: 'row host-row' }, addBot, removeBot);
   const share = h('p', { class: 'share' }, 'Friends join at ', h('b', null, location.host || 'this address'));
   const modeBtns = MODES.map((mode) => h('button', { class: 'btn small', type: 'button', onclick: () => send({ type: 'settings', mode }) }, MODE_NAMES[mode]));
+  // the map: one by lot each round, or the host's pick; a small picture of it either way
+  const step = (by: number): void => {
+    const now = store.state?.settings.map ?? -1;
+    // -1 (by lot) sits before the first map and after the last
+    send({ type: 'settings', map: ((now + 1 + by + MAPS.length + 1) % (MAPS.length + 1)) - 1 });
+  };
+  const prev = h('button', { class: 'btn small', type: 'button', 'aria-label': 'Previous map', onclick: () => step(-1) }, '◀');
+  const next = h('button', { class: 'btn small', type: 'button', 'aria-label': 'Next map', onclick: () => step(1) }, '▶');
+  const mapName = h('b', { class: 'map-name' });
+  const mapPic = h('canvas', { class: 'map-pic', width: 240, height: 156 });
+  const mapRow = h('div', { class: 'map-row' }, prev, mapName, next);
+  let shownMap = -2;
   const settings = h('div', { class: 'settings' }, h('span', { class: 'setting' }, modeBtns));
   const summary = h('p', { class: 'share' });
   const watchers = h('p', { class: 'share' });
@@ -27,7 +41,7 @@ export function lobbyScreen(): Screen {
   const el = h(
     'section',
     { class: 'screen lobby' },
-    h('div', { class: 'sheet spiral' }, h('h2', null, "Who's in the house?"), notes, status, settings, summary, hostRow, start, watchers, toggle, share),
+    h('div', { class: 'sheet spiral' }, h('h2', null, "Who's in the house?"), notes, status, settings, summary, mapRow, mapPic, hostRow, start, watchers, toggle, share),
     h(
       'ol',
       { class: 'howto' },
@@ -59,7 +73,25 @@ export function lobbyScreen(): Screen {
       watchers.hidden = tv.length === 0;
       watchers.textContent = `Watching: ${tv.map((p) => p.name).join(', ')}`;
       toggle.textContent = mine?.watcher ? 'Play instead' : 'Just watch';
+      if (s.settings.map !== shownMap) {
+        shownMap = s.settings.map;
+        const map = MAPS[shownMap];
+        mapName.textContent = map ? map.name : 'Any map, by lot';
+        const m = mapPic.getContext('2d')!;
+        m.clearRect(0, 0, mapPic.width, mapPic.height);
+        if (map) m.drawImage(mapPicture(map, 6), 0, 0);
+        else {
+          m.fillStyle = 'rgba(31,26,46,0.75)';
+          m.fillRect(0, 0, mapPic.width, mapPic.height);
+          m.fillStyle = '#ffd23f';
+          m.font = '90px Chewy, sans-serif';
+          m.textAlign = 'center';
+          m.textBaseline = 'middle';
+          m.fillText('?', mapPic.width / 2, mapPic.height / 2 + 6);
+        }
+      }
       const host = isHost();
+      prev.hidden = next.hidden = !host;
       const online = store.status === 'connected';
       const enough = seated.length >= MIN_PLAYERS;
       hostRow.hidden = !host;

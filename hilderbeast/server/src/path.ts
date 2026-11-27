@@ -1,6 +1,6 @@
 /** Finding a way through the house, for the bots: steps from one square to every other. */
 import { TILE } from '../../shared/src/constants.js';
-import { wallAt, type GameMap } from '../../shared/src/map.js';
+import { T_SPIKE, wallAt, type GameMap } from '../../shared/src/map.js';
 
 /** Marks a square that cannot be reached. */
 export const FAR = 0xffff;
@@ -14,8 +14,11 @@ const DIRS = [
 
 export const tileOf = (v: number): number => Math.floor(v / TILE);
 
-/** Steps (up, down, left, right) from the square holding `(x, y)` to every square of the map. */
-export function stepsFrom(map: GameMap, x: number, y: number): Uint16Array {
+/**
+ * Steps (up, down, left, right) from the square holding `(x, y)` to every square of the map.
+ * With `roundSpikes`, by ways that never step on spikes.
+ */
+export function stepsFrom(map: GameMap, x: number, y: number, roundSpikes = false): Uint16Array {
   const dist = new Uint16Array(map.cols * map.lines).fill(FAR);
   const c0 = tileOf(x);
   const r0 = tileOf(y);
@@ -34,7 +37,7 @@ export function stepsFrom(map: GameMap, x: number, y: number): Uint16Array {
       const nr = r + dr;
       if (wallAt(map, nc, nr)) continue;
       const next = nr * map.cols + nc;
-      if (dist[next] !== FAR) continue;
+      if (dist[next] !== FAR || (roundSpikes && map.kind[next] === T_SPIKE)) continue;
       dist[next] = dist[at] + 1;
       queue[tail++] = next;
     }
@@ -56,8 +59,8 @@ export function stepsAt(map: GameMap, field: Uint16Array, x: number, y: number):
 export function towards(map: GameMap, field: Uint16Array, x: number, y: number, tx: number, ty: number): { x: number; y: number } {
   const c = tileOf(x);
   const r = tileOf(y);
+  // standing somewhere the field does not reach (on spikes it goes round): any square it does reach will do
   const here = stepsAt(map, field, x, y);
-  if (here === FAR) return { x: 0, y: 0 };
   let gx = tx;
   let gy = ty;
   if (here > 0) {

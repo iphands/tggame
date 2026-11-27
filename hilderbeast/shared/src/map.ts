@@ -4,38 +4,42 @@
  * travels over the socket.
  *
  * `#` wall, `.` floor, `c` a Cousin's start, `B` the Beast's den, `o` an energy pill,
- * `1` `2` `3` the two ends of a Beast door, `T` a chore, `E` an exit.
+ * `1` `2` `3` the two ends of a Beast door, `T` a chore, `E` an exit; and the traps, which only
+ * ever trouble Cousins: `~` goo, `^` spikes, `!` a creaky board.
+ *
+ * This file holds what a map is and the one map laid out by hand, the Old House. The others are
+ * laid out from plans by `mapgen.ts`; `maps.ts` lists them all.
  */
-import { TILE } from './constants.js';
+import { SPIKE_CYCLE_MS, SPIKE_UP_AT_MS, SPIKE_WARN_AT_MS, TILE } from './constants.js';
 
 /** Each room is 12 squares wide; the top and bottom rows of rooms are 7 tall, the middle row 8. */
 const ROOMS: { name: string; rows: string[] }[][] = [
   [
     {
       name: 'Kitchen',
-      rows: ['............', '.1..........', '....##...T..', '....##......', '........##..', '..o.....##..', '............'],
+      rows: ['......~~....', '.1....~~....', '....##...T..', '....##......', '........##..', '..o.....##..', '............'],
     },
     {
       name: 'Library',
-      rows: ['......E.....', '..####..o...', '............', '......####..', '............', '..####...T..', '............'],
+      rows: ['......E.....', '..####..o...', '....^^......', '......####..', '..........^.', '..####...T..', '............'],
     },
     {
       name: 'Nursery',
-      rows: ['............', '...T......2.', '..##........', '..##...##...', '.......##...', '....o.......', '............'],
+      rows: ['............', '...T......2.', '..##........', '..##...##...', '.......##...', '....o.......', '.....!......'],
     },
   ],
   [
     {
       name: 'Workshop',
-      rows: ['............', '..##....o...', '..##........', '.......##...', '.......##...', '..T.........', '.........3..', '............'],
+      rows: ['............', '..##....o...', '..##........', '.......##...', '.......##...', '..T....~~~..', '.........3..', '............'],
     },
     {
       name: 'Hall',
-      rows: ['............', '..c..c..c...', '............', '.c..####..c.', '.c..####..c.', '......o.....', '..c..c..c...', '............'],
+      rows: ['............', '..c..c..c...', '............', '.c..####..c.', '.c..####..c.', '......o.....', '..c..c..c...', '.....!!.....'],
     },
     {
       name: 'Parlour',
-      rows: ['............', '...o....##..', '........##..', '..##........', '..##........', '.......T....', '.1..........', '............'],
+      rows: ['......!.....', '...o....##..', '........##..', '..##........', '..##........', '.......T....', '.1..........', '............'],
     },
   ],
   [
@@ -45,11 +49,11 @@ const ROOMS: { name: string; rows: string[] }[][] = [
     },
     {
       name: 'Porch',
-      rows: ['............', '....o.......', '..##....##..', '..##....##..', '.....T......', '............', '......E.....'],
+      rows: ['............', '....o.......', '..##....##..', '..##....##..', '.....T......', '...^....^...', '......E.....'],
     },
     {
       name: 'Greenhouse',
-      rows: ['............', '..##...o....', '..##........', '.......##...', '..T....##...', '.........3..', '............'],
+      rows: ['....~~~.....', '..##...o....', '..##........', '.......##...', '..T....##...', '.........3..', '............'],
     },
   ],
 ];
@@ -86,7 +90,21 @@ export type Spot = { x: number; y: number };
 /** A room, in squares: `x0..x1` and `y0..y1` inclusive. */
 export type Room = { name: string; x0: number; y0: number; x1: number; y1: number };
 
+/** What a square is. */
+export const T_FLOOR = 0;
+export const T_WALL = 1;
+/** Slows a Cousin who stands in it. */
+export const T_GOO = 2;
+/** Up and down by the clock: hurts a Cousin who is on it when it is up. */
+export const T_SPIKE = 3;
+/** Creaks under a Cousin, and the Beasts hear it. */
+export const T_CREAK = 4;
+
+/** The colours a map is drawn in. */
+export type Look = { floors: string[]; wall: string; wallTop: string };
+
 export type GameMap = {
+  name: string;
   rows: string[];
   /** Squares across and down. */
   cols: number;
@@ -96,6 +114,8 @@ export type GameMap = {
   h: number;
   /** 1 where a square is wall, row by row. */
   solid: Uint8Array;
+  /** What each square is (`T_…`), row by row. */
+  kind: Uint8Array;
   cousinStarts: Spot[];
   den: Spot;
   pills: Spot[];
@@ -104,14 +124,22 @@ export type GameMap = {
   tasks: Spot[];
   exits: Spot[];
   rooms: Room[];
+  look: Look;
+};
+
+export const OLD_HOUSE_LOOK: Look = {
+  floors: ['#5a4a3a', '#4b4458', '#5b4a55', '#4a4f47', '#5f5540', '#57424a', '#3d3f52', '#4f5a4c', '#46584f'],
+  wall: '#2a2440',
+  wallTop: '#544a78',
 };
 
 const centre = (c: number, r: number): Spot => ({ x: (c + 0.5) * TILE, y: (r + 0.5) * TILE });
 
-export function parseMap(rows: string[]): GameMap {
+export function parseMap(rows: string[], meta: { name?: string; rooms?: Room[]; look?: Look } = {}): GameMap {
   const cols = rows[0].length;
   const lines = rows.length;
   const solid = new Uint8Array(cols * lines);
+  const kind = new Uint8Array(cols * lines);
   const cousinStarts: Spot[] = [];
   const pills: Spot[] = [];
   const tasks: Spot[] = [];
@@ -121,7 +149,10 @@ export function parseMap(rows: string[]): GameMap {
   rows.forEach((row, r) => {
     if (row.length !== cols) throw new Error(`map row ${r} is ${row.length} wide, not ${cols}`);
     [...row].forEach((ch, c) => {
-      if (ch === '#') solid[r * cols + c] = 1;
+      if (ch === '#') solid[r * cols + c] = kind[r * cols + c] = T_WALL;
+      else if (ch === '~') kind[r * cols + c] = T_GOO;
+      else if (ch === '^') kind[r * cols + c] = T_SPIKE;
+      else if (ch === '!') kind[r * cols + c] = T_CREAK;
       else if (ch === 'c') cousinStarts.push(centre(c, r));
       else if (ch === 'B') den = centre(c, r);
       else if (ch === 'o') pills.push(centre(c, r));
@@ -136,7 +167,24 @@ export function parseMap(rows: string[]): GameMap {
     if (pair.length !== 2) throw new Error(`Beast door ${key} has ${pair.length} ends`);
     portals.push(pair[0], pair[1]);
   }
-  return { rows, cols, lines, w: cols * TILE, h: lines * TILE, solid, cousinStarts, den, pills, portals, tasks, exits, rooms: [] };
+  return {
+    name: meta.name ?? 'A yard',
+    rows,
+    cols,
+    lines,
+    w: cols * TILE,
+    h: lines * TILE,
+    solid,
+    kind,
+    cousinStarts,
+    den,
+    pills,
+    portals,
+    tasks,
+    exits,
+    rooms: meta.rooms ?? [],
+    look: meta.look ?? OLD_HOUSE_LOOK,
+  };
 }
 
 function rooms(): Room[] {
@@ -152,11 +200,34 @@ function rooms(): Room[] {
   return out;
 }
 
-export const MAP: GameMap = { ...parseMap(build()), rooms: rooms() };
+/** The first map, and the only one laid out by hand. */
+export const oldHouse = (): GameMap => parseMap(build(), { name: 'The Old House', rooms: rooms(), look: OLD_HOUSE_LOOK });
 
 /** Is the square at column `c`, row `r` a wall? Everything off the map is. */
 export function wallAt(map: GameMap, c: number, r: number): boolean {
   return c < 0 || r < 0 || c >= map.cols || r >= map.lines || map.solid[r * map.cols + c] === 1;
+}
+
+/** What the square under the world point `(x, y)` is. */
+export function kindAt(map: GameMap, x: number, y: number): number {
+  const c = Math.floor(x / TILE);
+  const r = Math.floor(y / TILE);
+  return wallAt(map, c, r) ? T_WALL : map.kind[r * map.cols + c];
+}
+
+/** `SPIKES_DOWN`, `SPIKES_WARN` (about to come up: harmless, but look out) or `SPIKES_UP`. */
+export const SPIKES_DOWN = 0;
+export const SPIKES_WARN = 1;
+export const SPIKES_UP = 2;
+
+/**
+ * What the spikes at column `c`, row `r` are doing `timeMs` into the round. Every set runs by
+ * the same clock, with neighbours half a cycle apart, so a strip of them goes in waves and
+ * there is always a moment to cross.
+ */
+export function spikesAt(timeMs: number, c: number, r: number): number {
+  const t = (timeMs + ((c + r) % 2) * (SPIKE_CYCLE_MS / 2)) % SPIKE_CYCLE_MS;
+  return t >= SPIKE_UP_AT_MS ? SPIKES_UP : t >= SPIKE_WARN_AT_MS ? SPIKES_WARN : SPIKES_DOWN;
 }
 
 /** The room a point is in, or the nearest one when it stands in a doorway. */

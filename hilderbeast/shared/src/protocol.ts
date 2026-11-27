@@ -9,7 +9,8 @@ export type ClientMessage =
   | { type: 'rename'; name: string }
   | { type: 'addBot' }
   | { type: 'removeBot' }
-  | { type: 'settings'; mode?: Mode }
+  /** `map`: an index into `MAPS`, or -1 for one by lot. */
+  | { type: 'settings'; mode?: Mode; map?: number }
   | { type: 'start' }
   /** Only watch from now on (`on`), or ask for a seat again. A screen that only watches sees the whole house. */
   | { type: 'watch'; on: boolean }
@@ -62,7 +63,7 @@ export function isClientMessage(x: unknown): x is ClientMessage {
     case 'rename':
       return typeof m.name === 'string' && m.name.length <= 64;
     case 'settings':
-      return m.mode === undefined || (MODES as readonly unknown[]).includes(m.mode);
+      return (m.mode === undefined || (MODES as readonly unknown[]).includes(m.mode)) && (m.map === undefined || (Number.isInteger(m.map) && (m.map as number) >= -1 && (m.map as number) < 64));
     case 'watch':
       return typeof m.on === 'boolean';
     case 'in':

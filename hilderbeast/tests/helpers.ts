@@ -2,7 +2,8 @@ import { seeded } from '@tggame/base/testing/seeded';
 import { Game } from '../server/src/game';
 import { World, type Body } from '../server/src/world';
 import { COUNTDOWN_MS, TICK_MS } from '../shared/src/constants';
-import { MAP, parseMap, type GameMap } from '../shared/src/map';
+import { parseMap, type GameMap } from '../shared/src/map';
+import { MAP } from '../shared/src/maps';
 import type { Mode } from '../shared/src/types';
 
 type Joined = { id: string; token: string; resumed: boolean };
@@ -16,6 +17,8 @@ export function join(g: Game, name: string, token?: string): Joined {
 /** A lobby with `n` humans named P1..Pn; returns their ids in seat order. */
 export function table(n: number, seed = 1): { g: Game; ids: string[]; tokens: string[] } {
   const g = new Game(seeded(seed));
+  // the rules are tested on the Old House, where the tests know their way about
+  g.settings.map = 0;
   const ids: string[] = [];
   const tokens: string[] = [];
   for (let i = 1; i <= n; i++) {

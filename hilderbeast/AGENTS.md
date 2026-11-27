@@ -8,7 +8,8 @@ loop come from `slurp/`. Shared code is imported from `@tggame/base`. Read `READ
 | Path | What |
 |---|---|
 | `shared/src/constants.ts` | every tunable number: speeds, boosts, the dash, catching, Beast doors, clocks, chores |
-| `shared/src/map.ts` | the house as rows of text; `MAP`, `wallAt`, `roomAt` |
+| `shared/src/map.ts` | what a map is; the Old House as rows of text; `wallAt`, `kindAt`, `roomAt`, `spikesAt` |
+| `shared/src/mapgen.ts`, `maps.ts` | the other seven maps, laid out from plans by a seeded generator; `MAPS` |
 | `shared/src/sim.ts` | rules both sides run: `moveBody`, `speedOf`, `rayDist`, `sees` |
 | `shared/src/protocol.ts`, `types.ts` | messages and views |
 | `server/src/world.ts` | one round: bodies, boosts, pills, catches by touch, Beast doors, chores, exits |
@@ -44,9 +45,15 @@ loop come from `slurp/`. Shared code is imported from `@tggame/base`. Read `READ
 - **`moveBody` and `speedOf` are shared** by the server and the client's prediction. Change them
   in one place only. Anything that changes how fast a body goes, or holds it still (the dash, a Beast door), must show
   in the flags, so the client knows to stop predicting.
-- **The map is code, not a message.** Both sides import `MAP`; only what changes (pills, chore
-  progress) travels. `tests/sim.test.ts` checks every square can be reached and no Cousin starts
-  in sight of the den.
+- **Maps are code, not messages.** Both sides import `MAPS`; a round names its map by number and
+  only what changes (pills, chore progress) travels. `mapgen.ts` must stay a pure function of the
+  plan and its seed (its own RNG, integer maths only): change a plan or the generator and every
+  client must be rebuilt with the server. `tests/maps.test.ts` holds each map to the rules: all
+  squares reachable, and reachable without spikes; no Cousin starts in sight of the den; two ways
+  out of every room.
+- **Traps are a function of place and round time.** Goo and creaks come from the square a Cousin
+  stands on, spikes from `spikesAt(timeMs, c, r)`. Nothing about a trap is sent; the client works
+  out goo for its own prediction and draws spikes from the round clock.
 - **Every round ends.** Both modes have a clock; `tests/bots.test.ts` plays whole bot rounds.
 - **Tuning lives in `constants.ts`.** The bot test prints how each bot round went.
 - **No binary assets.** Art is canvas code, sound is WebAudio, icons are generated.

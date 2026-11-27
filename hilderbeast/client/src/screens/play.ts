@@ -17,18 +17,21 @@ import {
   F_DASH,
   F_GHOST,
   F_HELD,
+  F_HURT,
   F_OUT,
   F_PORTAL,
+  F_SLOW,
   F_WORK,
   NOISE_SHOW_MS,
   SIGHT_R,
   TASK_R,
   TILE,
 } from '../../../shared/src/constants';
-import { MAP, roomAt, wallAt } from '../../../shared/src/map';
+import { T_GOO, kindAt, roomAt } from '../../../shared/src/map';
+import { MAPS } from '../../../shared/src/maps';
 import { moveBody, rayDist, sees, speedOf } from '../../../shared/src/sim';
 import type { Fx } from '../../../shared/src/types';
-import { INK, NIGHT, drawBody, drawExit, drawHouse, drawPill, drawPortal, drawTask } from '../art';
+import { INK, NIGHT, drawBody, drawExit, drawHouse, drawPill, drawPortal, drawTask, mapPicture } from '../art';
 import { buzz, sfx } from '../audio';
 import { createInput } from '../input';
 import { clockLeft, countdownLeft, live } from '../live';
@@ -54,6 +57,8 @@ const FOG = 'rgba(8,6,16,0.74)';
 const MINI = 4;
 
 export function playScreen(): Screen {
+  /** The map this round is played on. A new round is a new play screen, so it never changes under us. */
+  const MAP = MAPS[store.state?.round?.map ?? 0] ?? MAPS[0];
   const canvas = h('canvas');
   const ctx = canvas.getContext('2d')!;
   const clock = h('div', { class: 'clock' }, '');
@@ -109,17 +114,8 @@ export function playScreen(): Screen {
   let offBy = 0;
   let shake = 0;
 
-  // the walls of the minimap never change: draw them once
-  const miniWalls = document.createElement('canvas');
-  miniWalls.width = mini.width;
-  miniWalls.height = mini.height;
-  {
-    const m = miniWalls.getContext('2d')!;
-    m.fillStyle = 'rgba(244,236,216,0.16)';
-    m.fillRect(0, 0, mini.width, mini.height);
-    m.fillStyle = 'rgba(12,10,20,0.9)';
-    for (let r = 0; r < MAP.lines; r++) for (let c = 0; c < MAP.cols; c++) if (wallAt(MAP, c, r)) m.fillRect(c * MINI, r * MINI, MINI, MINI);
-  }
+  // the walls and traps of the minimap never change: draw them once
+  const miniWalls = mapPicture(MAP, MINI);
 
   // ---- what we know
 
@@ -203,6 +199,15 @@ export function playScreen(): Screen {
       case 'x':
         say(`${who(e[1])} got out!`);
         break;
+      case 's':
+        sfx.ouch(e[1] === me);
+        floats.push({ x: e[2], y: e[3] - 24, at: performance.now(), text: 'Ouch!' });
+        if (e[1] === me) {
+          buzz(120);
+          if (!reducedMotion()) shake = 0.6;
+          say('Spikes! You are limping', 1600);
+        }
+        break;
     }
   }
   live.onEvent = onEvent;
@@ -247,7 +252,7 @@ export function playScreen(): Screen {
     } else {
       const energy = live.me?.[0] ?? 0;
       const was = cousinBoost;
-      cousinBoost = ctl.boost && (cousinBoost ? energy > 0 : energy >= ENERGY_TO_START);
+      cousinBoost = ctl.boost && !(flags & F_HURT) && (cousinBoost ? energy > 0 : energy >= ENERGY_TO_START);
       if (cousinBoost && !was && moving) sfx.dash();
       if (ctl.boost && !boostWas && !cousinBoost) sfx.empty();
       flags = cousinBoost && moving ? flags | F_BOOST : flags & ~F_BOOST;
@@ -255,10 +260,15 @@ export function playScreen(): Screen {
     boostWas = ctl.boost;
     actWas = ctl.act;
 
+    // goo is in the map, so we know we are in it without being told: the flag is worked out here, per place
+    const wades = !ghost && !(flags & F_BEAST);
+    const dry = flags & ~F_SLOW;
+    const speedAt = (x: number, y: number): number => speedOf(wades && kindAt(MAP, x, y) === T_GOO ? dry | F_SLOW : dry);
+    flags = wades && self.ready && kindAt(MAP, self.x, self.y) === T_GOO ? dry | F_SLOW : dry;
     const speed = speedOf(flags);
     // while the server holds the body (the den, a Beast door, turning) we only follow
-    const steering = speed > 0;
-    const ahead = steering ? predictBody({ x: latest[1], y: latest[2] }, live.stampedAt, netClock.rtt, sticks, now, speed, MAP, ghost) : { x: latest[1], y: latest[2] };
+    const steering = speedOf(dry) > 0;
+    const ahead = steering ? predictBody({ x: latest[1], y: latest[2] }, live.stampedAt, netClock.rtt, sticks, now, speedAt, MAP, ghost) : { x: latest[1], y: latest[2] };
     const off = Math.hypot(ahead.x - self.x, ahead.y - self.y);
     if (!self.ready || off > SNAP_UNITS) {
       self.x = ahead.x;
@@ -358,7 +368,9 @@ export function playScreen(): Screen {
     const x1 = view.x + cw / 2 / scale + 20;
     const y0 = view.y - ch / 2 / scale - 20;
     const y1 = view.y + ch / 2 / scale + 20;
-    drawHouse(ctx, MAP, x0, y0, x1, y1);
+    // how far into the round we are: the spikes go by it, here just as on the server
+    const timeMs = (s.round?.clockMs ?? 0) - clockLeft(now, netClock.rtt / 2);
+    drawHouse(ctx, MAP, x0, y0, x1, y1, timeMs, now);
 
     MAP.portals.forEach((p, i) => {
       if (flares[i] > 0) flares[i] = Math.max(0, flares[i] - dt * 1.6);

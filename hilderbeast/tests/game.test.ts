@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { COUNTDOWN_MS, DREAD_STEPS, ESCAPE_CLOCK_MS, F_HELD, HEAD_START_MS, LAST_CLOCK_MS, MAX_PLAYERS, TICK_MS, tasksFor } from '../shared/src/constants';
-import { MAP } from '../shared/src/map';
+import { MAP } from '../shared/src/maps';
 import { Game } from '../server/src/game';
 import { join, place, run, seeded, started, table } from './helpers';
 
@@ -23,6 +23,28 @@ describe('the lobby', () => {
     expect(g.settings.mode).toBe('last');
     g.configure(ids[0], 'escape');
     expect(g.settings.mode).toBe('escape');
+  });
+  it('lets the host pick the map, or leaves it to chance without a repeat', () => {
+    const { g, ids } = table(3);
+    g.configure(ids[1], undefined, 5);
+    expect(g.settings.map).toBe(0);
+    g.configure(ids[0], undefined, 99);
+    expect(g.settings.map).toBe(0);
+    g.configure(ids[0], undefined, 5);
+    g.start(ids[0]);
+    expect(g.viewFor(ids[0]).round!.map).toBe(5);
+    expect(g.world!.map.name).toBe('The Boathouse');
+    g.abort(ids[0]);
+    g.configure(ids[0], undefined, -1);
+    let last = 5;
+    for (let i = 0; i < 12; i++) {
+      g.start(ids[0]);
+      const now = g.viewFor(ids[0]).round!.map;
+      expect(now).not.toBe(last);
+      expect(g.world!.tasks).toHaveLength(0);
+      last = now;
+      g.abort(ids[0]);
+    }
   });
   it('seats bots up to the limit and gives a human a bot\'s seat', () => {
     const { g, ids } = table(1);

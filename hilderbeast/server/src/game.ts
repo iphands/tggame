@@ -17,7 +17,7 @@ import {
   TICK_MS,
   tasksFor,
 } from '../../shared/src/constants.js';
-import { MAP } from '../../shared/src/map.js';
+import { MAPS } from '../../shared/src/maps.js';
 import type { SnapMessage } from '../../shared/src/protocol.js';
 import { sees } from '../../shared/src/sim.js';
 import type { BodySnap, Fx, Mode, Phase, PlayerView, ResultView, Settings, Side, StateView } from '../../shared/src/types.js';
@@ -53,7 +53,9 @@ export class Game extends Roster<Player> {
   phase: Phase = 'lobby';
   /** Bumped each time a round starts. */
   gameNo = 0;
-  settings: Settings = { mode: DEFAULT_MODE };
+  settings: Settings = { mode: DEFAULT_MODE, map: -1 };
+  /** The map of the round being played, or of the last one. */
+  private mapNo = -1;
   /** The round being played, or the last one played. */
   world: World | null = null;
   /** Fixed ticks run so far, and the time they add up to. Never reset, so snapshots stay in order. */
@@ -161,9 +163,10 @@ export class Game extends Roster<Player> {
 
   // ---- game flow
 
-  configure(by: string, mode?: Mode): void {
+  configure(by: string, mode?: Mode, map?: number): void {
     if (this.phase !== 'lobby' || by !== this.hostId()) return;
     if (mode !== undefined && MODES.includes(mode)) this.settings.mode = mode;
+    if (map !== undefined && Number.isInteger(map) && map >= -1 && map < MAPS.length) this.settings.map = map;
   }
 
   start(by: string): void {
@@ -179,12 +182,17 @@ export class Game extends Roster<Player> {
     this.beastTurns.set(beast, fewest + 1);
     this.cousinsAtStart = ids.length - 1;
     const mode = this.settings.mode;
+    // by lot, never the same map twice running
+    let mapNo = this.settings.map;
+    while (mapNo < 0 || (this.settings.map < 0 && mapNo === this.mapNo && MAPS.length > 1)) mapNo = Math.floor(this.rng() * MAPS.length);
+    this.mapNo = mapNo;
+    const map = MAPS[mapNo];
     const spots = shuffle(
-      MAP.tasks.map((_, i) => i),
+      map.tasks.map((_, i) => i),
       this.rng,
     ).slice(0, tasksFor(this.cousinsAtStart));
     // seats in the hall are dealt by lot too
-    this.world = new World(mode, [beast, ...shuffle(ids.filter((id) => id !== beast), this.rng)], beast, spots.sort((a, b) => a - b));
+    this.world = new World(mode, [beast, ...shuffle(ids.filter((id) => id !== beast), this.rng)], beast, spots.sort((a, b) => a - b), map);
     this.bots = new Bots();
     this.roundClockMs = this.clockMs = mode === 'escape' ? ESCAPE_CLOCK_MS : LAST_CLOCK_MS;
     this.phase = 'countdown';
@@ -307,7 +315,7 @@ export class Game extends Roster<Player> {
       hostId: this.hostId(),
       players,
       settings: { ...this.settings },
-      round: world ? { seq: this.gameNo, mode: world.mode, clockMs: this.roundClockMs, tasks: world.tasks.map((t) => t.spot), sides, firstBeast: world.firstBeast } : null,
+      round: world ? { seq: this.gameNo, mode: world.mode, map: this.mapNo, clockMs: this.roundClockMs, tasks: world.tasks.map((t) => t.spot), sides, firstBeast: world.firstBeast } : null,
       result: this.result,
     };
   }
@@ -350,7 +358,7 @@ export class Game extends Roster<Player> {
     const near = (i: number): boolean => !!me && sees(world.map, me.x, me.y, world.map.portals[i].x, world.map.portals[i].y, SIGHT_R);
     const fx: Fx[] = [];
     for (const e of frame.fx) {
-      if (e[0] === 'l') {
+      if (e[0] === 'l' || e[0] === 's') {
         if (seen.has(e[1])) fx.push(e);
       } else if (e[0] === 't') {
         if (all || me.role === 'beast' || near(e[2]) || near(e[3])) fx.push(e);

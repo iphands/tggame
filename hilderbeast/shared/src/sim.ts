@@ -1,5 +1,5 @@
 /** The rules both sides must agree on: the server runs them, the client predicts its own body with them. */
-import { BASE_SPEED, BODY_R, F_BEAST, F_BOOST, F_CONVERT, DASH_SPEED, F_DASH, F_GHOST, F_HELD, GHOST_SPEED, F_OUT, F_PORTAL, ROLE, TILE } from './constants.js';
+import { BASE_SPEED, BODY_R, F_BEAST, F_BOOST, F_CONVERT, DASH_SPEED, F_DASH, F_GHOST, F_HELD, F_HURT, F_SLOW, GHOST_SPEED, GOO_SPEED, HURT_SPEED, F_OUT, F_PORTAL, ROLE, TILE } from './constants.js';
 import { wallAt, type GameMap } from './map.js';
 
 export type Point = { x: number; y: number };
@@ -17,7 +17,10 @@ export function speedOf(flags: number): number {
   if (flags & F_GHOST) return BASE_SPEED * GHOST_SPEED;
   const role = flags & F_BEAST ? ROLE.beast : ROLE.cousin;
   if (flags & F_DASH) return BASE_SPEED * role.speed * DASH_SPEED;
-  return BASE_SPEED * role.speed * (flags & F_BOOST ? role.boost : 1);
+  // goo and a limp: a limping Cousin has no boost
+  const drag = (flags & F_SLOW ? GOO_SPEED : 1) * (flags & F_HURT ? HURT_SPEED : 1);
+  if (flags & F_HURT) return BASE_SPEED * role.speed * drag;
+  return BASE_SPEED * role.speed * (flags & F_BOOST ? role.boost : 1) * drag;
 }
 
 /** No single step moves a body further than this, so it cannot skip through a wall on a slow frame. */

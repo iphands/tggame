@@ -54,6 +54,21 @@ win too; with two players, that is how the Cousin wins.
   or 6 minutes have passed. The Cousins win if at least one of them got out; the Beasts win if
   nobody did.
 
+## Maps and traps
+
+Eight maps: the Old House, the Barn, the Wine Cellars, the Hedge Maze, the Attic, the Boathouse,
+the Fairground and the Old Hotel. The host picks one in the lobby, or leaves it on "Any map, by
+lot", which never plays the same map twice running.
+
+Every map has traps. They only ever trouble Cousins: Beasts and ghosts walk straight over them.
+
+- **Goo** (green pools) halves a Cousin's speed while they wade through it.
+- **Spikes** go down, flash amber as a warning, then come up, on a 3-second turn; neighbouring
+  spikes take turns, so there is always a moment to cross. A Cousin on them when they are up
+  loses 30 % energy and limps, with no boost, for 1.6 seconds. There is always a way round.
+- **Creaky boards** (pale, cracked planks) creak under a moving Cousin, and the Beasts are shown
+  where, just as they are for a chore.
+
 ## Just watching
 
 A screen can watch without playing: press **Just watch** on the join screen, or in the lobby.

@@ -1,20 +1,19 @@
 /** Everything on the floor of the house, drawn in code. */
-import { BODY_R, F_BEAST, F_BOOST, F_CONVERT, F_DASH, F_GHOST, F_HELD, F_WORK, TILE } from '../../shared/src/constants';
-import { wallAt, type GameMap } from '../../shared/src/map';
+import { BODY_R, F_BEAST, F_BOOST, F_CONVERT, F_DASH, F_GHOST, F_HELD, F_HURT, F_WORK, TILE } from '../../shared/src/constants';
+import { SPIKES_UP, SPIKES_WARN, T_CREAK, T_FLOOR, T_GOO, T_SPIKE, T_WALL, spikesAt, type GameMap } from '../../shared/src/map';
 import { HILDER_BOX, hilderSprite } from './hilder';
 
 export const INK = '#120f1c';
 export const NIGHT = '#0c0a14';
 const PAPER = '#f4ecd8';
-/** One floor colour per room, so a room is known at a glance. */
-const FLOORS = ['#5a4a3a', '#4b4458', '#5b4a55', '#4a4f47', '#5f5540', '#57424a', '#3d3f52', '#4f5a4c', '#46584f'];
-const WALL = '#2a2440';
-const WALL_TOP = '#544a78';
-
 type Ctx = CanvasRenderingContext2D;
 
-/** The part of the house between these world coordinates: floors, room names, walls. */
-export function drawHouse(c: Ctx, map: GameMap, x0: number, y0: number, x1: number, y1: number): void {
+/**
+ * The part of the map between these world coordinates: floors, room names, traps, walls.
+ * `timeMs` is how far into the round we are, which is what the spikes go by.
+ */
+export function drawHouse(c: Ctx, map: GameMap, x0: number, y0: number, x1: number, y1: number, timeMs: number, now: number): void {
+  const look = map.look;
   c.fillStyle = INK;
   c.fillRect(0, 0, map.w, map.h);
   map.rooms.forEach((room, i) => {
@@ -23,7 +22,7 @@ export function drawHouse(c: Ctx, map: GameMap, x0: number, y0: number, x1: numb
     const rw = (room.x1 - room.x0 + 2) * TILE;
     const rh = (room.y1 - room.y0 + 2) * TILE;
     if (rx > x1 || ry > y1 || rx + rw < x0 || ry + rh < y0) return;
-    c.fillStyle = FLOORS[i % FLOORS.length];
+    c.fillStyle = look.floors[i % look.floors.length];
     c.fillRect(rx, ry, rw, rh);
     // floorboards
     c.strokeStyle = 'rgba(0,0,0,0.16)';
@@ -34,6 +33,8 @@ export function drawHouse(c: Ctx, map: GameMap, x0: number, y0: number, x1: numb
       c.lineTo(rx + rw, y);
     }
     c.stroke();
+    // a name only where there is room to read it
+    if (room.x1 - room.x0 < 7) return;
     c.fillStyle = 'rgba(255,255,255,0.1)';
     c.font = `${TILE * 1.1}px Chewy, sans-serif`;
     c.textAlign = 'center';
@@ -46,13 +47,99 @@ export function drawHouse(c: Ctx, map: GameMap, x0: number, y0: number, x1: numb
   const r1 = Math.min(map.lines - 1, Math.floor(y1 / TILE));
   for (let r = r0; r <= r1; r++) {
     for (let col = c0; col <= c1; col++) {
-      if (!wallAt(map, col, r)) continue;
-      c.fillStyle = WALL;
-      c.fillRect(col * TILE, r * TILE, TILE + 0.5, TILE + 0.5);
-      c.fillStyle = WALL_TOP;
-      c.fillRect(col * TILE + 3, r * TILE + 3, TILE - 6, TILE - 10);
+      const kind = map.kind[r * map.cols + col];
+      const x = col * TILE;
+      const y = r * TILE;
+      if (kind === T_WALL) {
+        c.fillStyle = look.wall;
+        c.fillRect(x, y, TILE + 0.5, TILE + 0.5);
+        c.fillStyle = look.wallTop;
+        c.fillRect(x + 3, y + 3, TILE - 6, TILE - 10);
+      } else if (kind === T_GOO) drawGoo(c, x, y, col, r, now);
+      else if (kind === T_SPIKE) drawSpikes(c, x, y, spikesAt(timeMs, col, r));
+      else if (kind === T_CREAK) drawCreak(c, x, y);
     }
   }
+}
+
+/** Goo: a sticky green pool that slows a Cousin down. */
+function drawGoo(c: Ctx, x: number, y: number, col: number, r: number, now: number): void {
+  c.fillStyle = '#4f8f2f';
+  c.beginPath();
+  c.roundRect(x + 1, y + 1, TILE - 2, TILE - 2, 9);
+  c.fill();
+  c.fillStyle = '#8fd94a';
+  for (let i = 0; i < 3; i++) {
+    const a = now / 700 + col * 2.1 + r * 1.3 + i * 2.2;
+    c.beginPath();
+    c.arc(x + TILE / 2 + Math.cos(a) * 9, y + TILE / 2 + Math.sin(a * 1.3) * 9, 3 + ((i + col + r) % 3), 0, Math.PI * 2);
+    c.fill();
+  }
+}
+
+/** Spikes: holes in a plate when down, an amber plate when about to rise, steel points when up. */
+function drawSpikes(c: Ctx, x: number, y: number, state: number): void {
+  c.fillStyle = state === SPIKES_WARN ? '#b9772a' : '#3b3a44';
+  c.strokeStyle = INK;
+  c.lineWidth = 2;
+  c.beginPath();
+  c.roundRect(x + 3, y + 3, TILE - 6, TILE - 6, 4);
+  c.fill();
+  c.stroke();
+  for (let i = 0; i < 9; i++) {
+    const px = x + 10 + (i % 3) * 10;
+    const py = y + 12 + Math.floor(i / 3) * 10;
+    if (state === SPIKES_UP) {
+      c.fillStyle = '#e8ecf4';
+      c.beginPath();
+      c.moveTo(px - 4, py + 3);
+      c.lineTo(px, py - 9);
+      c.lineTo(px + 4, py + 3);
+      c.closePath();
+      c.fill();
+      c.stroke();
+    } else {
+      c.fillStyle = state === SPIKES_WARN ? '#ffd23f' : '#15141c';
+      c.beginPath();
+      c.arc(px, py, state === SPIKES_WARN ? 2.6 : 2, 0, Math.PI * 2);
+      c.fill();
+    }
+  }
+}
+
+/** A creaky board: a pale, cracked plank. Easy to miss in a hurry. */
+function drawCreak(c: Ctx, x: number, y: number): void {
+  c.fillStyle = 'rgba(244,236,216,0.2)';
+  c.fillRect(x + 2, y + 6, TILE - 4, TILE - 12);
+  c.strokeStyle = 'rgba(18,15,28,0.65)';
+  c.lineWidth = 1.5;
+  c.beginPath();
+  c.moveTo(x + 6, y + 14);
+  c.lineTo(x + 15, y + 19);
+  c.lineTo(x + 22, y + 15);
+  c.lineTo(x + 33, y + 24);
+  c.moveTo(x + 15, y + 19);
+  c.lineTo(x + 13, y + 28);
+  c.stroke();
+}
+
+/** The whole map as a small picture, `px` pixels to the square: walls and traps. For the minimap and the lobby. */
+export function mapPicture(map: GameMap, px: number): HTMLCanvasElement {
+  const pic = document.createElement('canvas');
+  pic.width = map.cols * px;
+  pic.height = map.lines * px;
+  const m = pic.getContext('2d')!;
+  m.fillStyle = 'rgba(244,236,216,0.16)';
+  m.fillRect(0, 0, pic.width, pic.height);
+  for (let r = 0; r < map.lines; r++) {
+    for (let col = 0; col < map.cols; col++) {
+      const kind = map.kind[r * map.cols + col];
+      if (kind === T_FLOOR) continue;
+      m.fillStyle = kind === T_WALL ? 'rgba(12,10,20,0.9)' : kind === T_GOO ? '#6fb93a' : kind === T_SPIKE ? '#ff5d73' : 'rgba(244,236,216,0.45)';
+      m.fillRect(col * px, r * px, px, px);
+    }
+  }
+  return pic;
 }
 
 function shadow(c: Ctx, x: number, y: number, r: number): void {
@@ -86,7 +173,8 @@ export function drawCousin(c: Ctx, x: number, y: number, color: string, facing: 
   const r = BODY_R * 1.15;
   const lx = Math.cos(facing);
   const ly = Math.sin(facing);
-  const bob = flags & F_WORK ? Math.sin(t / 60) * 1.5 : 0;
+  // cranking a chore, or hopping about after the spikes
+  const bob = flags & F_WORK ? Math.sin(t / 60) * 1.5 : flags & F_HURT ? -Math.abs(Math.sin(t / 90)) * 4 : 0;
   shadow(c, x, y, r);
   if (flags & F_BOOST) {
     c.strokeStyle = 'rgba(255,255,255,0.5)';

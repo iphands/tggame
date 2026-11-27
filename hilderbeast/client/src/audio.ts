@@ -71,6 +71,11 @@ export const sfx = {
     }
     if (near > 0.85 && step % 2 === 0) noise(0.08, 0.06, 2600, 900);
   },
+  /** Somebody trod on the spikes. */
+  ouch: (mine: boolean) => {
+    tone('square', 620, 180, 0.16, mine ? 0.3 : 0.12);
+    noise(0.1, mine ? 0.2 : 0.08, 3000, 800);
+  },
   /** The last seconds. */
   tick: () => tone('square', 990, 990, 0.04, 0.14),
   count: () => tone('triangle', 440, 440, 0.12, 0.35),

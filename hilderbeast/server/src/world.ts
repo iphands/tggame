@@ -7,6 +7,7 @@ import {
   BEAST_BOOST_MS,
   CATCH_COOLDOWN_MS,
   CONVERT_MS,
+  CREAK_EVERY_MS,
   DASH_COOLDOWN_MS,
   DASH_MS,
   DREAD_FULL_R,
@@ -23,11 +24,14 @@ import {
   F_DASH,
   F_GHOST,
   F_HELD,
+  F_HURT,
   F_OUT,
   F_PORTAL,
+  F_SLOW,
   F_WORK,
   HEAD_START_MS,
   HELP_RATE,
+  HURT_MS,
   NOISE_BLUR,
   NOISE_EVERY_MS,
   PILL_BACK_MS,
@@ -36,12 +40,14 @@ import {
   PORTAL_COOLDOWN_MS,
   PORTAL_R,
   PORTAL_TRANSIT_MS,
+  SPIKE_ENERGY,
   TASK_R,
   TASK_WORK_MS,
   TICK_MS,
+  TILE,
   TOUCH_R,
 } from '../../shared/src/constants.js';
-import { MAP, type GameMap, type Spot } from '../../shared/src/map.js';
+import { SPIKES_UP, T_CREAK, T_GOO, T_SPIKE, kindAt, spikesAt, type GameMap, type Spot } from '../../shared/src/map.js';
 import { moveBody, sees, speedOf, unit } from '../../shared/src/sim.js';
 import type { Catch, Fx, Mode, Role } from '../../shared/src/types.js';
 
@@ -84,6 +90,12 @@ export type Body = {
   heldMs: number;
   /** Working at a chore right now. */
   working: boolean;
+  /** A Cousin in goo right now. */
+  slow: boolean;
+  /** Time left limping after the spikes; while it lasts they cannot hurt again. */
+  hurtMs: number;
+  /** Time until this Cousin can set off another creaky board. */
+  creakMs: number;
   /** Got out: no longer in the house. */
   out: boolean;
   /** Caught in Escape: still a Cousin by side, but a ghost. Roams through walls, touches nothing, and only watches. */
@@ -121,7 +133,7 @@ export class World {
     readonly firstBeast: string,
     /** Indices into the map's chore spots; ignored outside Escape. */
     taskSpots: number[],
-    readonly map: GameMap = MAP,
+    readonly map: GameMap,
   ) {
     let seat = 0;
     for (const id of ids) {
@@ -152,6 +164,9 @@ export class World {
         portalWaitMs: 0,
         heldMs: beast ? HEAD_START_MS : 0,
         working: false,
+        slow: false,
+        hurtMs: 0,
+        creakMs: 0,
         out: false,
         ghost: false,
       });
@@ -202,6 +217,7 @@ export class World {
   step(rng: Rng): void {
     this.timeMs += TICK_MS;
     for (const b of this.bodies) this.stepBody(b);
+    this.stepTraps();
     this.catchCousins();
     this.stepPills();
     if (this.mode === 'escape') {
@@ -266,8 +282,8 @@ export class World {
   private stepCousinBoost(b: Body, dtS: number): void {
     const moving = b.ix !== 0 || b.iy !== 0;
     if (b.boosting) {
-      if (!b.boostHeld || b.energy <= 0) b.boosting = false;
-    } else if (b.boostHeld && b.energy >= ENERGY_TO_START) {
+      if (!b.boostHeld || b.energy <= 0 || b.hurtMs > 0) b.boosting = false;
+    } else if (b.boostHeld && b.energy >= ENERGY_TO_START && b.hurtMs <= 0) {
       b.boosting = true;
     }
     // standing still with the button down costs nothing
@@ -362,6 +378,30 @@ export class World {
     }
   }
 
+  /** Goo, spikes and creaky boards: what the floor does to a Cousin standing on it. Beasts and ghosts are spared. */
+  private stepTraps(): void {
+    for (const b of this.bodies) {
+      if (b.hurtMs > 0) b.hurtMs -= TICK_MS;
+      if (b.creakMs > 0) b.creakMs -= TICK_MS;
+      if (b.role !== 'cousin' || b.ghost || !this.free(b)) {
+        b.slow = false;
+        continue;
+      }
+      const kind = kindAt(this.map, b.x, b.y);
+      b.slow = kind === T_GOO;
+      if (kind === T_SPIKE && b.hurtMs <= 0 && spikesAt(this.timeMs, Math.floor(b.x / TILE), Math.floor(b.y / TILE)) === SPIKES_UP) {
+        b.hurtMs = HURT_MS;
+        b.energy = Math.max(0, b.energy - SPIKE_ENERGY);
+        b.boosting = false;
+        this.fx.push(['s', b.id, Math.round(b.x), Math.round(b.y)]);
+      } else if (kind === T_CREAK && b.creakMs <= 0 && (b.ix !== 0 || b.iy !== 0)) {
+        // the Beasts hear a creak just as they hear a chore
+        b.creakMs = CREAK_EVERY_MS;
+        this.fx.push(['n', Math.round(b.x), Math.round(b.y), 1]);
+      }
+    }
+  }
+
   private stepPills(): void {
     this.pills.forEach((pill, i) => {
       if (!pill.on) {
@@ -442,6 +482,8 @@ export class World {
     if (b.heldMs > 0) f |= F_HELD;
     if (b.out) f |= F_OUT;
     if (b.ghost) f |= F_GHOST;
+    if (b.slow) f |= F_SLOW;
+    if (b.hurtMs > 0 && b.role === 'cousin' && !b.ghost) f |= F_HURT;
     return f;
   }
 

@@ -1,15 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { ESCAPE_CLOCK_MS, LAST_CLOCK_MS } from '../shared/src/constants';
 import { Game } from '../server/src/game';
+import { MAPS } from '../shared/src/maps';
 import type { Mode } from '../shared/src/types';
 import { join, runUntil, seeded } from './helpers';
 
 /** A whole round played by bots. One human sits in so there is a host; they are dropped at once. */
-function botRound(mode: Mode, bots: number, seed: number) {
+function botRound(mode: Mode, bots: number, seed: number, map = 0) {
   const g = new Game(seeded(seed));
   const host = join(g, 'Host');
   for (let i = 0; i < bots - 1; i++) g.addBot(host.id);
-  g.configure(host.id, mode);
+  g.configure(host.id, mode, map);
   g.start(host.id);
   g.drop(host.id);
   const tookMs = runUntil(g, () => g.phase === 'finale', (mode === 'escape' ? ESCAPE_CLOCK_MS : LAST_CLOCK_MS) + 10_000);
@@ -35,5 +36,16 @@ describe('bot rounds', () => {
   it('can finish the chores and get out', { timeout: 120_000 }, () => {
     const wins = [1, 2, 3, 4, 5, 6].map((seed) => botRound('escape', 5, seed)).filter((r) => r.result.why === 'escaped');
     expect(wins.length).toBeGreaterThan(0);
+  });
+  it('end on every map, in both modes', { timeout: 240_000 }, () => {
+    const lines: string[] = [];
+    MAPS.forEach((m, i) => {
+      for (const mode of ['last', 'escape'] as const) {
+        const { result, tookMs, world } = botRound(mode, 6, 3 + i, i);
+        expect(world.map).toBe(m);
+        lines.push(`${m.name}, ${mode}: ${result.winner} (${result.why}) after ${(tookMs / 1000).toFixed(0)} s, ${result.catches.length} caught, ${result.escaped.length} out`);
+      }
+    });
+    console.log(lines.join('\n'));
   });
 });

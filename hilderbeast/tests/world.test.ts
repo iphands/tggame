@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   BASE_SPEED, BEAST_BOOST_COOLDOWN_MS, BEAST_BOOST_MS, CATCH_COOLDOWN_MS, CONVERT_MS, ENERGY_MAX, ENERGY_START,
-  DASH_COOLDOWN_MS, DASH_MS, DASH_SPEED, F_BOOST, F_CONVERT, F_DASH, NOISE_EVERY_MS, PILL_BACK_MS, PILL_ENERGY, PORTAL_COOLDOWN_MS, PORTAL_TRANSIT_MS, ROLE,
+  DASH_COOLDOWN_MS, DASH_MS, DASH_SPEED, F_BOOST, F_CONVERT, F_DASH, F_HURT, F_SLOW, GOO_SPEED, HURT_SPEED, SPIKE_CYCLE_MS, SPIKE_ENERGY, SPIKE_UP_AT_MS, SPIKE_WARN_AT_MS, NOISE_EVERY_MS, PILL_BACK_MS, PILL_ENERGY, PORTAL_COOLDOWN_MS, PORTAL_TRANSIT_MS, ROLE,
   TASK_WORK_MS, TICK_MS, TILE,
 } from '../shared/src/constants';
-import { MAP } from '../shared/src/map';
+import { parseMap, spikesAt } from '../shared/src/map';
+import { MAP } from '../shared/src/maps';
+import { speedOf } from '../shared/src/sim';
 import { place, seeded, steps, world, YARD } from './helpers';
 
 const at = (c: number, r: number) => [(c + 0.5) * TILE, (r + 0.5) * TILE] as const;
@@ -285,6 +287,67 @@ describe('chores and exits', () => {
     w.setInput('beast', 0, 0, false, true);
     steps(w, 1000);
     expect(t.progress).toBe(0);
+  });
+});
+
+describe('traps', () => {
+  // goo at columns 3 and 4 of the walkway, spikes at 6 and 7, a creaky board at 8
+  const TRAPS = parseMap(['############', '#..........#', '#..~~.^^!..#', '############']);
+  const row = 2.5 * TILE;
+  it('goo slows a Cousin and not a Beast', () => {
+    const w = world(['beast', 'a'], 'last', TRAPS);
+    const a = place(w, 'a', 3.2 * TILE, row);
+    const b = place(w, 'beast', 3.2 * TILE, 1.5 * TILE);
+    b.catchWaitMs = 1e9;
+    w.setInput('a', 1, 0, false, false);
+    steps(w, 200);
+    expect(w.flags(a) & F_SLOW).toBeTruthy();
+    expect(a.x - 3.2 * TILE).toBeCloseTo(BASE_SPEED * GOO_SPEED * 0.2, -1);
+    place(w, 'beast', 3.2 * TILE, row);
+    w.setInput('beast', 1, 0, false, false);
+    const x0 = b.x;
+    steps(w, 200);
+    expect(w.flags(b) & F_SLOW).toBeFalsy();
+    expect(b.x - x0).toBeCloseTo(BASE_SPEED * 0.2, -1);
+  });
+  it('spikes hurt a Cousin who is on them when they are up, once, and cost energy and the boost', () => {
+    const w = world(['beast', 'a'], 'last', TRAPS);
+    const a = place(w, 'a', 6.5 * TILE, row);
+    a.energy = 100;
+    // (6 + 2) is even: this square is down until SPIKE_UP_AT_MS
+    steps(w, SPIKE_WARN_AT_MS);
+    expect(a.energy).toBe(100);
+    expect(spikesAt(w.timeMs, 6, 2)).toBe(1);
+    steps(w, SPIKE_UP_AT_MS - SPIKE_WARN_AT_MS + 50);
+    expect(a.energy).toBe(100 - SPIKE_ENERGY);
+    expect(w.flags(a) & F_HURT).toBeTruthy();
+    expect(w.fx.filter((e) => e[0] === 's')).toHaveLength(1);
+    // limping: no boost, and the spikes cannot hurt again yet
+    w.setInput('a', 0, 0, true, false);
+    steps(w, 300);
+    expect(w.flags(a) & F_BOOST).toBeFalsy();
+    expect(a.energy).toBe(100 - SPIKE_ENERGY);
+    expect(speedOf(w.flags(a))).toBeCloseTo(BASE_SPEED * HURT_SPEED);
+  });
+  it('spikes next to each other take turns', () => {
+    for (let t = 0; t < SPIKE_CYCLE_MS; t += 50) expect(spikesAt(t, 6, 2) === 2 && spikesAt(t, 7, 2) === 2).toBe(false);
+  });
+  it('spikes do nothing to a Beast', () => {
+    const w = world(['beast', 'a'], 'last', TRAPS);
+    const b = place(w, 'beast', 6.5 * TILE, row);
+    place(w, 'a', 1.5 * TILE, 1.5 * TILE);
+    steps(w, SPIKE_CYCLE_MS);
+    expect(w.flags(b) & F_HURT).toBeFalsy();
+    expect(w.fx.filter((e) => e[0] === 's')).toHaveLength(0);
+  });
+  it('a creaky board gives a moving Cousin away to the Beasts', () => {
+    const w = world(['beast', 'a'], 'last', TRAPS);
+    place(w, 'a', 8.5 * TILE, row);
+    steps(w, 300);
+    expect(w.fx.filter((e) => e[0] === 'n')).toHaveLength(0);
+    w.setInput('a', 0, -0.1, false, false);
+    steps(w, 100);
+    expect(w.fx.filter((e) => e[0] === 'n')).toHaveLength(1);
   });
 });
 

@@ -29,7 +29,6 @@ export function noteStick(sticks: SentStick[], stick: SentStick): void {
  * @param snapAt when that snapshot arrived (local clock, ms)
  * @param rttMs the round trip to the server
  * @param sticks what was sent, oldest first
- * @param speed world units a second, as the server moves it
  */
 export function predictBody(
   snap: { x: number; y: number },
@@ -37,13 +36,14 @@ export function predictBody(
   rttMs: number,
   sticks: readonly SentStick[],
   now: number,
-  speed: number,
+  /** World units a second at a place: the floor (goo) can change it on the way. */
+  speedAt: (x: number, y: number) => number,
   map: GameMap,
   /** A ghost: walls do not stop it. */
   through = false,
 ): { x: number; y: number } {
   const p = { x: snap.x, y: snap.y };
-  if (!sticks.length || speed <= 0) return p;
+  if (!sticks.length) return p;
   // the snapshot knows of everything we sent up to a round trip (and a tick) before it arrived
   let t = Math.max(snapAt - rttMs - TICK_MS, now - MAX_AHEAD_MS);
   let i = 0;
@@ -51,9 +51,13 @@ export function predictBody(
   if (sticks[i].at > t) t = Math.min(now, sticks[i].at);
   while (t < now) {
     const until = i + 1 < sticks.length ? Math.min(now, sticks[i + 1].at) : now;
-    const k = (speed * (until - t)) / 1000;
-    moveBody(p, sticks[i].x * k, sticks[i].y * k, map, through);
-    t = until;
+    // a tick at a time, as the server does it
+    while (t < until) {
+      const step = Math.min(TICK_MS, until - t);
+      const k = (speedAt(p.x, p.y) * step) / 1000;
+      moveBody(p, sticks[i].x * k, sticks[i].y * k, map, through);
+      t += step;
+    }
     i++;
   }
   return p;

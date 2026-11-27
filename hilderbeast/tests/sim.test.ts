@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BASE_SPEED, BODY_R, F_BEAST, F_BOOST, F_CONVERT, F_DASH, ROLE, TILE } from '../shared/src/constants';
-import { MAP, roomAt, wallAt } from '../shared/src/map';
+import { roomAt, wallAt } from '../shared/src/map';
+import { MAP } from '../shared/src/maps';
 import { moveBody, rayDist, sees, speedOf, unit } from '../shared/src/sim';
 import { stepsFrom, stepsAt, FAR } from '../server/src/path';
 import { YARD } from './helpers';

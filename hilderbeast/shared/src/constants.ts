@@ -90,6 +90,21 @@ export const DASH_COOLDOWN_MS = 4000;
 /** A caught Cousin stands frozen and harmless for this long, then is a Beast. */
 export const CONVERT_MS = 2500;
 
+// ---- traps: they only ever trouble Cousins
+
+/** How fast a Cousin wades through goo. */
+export const GOO_SPEED = 0.5;
+/** Spikes: one whole turn of down, warning, up. */
+export const SPIKE_CYCLE_MS = 3000;
+export const SPIKE_WARN_AT_MS = 1500;
+export const SPIKE_UP_AT_MS = 2100;
+/** Caught on the spikes: this much energy gone, and a limp (no boost) for this long. */
+export const SPIKE_ENERGY = 30;
+export const HURT_MS = 1600;
+export const HURT_SPEED = 0.6;
+/** One Cousin sets off creaky boards no more often than this. */
+export const CREAK_EVERY_MS = 2500;
+
 // ---- ghosts
 
 /** A ghost drifts a little faster than anyone walks, and straight through walls. */
@@ -146,6 +161,8 @@ export const F_BOOST = 2;
 export const F_GHOST = 4;
 /** A Beast in its dash. */
 export const F_DASH = 8;
+/** A Cousin wading through goo. */
+export const F_SLOW = 16;
 /** Just caught: frozen while it turns into a Beast. */
 export const F_CONVERT = 32;
 /** Between two Beast doors: nowhere to be seen. */
@@ -156,3 +173,5 @@ export const F_WORK = 128;
 export const F_HELD = 256;
 /** Escaped: out of the round. */
 export const F_OUT = 512;
+/** A Cousin limping after the spikes. */
+export const F_HURT = 1024;

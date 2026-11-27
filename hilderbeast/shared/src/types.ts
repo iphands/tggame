@@ -8,7 +8,8 @@ export type Phase = 'lobby' | 'countdown' | 'play' | 'finale';
 
 /** `last`: Last Cousin Standing. `escape`: do the chores, open the doors, get out. */
 export type Mode = (typeof MODES)[number];
-export type Settings = { mode: Mode };
+/** `map`: which of `MAPS` to play, or -1 for a different one by lot each round. */
+export type Settings = { mode: Mode; map: number };
 
 export type Role = 'cousin' | 'beast';
 /** What a player is right now: `c` a Cousin, `b` a Beast, `x` a Cousin who got out, `g` a caught Cousin's ghost (Escape only). */
@@ -30,6 +31,8 @@ export type RoundView = {
   /** Changes with every round. */
   seq: number;
   mode: Mode;
+  /** Which of `MAPS` this round is played on. */
+  map: number;
   /** The whole clock for this round. */
   clockMs: number;
   /** Which of the map's chore spots are in use this round (empty in Last Cousin Standing). */
@@ -92,6 +95,7 @@ export type SelfSnap = [number, number, number, number, number];
  * - `['d', task]` a chore is finished
  * - `['o']` the exits are open
  * - `['x', id]` a Cousin got out
+ * - `['s', id, x, y]` a Cousin was caught on the spikes
  */
 export type Fx =
   | ['c', string, string, number, number]
@@ -103,4 +107,5 @@ export type Fx =
   | ['h']
   | ['d', number]
   | ['o']
-  | ['x', string];
+  | ['x', string]
+  | ['s', string, number, number];

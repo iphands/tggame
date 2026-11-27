@@ -62,7 +62,8 @@ export class Bots {
   }
 
   private go(world: World, b: Body, to: Spot, boost = false, act = false): void {
-    const field = stepsFrom(world.map, to.x, to.y);
+    // a Cousin goes round the spikes; they are nothing to a Beast
+    const field = stepsFrom(world.map, to.x, to.y, b.role === 'cousin');
     const dir = towards(world.map, field, b.x, b.y, to.x, to.y);
     world.setInput(b.id, dir.x, dir.y, boost, act);
   }
