@@ -13,6 +13,8 @@ export type PlayerView = {
   connected: boolean;
   /** No cards this round: the table is full, or they arrived mid-game and sit down at the next deal. */
   spectator: boolean;
+  /** Here only to watch (a TV in the room): never given a seat. */
+  watcher: boolean;
   /** Rounds ended without a spoon, false grabs included. Fewest wins. */
   losses: number;
   /** How many of those losses were false grabs. */

@@ -44,6 +44,8 @@ type Player = {
   token: string;
   connected: boolean;
   spectator: boolean;
+  /** Only ever watches: never seated, whatever the phase. */
+  watcher: boolean;
   losses: number;
   fumbles: number;
   slowMs: number;
@@ -113,22 +115,19 @@ export class Game extends Roster<Player> {
 
   // ---- joining and leaving
 
-  join(rawName: unknown, token: string | undefined, now: number): JoinResult {
+  join(rawName: unknown, token: string | undefined, now: number, watch = false): JoinResult {
     this.tick(now);
     if (token) {
       for (const p of this.players.values()) {
         if (!p.bot && p.token === token) {
           p.connected = true;
+          this.watch(p.id, watch);
           return { id: p.id, token: p.token, resumed: true };
         }
       }
     }
     if (this.players.size >= MAX_PEOPLE) return 'full';
-    if (this.phase === 'lobby' && this.participants().length >= MAX_PLAYERS) {
-      // a human always beats a bot to a seat
-      const bot = [...this.players.values()].reverse().find((p) => p.bot);
-      if (bot) this.players.delete(bot.id);
-    }
+    this.bumpBot(watch);
     const player: Player = {
       id: `p${this.nextId++}`,
       name: this.uniqueName(sanitizeName(rawName) || 'Spooner'),
@@ -137,7 +136,8 @@ export class Game extends Roster<Player> {
       token: randomBytes(16).toString('hex'),
       connected: true,
       // mid-game arrivals watch until the next deal
-      spectator: this.phase !== 'lobby' || this.participants().length >= MAX_PLAYERS,
+      spectator: this.unseated(watch, this.phase === 'lobby'),
+      watcher: watch,
       losses: 0,
       fumbles: 0,
       slowMs: 0,
@@ -177,6 +177,7 @@ export class Game extends Roster<Player> {
       token: '',
       connected: true,
       spectator: false,
+      watcher: false,
       losses: 0,
       fumbles: 0,
       slowMs: 0,
@@ -282,6 +283,7 @@ export class Game extends Roster<Player> {
         bot: p.bot,
         connected: p.connected,
         spectator: p.spectator,
+        watcher: p.watcher,
         losses: p.losses,
         fumbles: p.fumbles,
         slowMs: p.slowMs,
@@ -325,7 +327,7 @@ export class Game extends Roster<Player> {
   // ---- the round
 
   private deal(now: number): void {
-    this.promoteSpectators();
+    this.promote();
     const seated = this.participants();
     if (seated.length < 2) return this.finish();
     this.order = seated.map((p) => p.id);
@@ -589,7 +591,7 @@ export class Game extends Roster<Player> {
     const seated = !p.spectator;
     this.players.delete(id);
     if (this.phase === 'lobby') {
-      this.promoteSpectators();
+      this.promote();
       // bots do not wait around in an empty lobby
       if (this.humansConnected() === 0) this.players.clear();
       return;
@@ -609,20 +611,7 @@ export class Game extends Roster<Player> {
     this.result = null;
     this.shout = null;
     for (const p of [...this.players.values()]) if (!p.connected) this.players.delete(p.id);
-    let n = 0;
-    for (const p of this.players.values()) p.spectator = ++n > MAX_PLAYERS;
-  }
-
-  /** A free seat goes to whoever has been watching longest. */
-  private promoteSpectators(): void {
-    let n = this.participants().length;
-    for (const p of this.players.values()) {
-      if (n >= MAX_PLAYERS) break;
-      if (p.spectator) {
-        p.spectator = false;
-        n++;
-      }
-    }
+    this.reseat();
   }
 
 }

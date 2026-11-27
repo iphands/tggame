@@ -206,7 +206,8 @@ export function playScreen(): Screen {
     const now = serverNow();
     let text: string;
     let hot = false;
-    if (!self || self.spectator || !task) text = 'You are watching this round. You get cards at the next deal.';
+    if (self?.watcher) text = 'Watching';
+    else if (!self || self.spectator || !task) text = 'You are watching this round. You get cards at the next deal.';
     else if (now < r.startsAt) text = `Look at your cards… ${Math.ceil((r.startsAt - now) / 1000)}`;
     else if (self.hasSpoon) text = 'Got one! Keep passing and look innocent.';
     else if (now < self.lockedUntil) text = `Hands off the spoons for ${Math.ceil((self.lockedUntil - now) / 1000)}…`;

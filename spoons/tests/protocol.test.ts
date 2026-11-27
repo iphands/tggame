@@ -5,7 +5,7 @@ import { isClientMessage } from '../shared/src/protocol';
 describe('isClientMessage', () => {
   it('accepts every well-formed message', () => {
     const good = [
-      { type: 'join' }, { type: 'join', name: 'Ann', token: 'abc' },
+      { type: 'join' }, { type: 'join', name: 'TV', watch: true }, { type: 'watch', on: true }, { type: 'watch', on: false }, { type: 'join', name: 'Ann', token: 'abc' },
       { type: 'leave' }, { type: 'rename', name: 'Mo' }, { type: 'addBot' }, { type: 'removeBot' },
       { type: 'settings' }, { type: 'settings', rounds: 8 },
       { type: 'start' }, { type: 'pass', card: 'QH' }, { type: 'grab' }, { type: 'heckle' },
@@ -16,7 +16,7 @@ describe('isClientMessage', () => {
   it('rejects junk', () => {
     const bad = [
       null, 7, 'join', [], {}, { type: 7 }, { type: 'nope' }, { type: 'rename' }, { type: 'rename', name: 5 },
-      { type: 'join', name: 7 }, { type: 'join', token: 'x'.repeat(65) },
+      { type: 'join', name: 7 }, { type: 'join', watch: 1 }, { type: 'watch' }, { type: 'watch', on: 1 }, { type: 'join', token: 'x'.repeat(65) },
       { type: 'settings', rounds: '8' },
       { type: 'pass' }, { type: 'pass', card: 7 }, { type: 'pass', card: 'ZZ' }, { type: 'pass', card: 'QHX' },
     ];

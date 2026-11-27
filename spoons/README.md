@@ -54,6 +54,12 @@ are back. If a player leaves for good mid-round, that round is dealt again witho
 
 Keyboard: `1`–`5` pass a card, `Space` grabs, `H` heckles.
 
+## Just watching
+
+A screen can watch without playing: press **Just watch** on the join screen, or in the lobby.
+For a TV, open the game with `?watch=1` on the end of the address: it goes straight in as "TV"
+and never takes a seat, in this game or the next. `?watch=0` undoes it. The watching screen sees the table and the spoons, and nobody's cards.
+
 ## Pestering
 
 A player is *holding the table up* while they sit on a picked-up card.
