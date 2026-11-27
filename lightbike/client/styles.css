@@ -463,12 +463,14 @@ input[type='text']::placeholder {
   left: 50%;
   bottom: calc(18px + env(safe-area-inset-bottom));
   translate: -50% 0;
-  max-width: 92%;
+  width: max-content;
+  max-width: 94%;
   padding: 3px 14px;
   text-align: center;
+  font-size: 0.9em;
   background: rgba(16, 9, 38, 0.85);
   border: 1px solid rgba(124, 108, 255, 0.6);
-  border-radius: 99px;
+  border-radius: 14px;
 }
 /* the bar boost and buster both drink from; the notch is what a buster costs */
 .energy {

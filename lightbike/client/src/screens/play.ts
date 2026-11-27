@@ -42,7 +42,14 @@ export function playScreen(): Screen {
   const hud = h('div', { class: 'hud' }, h('div', { class: 'corner' }, board, feed), count, alarm, status, bar, boostBtn, bustBtn);
   const el = h('section', { class: 'screen play' }, canvas, hud);
 
-  const view = { x: 0, y: 0, k: MIN_CELL_PX, cw: 1, ch: 1, follow: false, ready: false };
+  /**
+   * The camera, in cells as they lie on the screen. On a tall screen the (wide) floor is shown
+   * turned a quarter turn clockwise (`turned`), so a phone held upright sees as much of it as it can.
+   */
+  const view = { x: 0, y: 0, k: MIN_CELL_PX, cw: 1, ch: 1, follow: false, ready: false, turned: false };
+  /** Where a spot on the floor lies on the screen, in cells. */
+  const sx = (wx: number, wy: number): number => (view.turned ? live.h - wy : wx);
+  const sy = (wx: number, wy: number): number => (view.turned ? wx : wy);
   const sparks: Spark[] = [];
   const calmMotion = reducedMotion();
   let raf = 0;
@@ -72,15 +79,20 @@ export function playScreen(): Screen {
 
   // ---- steering
 
+  /** Turn our bike to face `d` on the floor. */
+  function turnTo(d: number): void {
+    const me = mine();
+    const at = me ? queueTurn(me, d) : 0;
+    if (at) send({ type: 'turn', d, at });
+  }
   const controls = {
+    // a swipe or an arrow key points across the screen, which may not be how the floor lies
     face(d: number): void {
-      const me = mine();
-      const at = me ? queueTurn(me, d) : 0;
-      if (at) send({ type: 'turn', d, at });
+      turnTo(view.turned ? (d + 3) % 4 : d);
     },
     veer(side: -1 | 1): void {
       const me = mine();
-      if (me) controls.face(relative(me, side));
+      if (me) turnTo(relative(me, side));
     },
     boost(on: boolean): void {
       if (!store.state?.settings.boost || !mine()) return;
@@ -249,11 +261,16 @@ export function playScreen(): Screen {
 
   function aimCamera(dt: number): void {
     const { cw, ch } = view;
-    const fit = Math.min(cw / (live.w + 2), ch / (live.h + 2));
+    const turned = ch > cw * 1.15;
+    if (turned !== view.turned) view.ready = false;
+    view.turned = turned;
+    const fw = turned ? live.h : live.w;
+    const fh = turned ? live.w : live.h;
+    const fit = Math.min(cw / (fw + 2), ch / (fh + 2));
     view.k = Math.max(fit, MIN_CELL_PX);
     view.follow = view.k > fit + 0.01;
-    let tx = live.w / 2;
-    let ty = live.h / 2;
+    let tx = fw / 2;
+    let ty = fh / 2;
     if (view.follow) {
       // our bike; once it is out, whoever we were already watching, or anybody still going
       let f = mine();
@@ -263,13 +280,16 @@ export function playScreen(): Screen {
         watching = f?.id ?? '';
       }
       if (f) {
-        tx = drawnX(f) + DX[f.dir] * 3;
-        ty = drawnY(f) + DY[f.dir] * 3;
+        // a little ahead of the bike, so there is more to see of where it is going
+        const ax = drawnX(f) + DX[f.dir] * 3;
+        const ay = drawnY(f) + DY[f.dir] * 3;
+        tx = sx(ax, ay);
+        ty = sy(ax, ay);
       }
       const halfW = cw / view.k / 2;
       const halfH = ch / view.k / 2;
-      tx = halfW * 2 >= live.w + 2 ? live.w / 2 : Math.min(live.w + 1 - halfW, Math.max(halfW - 1, tx));
-      ty = halfH * 2 >= live.h + 2 ? live.h / 2 : Math.min(live.h + 1 - halfH, Math.max(halfH - 1, ty));
+      tx = halfW * 2 >= fw + 2 ? fw / 2 : Math.min(fw + 1 - halfW, Math.max(halfW - 1, tx));
+      ty = halfH * 2 >= fh + 2 ? fh / 2 : Math.min(fh + 1 - halfH, Math.max(halfH - 1, ty));
     }
     const pull = view.ready ? Math.min(1, dt * 5) : 1;
     view.x += (tx - view.x) * pull;
@@ -287,16 +307,21 @@ export function playScreen(): Screen {
     ctx.fillRect(0, 0, cw, ch);
     if (live.seq < 0) return;
 
-    let sx = 0;
-    let sy = 0;
+    let jx = 0;
+    let jy = 0;
     if (now < shakeUntil) {
-      sx = (Math.random() - 0.5) * shakeBy;
-      sy = (Math.random() - 0.5) * shakeBy;
+      jx = (Math.random() - 0.5) * shakeBy;
+      jy = (Math.random() - 0.5) * shakeBy;
     }
-    const ox = cw / 2 - view.x * k + sx;
-    const oy = ch / 2 - view.y * k + sy;
-    ctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * ox, dpr * oy);
-    drawFloor(ctx, live.w, live.h, live.blocks, live.ring, k, -ox / k, -oy / k, (cw - ox) / k, (ch - oy) / k);
+    const ox = cw / 2 - view.x * k + jx;
+    const oy = ch / 2 - view.y * k + jy;
+    if (view.turned) {
+      ctx.setTransform(0, dpr * k, -dpr * k, 0, dpr * (ox + live.h * k), dpr * oy);
+      drawFloor(ctx, live.w, live.h, live.blocks, live.ring, k, -oy / k, live.h - (cw - ox) / k, (ch - oy) / k, live.h + ox / k);
+    } else {
+      ctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * ox, dpr * oy);
+      drawFloor(ctx, live.w, live.h, live.blocks, live.ring, k, -ox / k, -oy / k, (cw - ox) / k, (ch - oy) / k);
+    }
 
     const me = selfId();
     for (const b of live.bikes.values()) {
@@ -350,7 +375,7 @@ export function playScreen(): Screen {
       if (!label) continue;
       ctx.fillStyle = b.id === me ? '#fff' : colorOf(b.id);
       ctx.globalAlpha = b.id === me ? 1 : 0.85;
-      ctx.fillText(label, ox + drawnX(b) * k, oy + drawnY(b) * k - Math.max(k, 12) * 1.5);
+      ctx.fillText(label, ox + sx(drawnX(b), drawnY(b)) * k, oy + sy(drawnX(b), drawnY(b)) * k - Math.max(k, 12) * 1.5);
     }
     ctx.globalAlpha = 1;
     if (view.follow) drawMap(me);
@@ -362,29 +387,38 @@ export function playScreen(): Screen {
 
   /** The whole floor, small, when the screen only shows part of it. */
   function drawMap(me: string): void {
-    const mw = Math.min(150, view.cw * 0.34);
-    const m = mw / live.w;
-    const mh = live.h * m;
+    const fw = view.turned ? live.h : live.w;
+    const fh = view.turned ? live.w : live.h;
+    const m = Math.min(Math.min(150, view.cw * 0.34) / fw, 150 / fh);
+    const mw = fw * m;
+    const mh = fh * m;
     const mx = view.cw - mw - 8;
     const my = 8;
+    const px = (wx: number, wy: number): number => mx + sx(wx, wy) * m;
+    const py = (wx: number, wy: number): number => my + sy(wx, wy) * m;
     ctx.fillStyle = 'rgba(7, 4, 26, 0.8)';
     ctx.fillRect(mx, my, mw, mh);
     ctx.fillStyle = 'rgba(124, 108, 255, 0.45)';
-    for (const [bx, by, bw, bh] of live.blocks) ctx.fillRect(mx + bx * m, my + by * m, bw * m, bh * m);
+    for (const [bx, by, bw, bh] of live.blocks) {
+      const x0 = px(bx, by + (view.turned ? bh : 0));
+      ctx.fillRect(x0, py(bx, by), (view.turned ? bh : bw) * m, (view.turned ? bw : bh) * m);
+    }
     ctx.lineJoin = 'round';
     for (const b of live.bikes.values()) {
       if (b.goneAt) continue;
       ctx.beginPath();
-      ctx.moveTo(mx + (b.pts[0] + 0.5) * m, my + (b.pts[1] + 0.5) * m);
-      for (let i = 2; i < b.pts.length; i += 2) ctx.lineTo(mx + (b.pts[i] + 0.5) * m, my + (b.pts[i + 1] + 0.5) * m);
-      ctx.lineTo(mx + drawnX(b) * m, my + drawnY(b) * m);
+      ctx.moveTo(px(b.pts[0] + 0.5, b.pts[1] + 0.5), py(b.pts[0] + 0.5, b.pts[1] + 0.5));
+      for (let i = 2; i < b.pts.length; i += 2) ctx.lineTo(px(b.pts[i] + 0.5, b.pts[i + 1] + 0.5), py(b.pts[i] + 0.5, b.pts[i + 1] + 0.5));
+      const hx = px(drawnX(b), drawnY(b));
+      const hy = py(drawnX(b), drawnY(b));
+      ctx.lineTo(hx, hy);
       ctx.strokeStyle = colorOf(b.id);
       ctx.globalAlpha = b.dead ? 0.4 : 1;
       ctx.lineWidth = 1.5;
       ctx.stroke();
       if (!b.dead) {
         ctx.fillStyle = b.id === me ? '#fff' : colorOf(b.id);
-        ctx.fillRect(mx + drawnX(b) * m - 2, my + drawnY(b) * m - 2, 4, 4);
+        ctx.fillRect(hx - 2, hy - 2, 4, 4);
       }
     }
     ctx.globalAlpha = 1;
