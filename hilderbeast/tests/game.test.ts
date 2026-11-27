@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { BEAST_START_CLEAR, COUNTDOWN_MS, CUTSCENE_MS, DREAD_STEPS, ESCAPE_CLOCK_MS, F_HELD, HEAD_START_MS, LAST_CLOCK_MS, MAX_PLAYERS, TICK_MS, tasksFor } from '../shared/src/constants';
+import { BEAST_START_CLEAR, F_SCARE_SHIFT, SCARE_MAX, COUNTDOWN_MS, CUTSCENE_MS, DREAD_STEPS, ESCAPE_CLOCK_MS, F_HELD, HEAD_START_MS, LAST_CLOCK_MS, MAX_PLAYERS, TICK_MS, tasksFor } from '../shared/src/constants';
 import { MAP } from '../shared/src/maps';
 import { Game } from '../server/src/game';
-import { sees } from '../shared/src/sim';
+import { sees, speedOf } from '../shared/src/sim';
 import { join, place, run, seeded, started, table } from './helpers';
 
 const snap = (g: Game, id: string) => g.snapFor(id, { fx: [], noisy: false })!;
@@ -170,6 +170,12 @@ describe('what a player is told', () => {
     expect(dread(a.id)).toBe(0);
     run(g, HEAD_START_MS);
     expect(dread(a.id)).toBe(DREAD_STEPS);
+    // and it shows: a scared Cousin shivers, for anyone who can see them, and goes no slower for it
+    const scare = (id: string) => (w.flags(w.body(id)!) >> F_SCARE_SHIFT) & SCARE_MAX;
+    expect(scare(a.id)).toBe(SCARE_MAX);
+    expect(scare(c.id)).toBe(0);
+    expect(scare(beast.id)).toBe(0);
+    expect(speedOf(w.flags(a))).toBe(speedOf(0));
     expect(dread(c.id)).toBe(0);
     expect(dread(beast.id)).toBe(0);
     // the same from either side, and with a wall between: the Kitchen and the Library share one

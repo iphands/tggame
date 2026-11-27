@@ -1,5 +1,5 @@
 /** Everything on the floor of the house, drawn in code. */
-import { BODY_R, F_BEAST, F_BOOST, F_CONVERT, F_DASH, F_GHOST, F_HELD, F_HURT, F_WORK, TILE } from '../../shared/src/constants';
+import { BODY_R, F_BEAST, F_BOOST, F_CONVERT, F_DASH, F_GHOST, F_HELD, F_HURT, F_SCARE_SHIFT, F_WORK, SCARE_MAX, TILE } from '../../shared/src/constants';
 import { SPIKES_UP, SPIKES_WARN, T_CREAK, T_FLOOR, T_GOO, T_SPIKE, T_WALL, spikesAt, type GameMap } from '../../shared/src/map';
 import { HILDER_BOX, hilderSprite } from './hilder';
 
@@ -175,6 +175,9 @@ export function drawCousin(c: Ctx, x: number, y: number, color: string, facing: 
   const ly = Math.sin(facing);
   // cranking a chore, or hopping about after the spikes
   const bob = flags & F_WORK ? Math.sin(t / 60) * 1.5 : flags & F_HURT ? -Math.abs(Math.sin(t / 90)) * 4 : 0;
+  // a Beast is near: a shiver, quicker and wider the nearer it is. Only the drawing shakes; they are where they are
+  const scare = (flags >> F_SCARE_SHIFT) & SCARE_MAX;
+  const shiver = scare ? Math.sin(t / (26 - scare * 4) + x) * (0.5 + scare * 0.55) : 0;
   shadow(c, x, y, r);
   if (flags & F_BOOST) {
     c.strokeStyle = 'rgba(255,255,255,0.5)';
@@ -187,7 +190,7 @@ export function drawCousin(c: Ctx, x: number, y: number, color: string, facing: 
     c.stroke();
   }
   c.save();
-  c.translate(x, y + bob);
+  c.translate(x + shiver, y + bob + (scare ? Math.cos(t / 19 + y) * scare * 0.25 : 0));
   c.fillStyle = color;
   c.strokeStyle = INK;
   c.lineWidth = 2.5;
@@ -223,6 +226,25 @@ export function drawCousin(c: Ctx, x: number, y: number, color: string, facing: 
   c.fill();
   c.stroke();
   eyes(c, r, lx, ly, '#fff', INK, false);
+  if (scare) {
+    // a wobbly little mouth, and from the second fright on, beads of sweat
+    c.strokeStyle = INK;
+    c.lineWidth = 1.6;
+    c.beginPath();
+    c.moveTo(-r * 0.28, r * 0.42);
+    for (let i = 1; i <= 4; i++) c.lineTo(-r * 0.28 + i * r * 0.14, r * 0.42 + (i % 2 ? -1 : 1) * r * 0.07);
+    c.stroke();
+    if (scare >= 2) {
+      c.fillStyle = '#9fdcff';
+      for (let i = 0; i < scare - 1; i++) {
+        const fall = ((t / 500 + i * 0.5) % 1) * r * 0.7;
+        c.beginPath();
+        c.ellipse((i ? -1 : 1) * r * 0.95, -r * 0.5 + fall, r * 0.09, r * 0.15, 0, 0, Math.PI * 2);
+        c.fill();
+        c.stroke();
+      }
+    }
+  }
   c.restore();
 }
 

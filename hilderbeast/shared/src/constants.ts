@@ -180,3 +180,9 @@ export const F_HELD = 256;
 export const F_OUT = 512;
 /** A Cousin limping after the spikes. */
 export const F_HURT = 1024;
+/**
+ * How scared a Cousin is, 0 to 3, in the two bits from `F_SCARE_SHIFT` up: a Beast is near (see
+ * dread). It only changes how they are drawn: a scared Cousin shivers, and moves just the same.
+ */
+export const F_SCARE_SHIFT = 11;
+export const SCARE_MAX = 3;

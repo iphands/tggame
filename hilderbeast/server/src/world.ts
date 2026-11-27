@@ -27,6 +27,7 @@ import {
   F_HURT,
   F_OUT,
   F_PORTAL,
+  F_SCARE_SHIFT,
   F_SLOW,
   F_WORK,
   HEAD_START_MS,
@@ -40,6 +41,7 @@ import {
   PORTAL_COOLDOWN_MS,
   PORTAL_R,
   PORTAL_TRANSIT_MS,
+  SCARE_MAX,
   SPIKE_ENERGY,
   TASK_R,
   TASK_WORK_MS,
@@ -486,6 +488,8 @@ export class World {
     if (b.ghost) f |= F_GHOST;
     if (b.slow) f |= F_SLOW;
     if (b.hurtMs > 0 && b.role === 'cousin' && !b.ghost) f |= F_HURT;
+    // how scared: anyone who can see this Cousin can see them shiver
+    f |= Math.ceil((this.dread(b) * SCARE_MAX) / DREAD_STEPS) << F_SCARE_SHIFT;
     return f;
   }
 
