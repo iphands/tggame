@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 # Pushes the image from ./build to Docker Hub as iphands/tggame. Log in first (docker login).
-#   ./publish              pushes :latest and :<git commit>
-#   TAG=v1 ./publish       pushes :v1 instead of the commit tag
+# The image is tagged for the machine it was built on:
+#   :latest-arm64 or :latest-x64      the newest build for that kind of machine
+#   :<git commit>-arm64 or -x64       this exact build
+#   :latest                           whichever was pushed last, from either kind of machine
+#
+#   ./publish              pushes those three
+#   TAG=v1 ./publish       uses v1 in place of the git commit
 #   REPO=other/name ./publish
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -13,9 +18,16 @@ IMAGE=${IMAGE:-tggame}
 REPO=${REPO:-docker.io/iphands/tggame}
 TAG=${TAG:-$(git rev-parse --short HEAD 2>/dev/null || true)}
 
-"$ENGINE" image inspect "$IMAGE" >/dev/null 2>&1 || { echo "No image \"$IMAGE\" yet. Run ./build first." >&2; exit 1; }
+# what the image was built for, which is what matters, not what this shell runs on
+built_for=$("$ENGINE" image inspect "$IMAGE" --format '{{.Architecture}}' 2>/dev/null) \
+  || { echo "No image \"$IMAGE\" yet. Run ./build first." >&2; exit 1; }
+case "$built_for" in
+  arm64 | aarch64) arch=arm64 ;;
+  amd64 | x86_64) arch=x64 ;;
+  *) echo "Don't know what to call a \"$built_for\" image." >&2; exit 1 ;;
+esac
 
-for tag in latest $TAG; do
+for tag in "latest-$arch" ${TAG:+"$TAG-$arch"} latest; do
   "$ENGINE" tag "$IMAGE" "$REPO:$tag"
   "$ENGINE" push "$REPO:$tag"
   echo "Published $REPO:$tag"
