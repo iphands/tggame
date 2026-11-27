@@ -66,7 +66,7 @@ A player is *holding the table up* while they sit on a picked-up card.
 | 12 s, then every 4 s | level 3: red wobbling banner, air horn |
 
 - Only the slowest player is picked on at a time. The stack of cards waiting behind each player is
-  shown on their seat.
+  shown on their seat, and your own as a **+N** badge on the card in your hand.
 - **The Heckle button** always aims at the slowest player (no picking), signs the heckle with your
   name, and needs 3 s to recover.
 - Heckling stops once the scramble for spoons has started.

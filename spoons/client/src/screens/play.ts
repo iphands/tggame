@@ -18,6 +18,9 @@ export function playScreen(): Screen {
   const tableEl = h('div', { class: 'table' }, spoonsEl, shoutEl);
   const statusEl = h('p', { class: 'table-status' });
   const handEl = h('div', { class: 'hand' });
+  /** "+N" on the card in hand: how many more are queued up for this player. */
+  const pileEl = h('span', { class: 'pile-badge', hidden: true });
+  let drawnEl: HTMLElement | null = null;
   const heckleBtn = h('button', { class: 'btn heckle', type: 'button' });
   const revealEl = h('div', { class: 'reveal', hidden: true });
   const el = h('section', { class: 'screen play' }, seatsEl, tableEl, statusEl, handEl, heckleBtn, revealEl);
@@ -209,16 +212,25 @@ export function playScreen(): Screen {
     const task = store.task;
     const ready = !!task?.drawn && started(s);
     const key = JSON.stringify(task) + ready;
-    if (key === handKey) return;
-    handKey = key;
-    handEl.className = `hand${ready ? ' ready' : ''}${task?.quad ? ' quad' : ''}`;
-    if (!task) return handEl.replaceChildren();
-    handEl.replaceChildren(
-      ...task.hand.map((c) => cardEl('button', c, { type: 'button', style: `--tilt:${tilt(c, 2)}deg`, onclick: () => pass(c) })),
-      task.drawn
-        ? cardEl('button', task.drawn, { type: 'button', class: 'drawn', onclick: () => pass(task.drawn!) })
-        : h('div', { class: 'card slot' }, '…'),
-    );
+    if (key !== handKey) {
+      handKey = key;
+      handEl.className = `hand${ready ? ' ready' : ''}${task?.quad ? ' quad' : ''}`;
+      drawnEl = task?.drawn ? cardEl('button', task.drawn, { type: 'button', class: 'drawn', onclick: () => pass(task.drawn!) }) : null;
+      if (!task) handEl.replaceChildren();
+      else {
+        handEl.replaceChildren(
+          ...task.hand.map((c) => cardEl('button', c, { type: 'button', style: `--tilt:${tilt(c, 2)}deg`, onclick: () => pass(c) })),
+          drawnEl ?? h('div', { class: 'card slot' }, '…'),
+        );
+      }
+    }
+    // cards stacked up behind the one in hand: the badge outlives the hand's rebuilds so it does not flicker
+    const waiting = drawnEl ? (me()?.waiting ?? 0) : 0;
+    pileEl.hidden = waiting < 1;
+    pileEl.textContent = `+${waiting}`;
+    pileEl.title = `${waiting} more ${waiting === 1 ? 'card is' : 'cards are'} waiting for you`;
+    pileEl.classList.toggle('lots', waiting >= 3);
+    if (drawnEl && pileEl.parentElement !== drawnEl) drawnEl.append(pileEl);
   }
 
   function renderHeckle(): void {
