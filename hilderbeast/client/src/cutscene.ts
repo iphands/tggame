@@ -10,7 +10,16 @@ import { sfx } from './audio';
 import { hilderSvg } from './hilder';
 
 /** What Hilder says. Two of these flash up with every catch. */
-export const SAYINGS = ["That's SOMETHING BAD", 'Now quit it!', 'Byyyeee', 'You nearly collapsed', 'You fell out!'];
+export const SAYINGS = [
+  "That's SOMETHING BAD",
+  'Now quit it!',
+  'Byyyeee',
+  'You nearly collapsed',
+  'You fell out!',
+  'What in the dog?',
+  'Now GET OUT!!',
+  "I don't know about all that",
+];
 
 /** When, in the 3 seconds, she bites, and when the Cousin turns. */
 const BITE_AT_MS = [1080, 1440];
