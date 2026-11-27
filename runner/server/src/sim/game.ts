@@ -9,7 +9,7 @@
 import { ARENA, BOT_NAMES, COLORS, COMBAT, ITEMS, MATCH, PHYS, RUN, TICK_MS } from '../../../shared/src/constants.js';
 import { LEVELS, levelAt, safeSpots, type LevelDef } from '../../../shared/src/levels.js';
 import type { SnapshotBody } from '../../../shared/src/protocol.js';
-import type { FeedEntry, Phase, ResultRow } from '../../../shared/src/types.js';
+import type { FeedEntry, Phase, Records, ResultRow } from '../../../shared/src/types.js';
 import { makeBrain, thinkBot } from './bots.js';
 import { fire, updateCharges, updateProjectiles, updateStomps } from './combat.js';
 import { scheduleFirstCrate, updateCrates } from './items.js';
@@ -20,7 +20,16 @@ import { makeRng } from '@tggame/base/shared/rng';
 import { armGate, updateScroll } from './scroll.js';
 
 /** `levels` swaps the course list (tests use small static worlds). */
-export type GameOptions = { seed?: number; levels?: LevelDef[] };
+export type GameOptions = {
+  seed?: number;
+  levels?: LevelDef[];
+  /** Best times so far, by course id. The game adds to this object. */
+  records?: Records;
+  /** Called when a round ends with a new best on its course. */
+  onRecord?: (records: Records) => void;
+  /** The wall clock, for dating a record. */
+  now?: () => number;
+};
 
 
 const FEED_MAX = 6;
@@ -32,6 +41,10 @@ export class Game {
   timeLeftMs: number | null = null;
   winnerId: string | null = null;
   results: ResultRow[] | null = null;
+  /** Best finishing time on each course, by course id. */
+  readonly records: Records;
+  private readonly onRecord: (records: Records) => void;
+  private readonly now: () => number;
   levelIndex = 0;
   nextLevelIndex = 0;
   /** Bumps whenever a round is built. */
@@ -46,6 +59,9 @@ export class Game {
   constructor(opts: GameOptions = {}) {
     const rng = makeRng(opts.seed ?? Date.now());
     this.levels = opts.levels ?? LEVELS;
+    this.records = opts.records ?? {};
+    this.onRecord = opts.onRecord ?? (() => {});
+    this.now = opts.now ?? Date.now;
     this.nextLevelIndex = Math.floor(rng() * this.levels.length);
     this.levelIndex = this.nextLevelIndex;
     const level = levelAt(this.levelIndex, this.levels);
@@ -509,6 +525,14 @@ export class Game {
         deaths: p.deaths,
         smash: Math.round(p.smash),
       }));
+
+    // the winner's time is the round's best: is it the best this course has seen?
+    const best = this.results.find((r) => r.timeMs !== null);
+    const held = this.records[w.level.id];
+    if (best && best.timeMs !== null && (!held || best.timeMs < held.timeMs)) {
+      this.records[w.level.id] = { name: best.name, color: best.color, bot: best.bot, timeMs: best.timeMs, at: this.now() };
+      this.onRecord(this.records);
+    }
 
     w.phase = 'ended';
     w.projectiles = [];

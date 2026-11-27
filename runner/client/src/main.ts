@@ -54,6 +54,10 @@ function join(name: string): void {
     name,
     onWelcome: (id) => (store.selfId = id),
     onSnapshot,
+    onRecords: (records) => {
+      store.records = records;
+      renderLobby();
+    },
     onStatus: (s) => {
       store.conn = s;
       renderLobby();

@@ -1,4 +1,5 @@
 import type { ClientMessage, ServerMessage, SnapshotMessage } from '../../shared/src/protocol';
+import type { Records } from '../../shared/src/types';
 import { SocketClient, wsUrl, type ConnectionStatus } from '@tggame/base/client/net';
 
 export type { ConnectionStatus };
@@ -12,6 +13,7 @@ export type GameClientOptions = {
   onWelcome?: (selfId: string) => void;
   onSnapshot?: (snap: SnapshotMessage) => void;
   onStatus?: (status: ConnectionStatus) => void;
+  onRecords?: (records: Records) => void;
 };
 
 /** This game's socket: auto-reconnects and re-joins under the same name. */
@@ -27,6 +29,7 @@ export class GameClient extends SocketClient<ClientMessage, ServerMessage> {
       onMessage: (msg) => {
         if (msg.type === 'snapshot') opts.onSnapshot?.(msg);
         else if (msg.type === 'welcome') opts.onWelcome?.(msg.selfId);
+        else if (msg.type === 'records') opts.onRecords?.(msg.records);
       },
     });
   }

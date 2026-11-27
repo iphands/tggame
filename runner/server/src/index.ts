@@ -3,6 +3,7 @@ import path from 'node:path';
 import { WebSocket } from 'ws';
 import { createGameServer } from '@tggame/base/server/http';
 import { Game } from './sim/game.js';
+import { loadRecords, saveRecords } from './records.js';
 import { isClientMessage, type ClientMessage, type ServerMessage } from '../../shared/src/protocol.js';
 import { MATCH, SNAP_EVERY_TICKS, TICK_MS } from '../../shared/src/constants.js';
 
@@ -10,7 +11,17 @@ const PORT = Number(process.env.PORT ?? 8091);
 /** Max messages a socket may send per second before extras are dropped. */
 const MSG_BUDGET_PER_SEC = 240;
 
-const game = new Game();
+/** Where the best time on each course is kept between restarts. */
+const RECORDS_FILE = path.resolve(process.cwd(), process.env.RECORDS_FILE ?? 'records.json');
+
+const game = new Game({
+  records: loadRecords(RECORDS_FILE),
+  onRecord: (records) => {
+    saveRecords(RECORDS_FILE, records);
+    const msg = JSON.stringify({ type: 'records', records } satisfies ServerMessage);
+    for (const ws of peers.keys()) if (ws.readyState === WebSocket.OPEN) ws.send(msg);
+  },
+});
 const peers = new Map<WebSocket, { id: string | null; budget: number }>();
 
 const { wss, listen } = createGameServer({
@@ -39,6 +50,7 @@ function handle(ws: WebSocket, peer: { id: string | null }, msg: ClientMessage):
     }
     peer.id = joined.id;
     send(ws, { type: 'welcome', selfId: joined.id, capacity: MATCH.capacity, serverTimeMs: Date.now() });
+    send(ws, { type: 'records', records: game.records });
     return;
   }
 

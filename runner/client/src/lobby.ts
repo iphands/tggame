@@ -1,4 +1,5 @@
 /** DOM overlay: join screen, lobby panels, in-game buttons, connection pill. */
+import { raceTime } from './view/hud';
 import { MATCH } from '../../shared/src/constants';
 import { LEVELS, levelAt } from '../../shared/src/levels';
 import { store } from './store';
@@ -157,6 +158,14 @@ export function renderLobby(): void {
     nameEl.textContent = level.name;
     $('lvl-tag')!.textContent = level.tagline;
     $('lvl-index')!.textContent = `${snap.nextLevel + 1} / ${LEVELS.length}`;
+  }
+  // who to beat on this course
+  const best = store.records[level.id];
+  const bestText = best ? `🏆 Best: ${best.name}${best.bot ? ' 🤖' : ''}  ${raceTime(best.timeMs)}` : '🏆 No finisher yet. Be the first!';
+  const bestEl = $('lvl-best');
+  if (bestEl && bestEl.textContent !== bestText) {
+    bestEl.textContent = bestText;
+    bestEl.classList.toggle('open', !best);
   }
 
   const players = snap.players;

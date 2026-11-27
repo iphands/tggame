@@ -4,6 +4,7 @@ import { ARENA, MATCH, PHYS, RUN } from '../../../shared/src/constants';
 import { levelAt } from '../../../shared/src/levels';
 import type { SnapshotMessage } from '../../../shared/src/protocol';
 import type { FeedEntry, PlayerState } from '../../../shared/src/types';
+import { store } from '../store';
 import { fighterTexture } from '../art/sprites';
 import { hexNum } from '@tggame/base/platformer/art/color';
 import { dmgColor, ordinal, placeColor, setTextIf, TEXT_RES } from './fighters';
@@ -463,6 +464,7 @@ export class Hud {
     root.add(text(s, 965, hdrY, 'SMASHED', 13, '#9d8cc4', 3).setOrigin(0.5, 0));
     // the quickest run on the clock, whatever the penalties did to the places
     const fastest = Math.min(...snap.results.map((r) => r.rawMs ?? Infinity));
+    const courseBest = store.records[levelAt(snap.level).id];
     rows.forEach((r, i) => {
       const y = hdrY + 24 + i * 34;
       if (r.id === selfId) {
@@ -481,7 +483,9 @@ export class Hud {
         root.add(text(s, 590, y, (quickest ? '⚡' : '') + raceTime(r.rawMs), 18, quickest ? '#ffe066' : '#e9e2ff', 4).setOrigin(0.5, 0));
         const pen = r.timeMs - r.rawMs;
         root.add(text(s, 680, y, pen > 0 ? `+${Math.round(pen / 1000)}s` : '—', 18, pen > 0 ? '#ff9d99' : '#8a7fa0', 4).setOrigin(0.5, 0));
-        root.add(text(s, 770, y, raceTime(r.timeMs), 18, '#7dffb0', 4).setOrigin(0.5, 0));
+        // a trophy on the time that is now the best this course has seen
+        const record = courseBest !== undefined && r.timeMs === courseBest.timeMs && r.name === courseBest.name;
+        root.add(text(s, 770, y, (record ? '🏆' : '') + raceTime(r.timeMs), 18, record ? '#ffe066' : '#7dffb0', 4).setOrigin(0.5, 0));
       } else {
         // everyone else: how far they got
         root.add(text(s, 590, y, '—', 18, '#8a7fa0', 4).setOrigin(0.5, 0));

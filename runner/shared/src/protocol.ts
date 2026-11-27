@@ -1,13 +1,5 @@
 /** Wire protocol between server and client: one JSON message per WebSocket frame. */
-import type {
-  CrateState,
-  FeedEntry,
-  Fx,
-  Phase,
-  PlayerState,
-  ProjectileState,
-  ResultRow,
-} from './types.js';
+import type { CrateState, FeedEntry, Fx, Phase, PlayerState, ProjectileState, Records, ResultRow } from './types.js';
 
 export type ClientMessage =
   | { type: 'join'; name?: string }
@@ -62,6 +54,8 @@ export type SnapshotMessage = { type: 'snapshot'; selfId: string } & SnapshotBod
 
 export type ServerMessage =
   | { type: 'welcome'; selfId: string; capacity: number; serverTimeMs: number }
+  /** Sent after the welcome and again whenever somebody sets a new best. */
+  | { type: 'records'; records: Records }
   | { type: 'full'; capacity: number }
   | SnapshotMessage;
 

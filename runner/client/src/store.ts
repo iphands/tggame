@@ -1,5 +1,5 @@
 import type { SnapshotMessage } from '../../shared/src/protocol';
-import type { Fx } from '../../shared/src/types';
+import type { Fx, Records } from '../../shared/src/types';
 import type { ConnectionStatus, GameClient } from './net';
 import { SnapshotBuffer } from '@tggame/base/platformer/interp';
 import { QualityManager } from '@tggame/base/platformer/quality';
@@ -17,6 +17,8 @@ export const store = {
   buffer: new SnapshotBuffer<SnapshotMessage>(),
   /** Effects waiting for the render clock to reach their sim time. */
   fxQueue: [] as { t: number; fx: Fx }[],
+  /** Best finishing time on each course, by course id. */
+  records: {} as Records,
   touchMode: false,
   /** Graphics tier (set up in main.ts from the saved setting). */
   quality: new QualityManager('auto'),

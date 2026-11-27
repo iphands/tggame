@@ -1,2 +1,17 @@
 /* The platformers share one stylesheet. Rules for this game alone go below the import. */
 @import '@tggame/base/css/platformer.css';
+
+/* the course record under the course picker */
+.arena-best {
+  margin-top: calc(var(--u) * 0.5);
+  font-size: calc(var(--u) * 1.5);
+  font-weight: bold;
+  color: var(--gold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.arena-best.open {
+  color: #9d8cc4;
+  font-weight: normal;
+}

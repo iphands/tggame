@@ -99,6 +99,19 @@ export type FeedEntry = {
   how: HitHow | 'fall' | 'scroll' | 'left' | 'finish';
 };
 
+/** The best finishing time anyone has set on a course (penalties for lives lost included). */
+export type CourseRecord = {
+  name: string;
+  color: string;
+  bot: boolean;
+  timeMs: number;
+  /** When it was set (ms since 1970). */
+  at: number;
+};
+
+/** Course id → its record. Courses nobody has finished are absent. */
+export type Records = Record<string, CourseRecord>;
+
 export type ResultRow = {
   id: string;
   name: string;
