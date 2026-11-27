@@ -1,17 +1,6 @@
+import { seeded } from '@tggame/base/testing/seeded';
 import { Game } from '../server/src/game';
 import type { Drawing } from '../shared/src/types';
-
-/** Deterministic RNG (mulberry32). */
-export function seeded(seed = 1): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 export const doodle = (tag = 1): Drawing => [{ c: 0, w: 5, p: [tag, tag, tag + 10, tag + 10] }];
 
@@ -45,3 +34,5 @@ export function playToReveal(g: Game, ids: string[]): void {
   g.start(ids[0]);
   for (let guard = 0; guard < 50 && g.phase !== 'reveal'; guard++) playTurn(g, ids);
 }
+
+export { seeded } from '@tggame/base/testing/seeded';

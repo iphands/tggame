@@ -1,11 +1,12 @@
 /** Entity shapes sent from the server to clients in every snapshot. */
+
+import type { WeaponKind, HitHow } from '@tggame/base/platformer/types';
+
+export type { Phase, WeaponKind, HitHow } from '@tggame/base/platformer/types';
+
 import type { PlatformKind } from './levels.js';
 
-export type Phase = 'lobby' | 'starting' | 'playing' | 'ended';
-
-export type WeaponKind = 'pistol' | 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun';
 export type ItemKind = 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun' | 'shield' | 'heal';
-export type HitHow = 'stomp' | 'pistol' | 'boomstick' | 'bomb' | 'smg' | 'rocket' | 'railgun';
 
 /**
  * alive      — on stage, playing

@@ -1,9 +1,10 @@
 /** Entity shapes sent from the server to clients in every snapshot. */
-export type Phase = 'lobby' | 'starting' | 'playing' | 'ended';
 
-export type WeaponKind = 'pistol' | 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun';
+import type { WeaponKind, HitHow } from '@tggame/base/platformer/types';
+
+export type { Phase, WeaponKind, HitHow } from '@tggame/base/platformer/types';
+
 export type ItemKind = 'boomstick' | 'bombs' | 'smg' | 'rockets' | 'railgun' | 'shield' | 'life' | 'shoes';
-export type HitHow = 'stomp' | 'pistol' | 'boomstick' | 'bomb' | 'smg' | 'rocket' | 'railgun';
 
 /**
  * alive      — on the course (still running, or past the finish line: see finishMs)
