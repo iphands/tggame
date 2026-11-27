@@ -122,6 +122,16 @@ export const CREAK_EVERY_MS = 2500;
 /** A ghost drifts a little faster than anyone walks, and straight through walls. */
 export const GHOST_SPEED = 1.3;
 
+// ---- a ghost bumping the Beast
+
+/** A ghost that touches the Beast shoves her this far (walls permitting)... */
+export const GHOST_NUDGE = 44;
+/** ...and is itself thrown this far the other way, through the walls, over this long. Most of a room and then some. */
+export const GHOST_FLING = 560;
+export const GHOST_FLING_MS = 450;
+/** After a bump, that ghost cannot bump again for this long, counted from when it lands. */
+export const GHOST_BUMP_COOLDOWN_MS = 2500;
+
 // ---- Beast doors
 
 /**
@@ -203,3 +213,5 @@ export const F_HURT = 1024;
  */
 export const F_SCARE_SHIFT = 11;
 export const SCARE_MAX = 3;
+/** A ghost thrown back from a bump: it goes where it is thrown, not where it steers. */
+export const F_FLUNG = 8192;

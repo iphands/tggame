@@ -220,6 +220,17 @@ export function playScreen(): Screen {
       case 'x':
         say(`${who(e[1])} got out!`);
         break;
+      case 'g': {
+        // a ghost bumped a Beast: everybody sees the bump, though the living never see the ghost
+        sfx.boo();
+        floats.push({ x: e[3], y: e[4] - 30, at: performance.now(), text: 'Boo!' });
+        if (e[2] === me) {
+          buzz(80);
+          if (!reducedMotion()) shake = 0.5;
+          say(`${who(e[1])} bumped you from beyond!`, 2200);
+        } else if (e[1] === me) say('Boo! And back you go…', 2200);
+        break;
+      }
       case 's':
         sfx.ouch(e[1] === me);
         floats.push({ x: e[2], y: e[3] - 24, at: performance.now(), text: 'Ouch!' });

@@ -100,6 +100,7 @@ export type SelfSnap = [number, number, number, number, number];
  * - `['o']` the exits are open
  * - `['x', id]` a Cousin got out
  * - `['s', id, x, y]` a Cousin was caught on the spikes
+ * - `['g', ghost, beast, x, y]` a ghost bumped a Beast, here
  */
 export type Fx =
   | ['c', string, string, number, number]
@@ -112,4 +113,5 @@ export type Fx =
   | ['d', number]
   | ['o']
   | ['x', string]
-  | ['s', string, number, number];
+  | ['s', string, number, number]
+  | ['g', string, string, number, number];

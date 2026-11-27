@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BEAST_START_CLEAR, SPEEDS, F_SCARE_SHIFT, SCARE_MAX, COUNTDOWN_MS, CUTSCENE_MS, DREAD_STEPS, ESCAPE_CLOCK_MS, F_HELD, HEAD_START_MS, LAST_CLOCK_MS, MAX_PLAYERS, TICK_MS, tasksFor } from '../shared/src/constants';
+import { BEAST_START_CLEAR, F_FLUNG, GHOST_BUMP_COOLDOWN_MS, GHOST_FLING, GHOST_FLING_MS, GHOST_NUDGE, SPEEDS, F_SCARE_SHIFT, SCARE_MAX, COUNTDOWN_MS, CUTSCENE_MS, DREAD_STEPS, ESCAPE_CLOCK_MS, F_HELD, HEAD_START_MS, LAST_CLOCK_MS, MAX_PLAYERS, TICK_MS, tasksFor } from '../shared/src/constants';
 import { MAP } from '../shared/src/maps';
 import { Game } from '../server/src/game';
 import { sees, speedOf } from '../shared/src/sim';
@@ -448,6 +448,51 @@ describe('ghosts', () => {
     place(w, a.id, pill.x, pill.y);
     run(g, 100);
     expect(a.energy).toBe(0);
+  });
+  it('can bump the Beast: a shove for her, a long throw back and a wait for the ghost', () => {
+    const { g, w } = started(4, 'escape');
+    const beast = w.beasts()[0];
+    const [a] = w.cousins();
+    run(g, HEAD_START_MS);
+    turn(g, a.id);
+    // out in the Hall, the ghost just to the west of her
+    place(w, beast.id, 20.5 * 40, 9.5 * 40);
+    place(w, a.id, 20.5 * 40 - 20, 9.5 * 40);
+    run(g, TICK_MS);
+    expect(beast.x).toBeCloseTo(20.5 * 40 + GHOST_NUDGE, 0);
+    expect(w.flags(a) & F_FLUNG).toBeTruthy();
+    // she feels it, but still cannot see who did it
+    expect(snap(g, beast.id).bodies.find((s) => s[0] === a.id)).toBeUndefined();
+    expect(w.fx.filter((e) => e[0] === 'g')).toEqual([['g', a.id, beast.id, Math.round(beast.x), Math.round(beast.y)]]);
+    // thrown west, whatever the stick says, most of a room away and through the wall
+    g.input(a.id, 1, 0, false, false);
+    run(g, GHOST_FLING_MS + 50);
+    expect(w.flags(a) & F_FLUNG).toBeFalsy();
+    expect(20.5 * 40 - a.x).toBeGreaterThan(GHOST_FLING - 120);
+    // straight back at her: nothing happens until the wait is over
+    const at = beast.x;
+    place(w, a.id, beast.x - 20, beast.y);
+    g.input(a.id, 0, 0, false, false);
+    run(g, GHOST_BUMP_COOLDOWN_MS - 200);
+    expect(beast.x).toBe(at);
+    run(g, 400);
+    expect(beast.x).toBeCloseTo(at + GHOST_NUDGE, 0);
+  });
+  it('cannot shove the Beast through a wall, or bump one still held at the start', () => {
+    const { g, w } = started(3, 'escape');
+    const beast = w.beasts()[0];
+    const [a] = w.cousins();
+    turn(g, a.id);
+    place(w, a.id, beast.x - 20, beast.y);
+    run(g, 200);
+    expect(w.fx.filter((e) => e[0] === 'g')).toHaveLength(0);
+    run(g, HEAD_START_MS);
+    // hard against the east wall of the house
+    place(w, beast.id, 39 * 40 - 13, 3.5 * 40);
+    place(w, a.id, 39 * 40 - 33, 3.5 * 40);
+    run(g, TICK_MS);
+    expect(beast.x).toBeCloseTo(39 * 40 - 13, 0);
+    expect(w.flags(a) & F_FLUNG).toBeTruthy();
   });
   it('do not happen in Last Cousin Standing', () => {
     const { g, w } = started(4);

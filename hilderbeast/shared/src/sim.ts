@@ -1,5 +1,5 @@
 /** The rules both sides must agree on: the server runs them, the client predicts its own body with them. */
-import { BASE_SPEED, BODY_R, F_BEAST, F_BOOST, F_CONVERT, DASH_SPEED, F_DASH, F_GHOST, F_HELD, F_HURT, F_SLOW, GHOST_SPEED, GOO_SPEED, HURT_SPEED, F_OUT, F_PORTAL, ROLE, TILE } from './constants.js';
+import { BASE_SPEED, BODY_R, F_BEAST, F_BOOST, F_CONVERT, DASH_SPEED, F_DASH, F_FLUNG, F_GHOST, F_HELD, F_HURT, F_SLOW, GHOST_SPEED, GOO_SPEED, HURT_SPEED, F_OUT, F_PORTAL, ROLE, TILE } from './constants.js';
 import { wallAt, type GameMap } from './map.js';
 
 export type Point = { x: number; y: number };
@@ -21,7 +21,7 @@ export function speedOf(flags: number, pace = 1): number {
 
 /** `speedOf` at the default speed setting. */
 function unpaced(flags: number): number {
-  if (flags & (F_CONVERT | F_PORTAL | F_HELD | F_OUT)) return 0;
+  if (flags & (F_CONVERT | F_PORTAL | F_HELD | F_OUT | F_FLUNG)) return 0;
   if (flags & F_GHOST) return BASE_SPEED * GHOST_SPEED;
   const role = flags & F_BEAST ? ROLE.beast : ROLE.cousin;
   if (flags & F_DASH) return BASE_SPEED * role.speed * DASH_SPEED;

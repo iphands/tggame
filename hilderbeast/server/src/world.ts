@@ -22,6 +22,7 @@ import {
   F_BOOST,
   F_CONVERT,
   F_DASH,
+  F_FLUNG,
   F_GHOST,
   F_HELD,
   F_HURT,
@@ -30,6 +31,10 @@ import {
   F_SCARE_SHIFT,
   F_SLOW,
   F_WORK,
+  GHOST_BUMP_COOLDOWN_MS,
+  GHOST_FLING,
+  GHOST_FLING_MS,
+  GHOST_NUDGE,
   HEAD_START_MS,
   HELP_RATE,
   HURT_MS,
@@ -99,6 +104,12 @@ export type Body = {
   hurtMs: number;
   /** Time until this Cousin can set off another creaky board. */
   creakMs: number;
+  /** A ghost thrown back from a bump: time left in the air, and how fast it is going each way. */
+  flingMs: number;
+  flingX: number;
+  flingY: number;
+  /** Time until this ghost can bump the Beast again. */
+  bumpWaitMs: number;
   /** Got out: no longer in the house. */
   out: boolean;
   /** Caught in Escape: still a Cousin by side, but a ghost. Roams through walls, touches nothing, and only watches. */
@@ -178,6 +189,10 @@ export class World {
         slow: false,
         hurtMs: 0,
         creakMs: 0,
+        flingMs: 0,
+        flingX: 0,
+        flingY: 0,
+        bumpWaitMs: 0,
         out: false,
         ghost: false,
       });
@@ -230,6 +245,7 @@ export class World {
     this.timeMs += TICK_MS;
     for (const b of this.bodies) this.stepBody(b);
     this.stepTraps();
+    this.bumpBeasts();
     this.catchCousins();
     this.stepPills();
     if (this.mode === 'escape') {
@@ -268,8 +284,18 @@ export class World {
     if (b.heldMs > 0) return;
 
     if (b.ghost) {
-      // a ghost only drifts: no boosts, no doors, and walls are nothing to it
+      if (b.bumpWaitMs > 0) b.bumpWaitMs -= TICK_MS;
+      // thrown back from a bump: it goes where it was thrown, whatever the stick says
+      if (b.flingMs > 0) {
+        b.flingMs -= TICK_MS;
+        moveBody(b, b.flingX * dtS, b.flingY * dtS, this.map, true);
+        return;
+      }
+      // otherwise a ghost only drifts: no boosts, no doors, and walls are nothing to it
       if (b.ix !== 0 || b.iy !== 0) {
+        const d = Math.hypot(b.ix, b.iy);
+        b.fx = b.ix / d;
+        b.fy = b.iy / d;
         const speed = speedOf(F_GHOST, this.pace);
         moveBody(b, b.ix * speed * dtS, b.iy * speed * dtS, this.map, true);
       }
@@ -415,6 +441,35 @@ export class World {
     }
   }
 
+  /**
+   * A ghost that touches a Beast gives her a shove, and is thrown most of a room back the other
+   * way for it, so it cannot simply lean on her. One ghost, one bump, then a wait.
+   */
+  private bumpBeasts(): void {
+    for (const g of this.bodies) {
+      if (!g.ghost || g.out || g.flingMs > 0 || g.bumpWaitMs > 0) continue;
+      const beast = this.bodies.find((b) => b.role === 'beast' && this.free(b) && Math.hypot(b.x - g.x, b.y - g.y) <= TOUCH_R);
+      if (!beast) continue;
+      // from the ghost to the Beast; a ghost right on top of her shoves the way it faces
+      let dx = beast.x - g.x;
+      let dy = beast.y - g.y;
+      const d = Math.hypot(dx, dy);
+      if (d > 1) {
+        dx /= d;
+        dy /= d;
+      } else {
+        dx = g.fx;
+        dy = g.fy;
+      }
+      moveBody(beast, dx * GHOST_NUDGE, dy * GHOST_NUDGE, this.map);
+      g.flingMs = GHOST_FLING_MS;
+      g.flingX = (-dx * GHOST_FLING * 1000) / GHOST_FLING_MS;
+      g.flingY = (-dy * GHOST_FLING * 1000) / GHOST_FLING_MS;
+      g.bumpWaitMs = GHOST_FLING_MS + GHOST_BUMP_COOLDOWN_MS;
+      this.fx.push(['g', g.id, beast.id, Math.round(beast.x), Math.round(beast.y)]);
+    }
+  }
+
   private stepPills(): void {
     this.pills.forEach((pill, i) => {
       if (!pill.on) {
@@ -495,6 +550,7 @@ export class World {
     if (b.heldMs > 0) f |= F_HELD;
     if (b.out) f |= F_OUT;
     if (b.ghost) f |= F_GHOST;
+    if (b.flingMs > 0) f |= F_FLUNG;
     if (b.slow) f |= F_SLOW;
     if (b.hurtMs > 0 && b.role === 'cousin' && !b.ghost) f |= F_HURT;
     // how scared: anyone who can see this Cousin can see them shiver

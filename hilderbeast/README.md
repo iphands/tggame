@@ -51,6 +51,9 @@ win too; with two players, that is how the Cousin wins.
 - **One Beast, all round.** A Cousin caught in Escape does not become a Beast. They become a
   **ghost**: out of the game, but free to drift through the walls and watch the whole house. The
   living cannot see ghosts.
+- **Ghosts can bump.** A ghost that touches the Beast gives her a shove, about a square's worth,
+  and is thrown most of a room back the other way for it. It cannot bump again for 2.5 seconds
+  after it lands, so nobody can lean on her. Everyone sees a "Boo!" where it happened.
 - Chores are spread through the house: one more than there are Cousins (3 to 7).
 - Stand at a chore and hold the action (E) to work on it. One Cousin takes 8 seconds; each helper
   adds 60 %. Walk away whenever you like: the work done is kept.

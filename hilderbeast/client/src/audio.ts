@@ -76,6 +76,11 @@ export const sfx = {
     }
     if (near > 0.85 && step % 2 === 0) noise(0.08, 0.06, 2600, 900);
   },
+  /** A ghost bumped a Beast. */
+  boo: () => {
+    tone('sine', 300, 720, 0.18, 0.3);
+    tone('sine', 720, 240, 0.3, 0.22, 0.16);
+  },
   /** Somebody trod on the spikes. */
   ouch: (mine: boolean) => {
     tone('square', 620, 180, 0.16, mine ? 0.3 : 0.12);

@@ -53,6 +53,13 @@ export class Bots {
 
   /** A ghost bot drifts from room to room, straight through the walls. */
   private haunt(world: World, b: Body, mind: Mind, rng: Rng): void {
+    // ready to bump: straight for the Beast, which a ghost can always see
+    const beast = b.bumpWaitMs <= 0 && b.flingMs <= 0 ? world.beasts()[0] : undefined;
+    if (beast) {
+      const d = Math.hypot(beast.x - b.x, beast.y - b.y) || 1;
+      world.setInput(b.id, (beast.x - b.x) / d, (beast.y - b.y) / d, false, false);
+      return;
+    }
     if (!mind.goal || Math.hypot(mind.goal.x - b.x, mind.goal.y - b.y) < TILE) {
       const spots = [...world.map.pills, ...world.map.tasks];
       mind.goal = spots[Math.floor(rng() * spots.length)];
