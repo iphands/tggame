@@ -1,6 +1,6 @@
 import type { ClientMessage, ServerMessage } from '../../shared/src/protocol';
 
-export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'full' | 'booted';
+export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'full';
 
 type LocationLike = Pick<Location, 'protocol' | 'hostname' | 'host' | 'port' | 'search' | 'pathname'>;
 
@@ -68,9 +68,9 @@ export class GameClient {
       } catch {
         return;
       }
-      if (msg.type === 'full' || msg.type === 'booted') {
+      if (msg.type === 'full') {
         this.disposed = true;
-        this.opts.onStatus(msg.type);
+        this.opts.onStatus('full');
         ws.close();
         return;
       }

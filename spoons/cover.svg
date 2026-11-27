@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="felt" cx=".5" cy="0" r="1.1"><stop offset="0" stop-color="#2a9d7c"/><stop offset=".6" stop-color="#1d7a5f"/><stop offset="1" stop-color="#12543f"/></radialGradient>
+    <g id="spoon">
+      <path d="M18 4C8 4 4 15 4 24c0 10 5 17 10 19l-2 47c0 4 3 6 6 6s6-2 6-6l-2-47c5-2 10-9 10-19 0-9-4-20-14-20z" fill="#e9ecf5" stroke="#1f2440" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M12 14c-3 4-3 12 0 17" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+      <path d="M21 50l1 38" fill="none" stroke="#aab0c8" stroke-width="3" stroke-linecap="round"/>
+    </g>
+    <g id="card">
+      <rect x="6" y="8" width="130" height="182" rx="16" fill="#0c143c" fill-opacity=".4"/>
+      <rect width="130" height="182" rx="16" fill="#fff" stroke="#1f2440" stroke-width="6"/>
+    </g>
+  </defs>
+  <rect width="800" height="500" fill="url(#felt)"/>
+  <g fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M30 60c12-16 24 16 36 0s24 16 36 0"/><circle cx="745" cy="445" r="22"/><path d="M40 440l20 20 20-20 20 20"/><path d="M700 40l8 18 20 2-15 13 5 19-18-10-18 10 5-19-15-13 20-2z"/>
+  </g>
+  <!-- four queens, fanned -->
+  <g font-family="'Chewy','Comic Sans MS',cursive" text-anchor="middle">
+    <g transform="translate(70 200) rotate(-16 65 91)"><use href="#card"/><text x="28" y="46" font-size="44" fill="#1f2440">Q</text><text x="65" y="136" font-size="84" font-family="sans-serif" fill="#1f2440">♠</text></g>
+    <g transform="translate(160 176) rotate(-6 65 91)"><use href="#card"/><text x="28" y="46" font-size="44" fill="#d7263d">Q</text><text x="65" y="136" font-size="84" font-family="sans-serif" fill="#d7263d">♥</text></g>
+    <g transform="translate(250 172) rotate(5 65 91)"><use href="#card"/><text x="28" y="46" font-size="44" fill="#1f2440">Q</text><text x="65" y="136" font-size="84" font-family="sans-serif" fill="#1f2440">♣</text></g>
+    <g transform="translate(338 190) rotate(15 65 91)"><use href="#card"/><text x="28" y="46" font-size="44" fill="#d7263d">Q</text><text x="65" y="136" font-size="84" font-family="sans-serif" fill="#d7263d">♦</text></g>
+  </g>
+  <!-- the spoons everyone is about to lunge for -->
+  <g transform="translate(560 150) rotate(-22) scale(2.3)"><use href="#spoon"/></g>
+  <g transform="translate(640 170) rotate(8) scale(2.3)"><use href="#spoon"/></g>
+  <g transform="translate(700 210) rotate(34) scale(2.3)"><use href="#spoon"/></g>
+  <!-- a heckle -->
+  <g transform="rotate(-4 400 80)">
+    <rect x="196" y="36" width="420" height="78" rx="22" fill="#0c143c" fill-opacity=".4" transform="translate(7 9)"/>
+    <rect x="196" y="36" width="420" height="78" rx="22" fill="#ffd23f" stroke="#1f2440" stroke-width="6"/>
+    <text x="406" y="90" text-anchor="middle" font-family="'Chewy','Comic Sans MS',cursive" font-size="44" fill="#1f2440">Hurr up slow poke!</text>
+  </g>
+</svg>

@@ -68,20 +68,38 @@ function noise(dur: number, vol: number, f0: number, f1: number): void {
 export const sfx = {
   /** Button / pick. */
   pop: () => tone('sine', 520, 880, 0.09, 0.5),
-  /** Page handed in. */
-  done: () => {
-    tone('triangle', 660, 660, 0.1, 0.4);
-    tone('triangle', 990, 990, 0.16, 0.4, 0.09);
-  },
-  /** A new page lands in front of you. */
-  turn: () => {
+  /** A card lands in front of you. */
+  card: () => noise(0.07, 0.22, 1800, 4200),
+  /** You passed a card on. */
+  pass: () => noise(0.09, 0.18, 3200, 900),
+  /** The deal. */
+  deal: () => {
     noise(0.22, 0.35, 900, 3200);
     tone('sine', 784, 784, 0.12, 0.3, 0.12);
     tone('sine', 1047, 1047, 0.2, 0.3, 0.22);
   },
-  /** Reveal page flip. */
-  flip: () => noise(0.25, 0.4, 600, 4200),
-  heart: () => tone('sine', 880, 1320, 0.12, 0.35),
+  /** Cards start moving. */
+  go: () => tone('triangle', 660, 1320, 0.18, 0.4),
+  /** Your hand closes on a spoon. */
+  grab: () => {
+    tone('triangle', 1568, 2093, 0.08, 0.45);
+    tone('sine', 2637, 2637, 0.25, 0.3, 0.05);
+  },
+  /** The table is on somebody's case: a nudge, a honk, an air horn. */
+  heckle: (level: number) => {
+    if (level <= 1) return tone('sine', 700, 520, 0.12, 0.3);
+    if (level === 2) {
+      tone('sawtooth', 311, 300, 0.16, 0.3);
+      tone('sawtooth', 311, 300, 0.22, 0.3, 0.2);
+      return;
+    }
+    for (let i = 0; i < 3; i++) {
+      tone('sawtooth', 392, 370, 0.2, 0.32, i * 0.22);
+      tone('square', 494, 466, 0.2, 0.16, i * 0.22);
+    }
+  },
   tada: () => [523, 659, 784, 1047].forEach((f, i) => tone('triangle', f, f, i === 3 ? 0.5 : 0.14, 0.4, i * 0.11)),
+  /** Sad trombone, short. */
+  lose: () => [392, 370, 349, 311].forEach((f, i) => tone('sawtooth', f, f * 0.97, i === 3 ? 0.55 : 0.2, 0.25, i * 0.2)),
   nope: () => tone('square', 180, 120, 0.16, 0.2),
 };
