@@ -50,14 +50,21 @@ export function drawHouse(c: Ctx, map: GameMap, x0: number, y0: number, x1: numb
       const kind = map.kind[r * map.cols + col];
       const x = col * TILE;
       const y = r * TILE;
-      if (kind === T_WALL) {
-        c.fillStyle = look.wall;
-        c.fillRect(x, y, TILE + 0.5, TILE + 0.5);
-        c.fillStyle = look.wallTop;
-        c.fillRect(x + 3, y + 3, TILE - 6, TILE - 10);
-      } else if (kind === T_GOO) drawGoo(c, x, y, col, r, now);
+      if (kind === T_WALL) continue;
+      if (kind === T_GOO) drawGoo(c, x, y, col, r, now);
       else if (kind === T_SPIKE) drawSpikes(c, x, y, spikesAt(timeMs, col, r));
       else if (kind === T_CREAK) drawCreak(c, x, y);
+    }
+  }
+  // the walls, over everything on the floor: thin bars with a dark edge. Every piece's edge is
+  // laid down first and every piece's face over them all, so the joins between pieces do not show.
+  for (const edge of [true, false]) {
+    c.fillStyle = edge ? look.wall : look.wallTop;
+    const grow = edge ? 2 : 0.3;
+    for (let r = r0; r <= r1; r++) {
+      for (let col = c0; col <= c1; col++) {
+        for (const [wx0, wy0, wx1, wy1] of map.walls[r * map.cols + col]) c.fillRect(wx0 - grow, wy0 - grow, wx1 - wx0 + grow * 2, wy1 - wy0 + grow * 2);
+      }
     }
   }
 }
@@ -134,8 +141,15 @@ export function mapPicture(map: GameMap, px: number): HTMLCanvasElement {
   for (let r = 0; r < map.lines; r++) {
     for (let col = 0; col < map.cols; col++) {
       const kind = map.kind[r * map.cols + col];
+      if (kind === T_WALL) {
+        // the bars themselves, to scale, and never too thin to see
+        m.fillStyle = 'rgba(12,10,20,0.9)';
+        const k = px / TILE;
+        for (const [x0, y0, x1, y1] of map.walls[r * map.cols + col]) m.fillRect(x0 * k, y0 * k, Math.max(1.5, (x1 - x0) * k), Math.max(1.5, (y1 - y0) * k));
+        continue;
+      }
       if (kind === T_FLOOR) continue;
-      m.fillStyle = kind === T_WALL ? 'rgba(12,10,20,0.9)' : kind === T_GOO ? '#6fb93a' : kind === T_SPIKE ? '#ff5d73' : 'rgba(244,236,216,0.45)';
+      m.fillStyle = kind === T_GOO ? '#6fb93a' : kind === T_SPIKE ? '#ff5d73' : 'rgba(244,236,216,0.45)';
       m.fillRect(col * px, r * px, px, px);
     }
   }

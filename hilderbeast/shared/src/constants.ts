@@ -34,6 +34,11 @@ export const DEFAULT_MODE = 'last';
 
 /** Side of one map square, in world units. */
 export const TILE = 40;
+/**
+ * How thick a wall is. A wall square is not a solid cube: it is a bar this thick through the
+ * middle of the square, joined to the wall squares next to it. A block of four is filled in.
+ */
+export const WALL_T = 14;
 /** A player is a circle this big. */
 export const BODY_R = 13;
 /** How far anyone sees, walls permitting. */

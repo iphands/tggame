@@ -10,7 +10,7 @@
  * This file holds what a map is and the one map laid out by hand, the Old House. The others are
  * laid out from plans by `mapgen.ts`; `maps.ts` lists them all.
  */
-import { SPIKE_CYCLE_MS, SPIKE_UP_AT_MS, SPIKE_WARN_AT_MS, TILE } from './constants.js';
+import { SPIKE_CYCLE_MS, SPIKE_UP_AT_MS, SPIKE_WARN_AT_MS, TILE, WALL_T } from './constants.js';
 
 /** Each room is 12 squares wide; the top and bottom rows of rooms are 7 tall, the middle row 8. */
 const ROOMS: { name: string; rows: string[] }[][] = [
@@ -116,6 +116,12 @@ export type GameMap = {
   solid: Uint8Array;
   /** What each square is (`T_…`), row by row. */
   kind: Uint8Array;
+  /**
+   * The solid parts of each square, row by row, each `[x0, y0, x1, y1]` in world units: none for
+   * floor, and for a wall square the thin bars that make it up (see `WALL_T`). This, not the
+   * square, is what bodies bump into and sight stops at.
+   */
+  walls: number[][][];
   cousinStarts: Spot[];
   den: Spot;
   pills: Spot[];
@@ -167,6 +173,31 @@ export function parseMap(rows: string[], meta: { name?: string; rooms?: Room[]; 
     if (pair.length !== 2) throw new Error(`Beast door ${key} has ${pair.length} ends`);
     portals.push(pair[0], pair[1]);
   }
+  // a wall square is a post in its middle, an arm to each neighbouring wall square, and a
+  // filled corner wherever it is part of a solid block of four
+  const isWall = (c: number, r: number): boolean => c >= 0 && r >= 0 && c < cols && r < lines && solid[r * cols + c] === 1;
+  const half = WALL_T / 2;
+  const walls: number[][][] = [];
+  for (let r = 0; r < lines; r++) {
+    for (let c = 0; c < cols; c++) {
+      const out: number[][] = [];
+      walls.push(out);
+      if (!isWall(c, r)) continue;
+      const cx = (c + 0.5) * TILE;
+      const cy = (r + 0.5) * TILE;
+      out.push([cx - half, cy - half, cx + half, cy + half]);
+      if (isWall(c + 1, r)) out.push([cx, cy - half, (c + 1) * TILE, cy + half]);
+      if (isWall(c - 1, r)) out.push([c * TILE, cy - half, cx, cy + half]);
+      if (isWall(c, r + 1)) out.push([cx - half, cy, cx + half, (r + 1) * TILE]);
+      if (isWall(c, r - 1)) out.push([cx - half, r * TILE, cx + half, cy]);
+      for (const dc of [-1, 1]) {
+        for (const dr of [-1, 1]) {
+          if (!isWall(c + dc, r) || !isWall(c, r + dr) || !isWall(c + dc, r + dr)) continue;
+          out.push([dc < 0 ? c * TILE : cx, dr < 0 ? r * TILE : cy, dc < 0 ? cx : (c + 1) * TILE, dr < 0 ? cy : (r + 1) * TILE]);
+        }
+      }
+    }
+  }
   return {
     name: meta.name ?? 'A yard',
     rows,
@@ -176,6 +207,7 @@ export function parseMap(rows: string[], meta: { name?: string; rooms?: Room[]; 
     h: lines * TILE,
     solid,
     kind,
+    walls,
     cousinStarts,
     den,
     pills,
@@ -203,7 +235,10 @@ function rooms(): Room[] {
 /** The first map, and the only one laid out by hand. */
 export const oldHouse = (): GameMap => parseMap(build(), { name: 'The Old House', rooms: rooms(), look: OLD_HOUSE_LOOK });
 
-/** Is the square at column `c`, row `r` a wall? Everything off the map is. */
+/**
+ * Is the square at column `c`, row `r` a wall square? Everything off the map is. A wall square
+ * is only partly solid (`GameMap.walls`); this is for things that go by squares, like the bots.
+ */
 export function wallAt(map: GameMap, c: number, r: number): boolean {
   return c < 0 || r < 0 || c >= map.cols || r >= map.lines || map.solid[r * map.cols + c] === 1;
 }

@@ -55,7 +55,7 @@ const RESEND_MS = 1000;
 /** Rays cast for the edge of what we can see. */
 const RAYS = 360;
 /** How far light spills into a wall, so its face is lit. */
-const WALL_GLOW = 18;
+const WALL_GLOW = 9;
 const FOG = 'rgba(8,6,16,0.74)';
 /** How much larger everybody is drawn for a screen that shows the whole house. */
 const WATCH_SCALE = 2.2;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BASE_SPEED, BODY_R, F_BEAST, F_BOOST, F_CONVERT, F_DASH, ROLE, TILE } from '../shared/src/constants';
-import { roomAt, wallAt } from '../shared/src/map';
+import { BASE_SPEED, BODY_R, F_BEAST, F_BOOST, F_CONVERT, F_DASH, ROLE, TILE, WALL_T } from '../shared/src/constants';
+import { parseMap, roomAt, wallAt } from '../shared/src/map';
 import { MAP } from '../shared/src/maps';
 import { moveBody, rayDist, sees, speedOf, unit } from '../shared/src/sim';
 import { stepsFrom, stepsAt, FAR } from '../server/src/path';
@@ -35,6 +35,9 @@ describe('the house', () => {
   });
 });
 
+/** The west face of the wall down the middle of the yard: a bar `WALL_T` thick through the middle of column 5. */
+const FACE = 5.5 * TILE - WALL_T / 2;
+
 describe('moving', () => {
   it('is no faster on a diagonal', () => {
     const u = unit(1, 1);
@@ -45,13 +48,14 @@ describe('moving', () => {
   it('stops at a wall', () => {
     const p = { x: 2.5 * TILE, y: 2.5 * TILE };
     moveBody(p, 500, 0, YARD);
-    expect(p.x).toBeCloseTo(5 * TILE - BODY_R);
+    // the wall is a thin bar down the middle of its squares, not the whole square
+    expect(p.x).toBeCloseTo(FACE - BODY_R);
     expect(p.y).toBeCloseTo(2.5 * TILE);
   });
   it('slides along a wall', () => {
-    const p = { x: 5 * TILE - BODY_R, y: 2.5 * TILE };
+    const p = { x: FACE - BODY_R, y: 2.5 * TILE };
     moveBody(p, 30, 30, YARD);
-    expect(p.x).toBeCloseTo(5 * TILE - BODY_R);
+    expect(p.x).toBeCloseTo(FACE - BODY_R);
     expect(p.y).toBeCloseTo(2.5 * TILE + 30);
   });
   it('rounds a corner instead of sticking on it', () => {
@@ -70,7 +74,7 @@ describe('moving', () => {
   it('cannot be thrown through a wall by one huge step', () => {
     const p = { x: 2.5 * TILE, y: 2.5 * TILE };
     moveBody(p, 4000, 0, YARD);
-    expect(p.x).toBeLessThan(5 * TILE);
+    expect(p.x).toBeLessThan(FACE);
   });
 });
 
@@ -95,9 +99,27 @@ describe('seeing', () => {
   it('has a range', () => {
     expect(sees(YARD, 2.5 * TILE, 4.5 * TILE, 7.5 * TILE, 4.5 * TILE, 100)).toBe(false);
   });
+  it('leaves the rest of a wall square open: a body goes right up to the bar, and sees past its end', () => {
+    // with the bar as thick as a body is wide, a body's middle reaches the edge of the wall's square and no further
+    const p = { x: 4 * TILE, y: 2.5 * TILE };
+    moveBody(p, 100, 0, YARD);
+    expect(p.x).toBeCloseTo(5 * TILE);
+    expect(sees(YARD, p.x, p.y, 1.5 * TILE, 2.5 * TILE)).toBe(true);
+    expect(sees(YARD, p.x, p.y, 8.5 * TILE, 2.5 * TILE)).toBe(false);
+    // the wall ends half a square sooner than its squares do
+    expect(sees(YARD, 4.5 * TILE, 3.9 * TILE, 5.5 * TILE, 4.1 * TILE)).toBe(true);
+  });
+  it('fills in a block of four wall squares: solid from side to side, and smaller than its squares', () => {
+    const BLOCK = parseMap(['######', '#....#', '#.##.#', '#.##.#', '#....#', '######']);
+    const p = { x: 1.5 * TILE, y: 3 * TILE };
+    moveBody(p, 200, 0, BLOCK);
+    expect(p.x).toBeCloseTo(2.5 * TILE - WALL_T / 2 - BODY_R);
+    expect(sees(BLOCK, 1.5 * TILE, 3 * TILE, 4.5 * TILE, 3 * TILE)).toBe(false);
+    expect(sees(BLOCK, 1.5 * TILE, 3 * TILE, 4.5 * TILE, 2.6 * TILE)).toBe(false);
+  });
   it('measures the way to a wall', () => {
-    expect(rayDist(YARD, 2.5 * TILE, 2.5 * TILE, 1, 0, 1000)).toBeCloseTo(2.5 * TILE);
-    expect(rayDist(YARD, 2.5 * TILE, 2.5 * TILE, 0, -1, 1000)).toBeCloseTo(1.5 * TILE);
+    expect(rayDist(YARD, 2.5 * TILE, 2.5 * TILE, 1, 0, 1000)).toBeCloseTo(FACE - 2.5 * TILE);
+    expect(rayDist(YARD, 2.5 * TILE, 2.5 * TILE, 0, -1, 1000)).toBeCloseTo(2 * TILE - WALL_T / 2);
     expect(rayDist(YARD, 2.5 * TILE, 2.5 * TILE, 1, 0, 50)).toBe(50);
   });
 });

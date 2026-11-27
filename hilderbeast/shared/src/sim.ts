@@ -1,6 +1,6 @@
 /** The rules both sides must agree on: the server runs them, the client predicts its own body with them. */
 import { BASE_SPEED, BODY_R, F_BEAST, F_BOOST, F_CONVERT, DASH_SPEED, F_DASH, F_FLUNG, F_GHOST, F_HELD, F_HURT, F_SLOW, GHOST_SPEED, GOO_SPEED, HURT_SPEED, F_OUT, F_PORTAL, ROLE, TILE } from './constants.js';
-import { wallAt, type GameMap } from './map.js';
+import type { GameMap } from './map.js';
 
 export type Point = { x: number; y: number };
 
@@ -55,10 +55,16 @@ export function moveBody(p: Point, dx: number, dy: number, map: GameMap, through
   }
 }
 
+/** The solid parts of the square at column `c`, row `r`. Off the map there is nothing: the outer wall keeps everyone in. */
+function wallsAt(map: GameMap, c: number, r: number): number[][] {
+  return c < 0 || r < 0 || c >= map.cols || r >= map.lines ? NONE : map.walls[r * map.cols + c];
+}
+const NONE: number[][] = [];
+
 /**
- * Put a body that overlaps a wall back on the floor. Squares it meets face on are settled before
- * squares it only touches by a corner: otherwise the seam between two squares of one straight
- * wall would count as a corner and nudge a body sliding along it.
+ * Put a body that overlaps a wall back on the floor. Pieces of wall it meets face on are settled
+ * before pieces it only touches by a corner: otherwise the seam between two pieces of one
+ * straight wall would count as a corner and nudge a body sliding along it.
  */
 function pushOut(p: Point, map: GameMap): void {
   for (let pass = 0; pass < 2; pass++) {
@@ -69,29 +75,30 @@ function pushOut(p: Point, map: GameMap): void {
     const r1 = Math.floor((p.y + BODY_R) / TILE);
     for (let r = r0; r <= r1; r++) {
       for (let c = c0; c <= c1; c++) {
-        if (!wallAt(map, c, r)) continue;
-        // the point of this square nearest the body's centre
-        const nx = Math.min((c + 1) * TILE, Math.max(c * TILE, p.x));
-        const ny = Math.min((r + 1) * TILE, Math.max(r * TILE, p.y));
-        const ox = p.x - nx;
-        const oy = p.y - ny;
-        if ((ox !== 0 && oy !== 0) !== corners) continue;
-        const d = Math.hypot(ox, oy);
-        if (d >= BODY_R) continue;
-        if (d > 1e-6) {
-          p.x = nx + (ox / d) * BODY_R;
-          p.y = ny + (oy / d) * BODY_R;
-        } else {
-          // dead centre in a wall: leave by the nearest side
-          const left = p.x - c * TILE;
-          const right = (c + 1) * TILE - p.x;
-          const up = p.y - r * TILE;
-          const down = (r + 1) * TILE - p.y;
-          const m = Math.min(left, right, up, down);
-          if (m === left) p.x = c * TILE - BODY_R;
-          else if (m === right) p.x = (c + 1) * TILE + BODY_R;
-          else if (m === up) p.y = r * TILE - BODY_R;
-          else p.y = (r + 1) * TILE + BODY_R;
+        for (const [x0, y0, x1, y1] of wallsAt(map, c, r)) {
+          // the point of this piece nearest the body's centre
+          const nx = Math.min(x1, Math.max(x0, p.x));
+          const ny = Math.min(y1, Math.max(y0, p.y));
+          const ox = p.x - nx;
+          const oy = p.y - ny;
+          if ((ox !== 0 && oy !== 0) !== corners) continue;
+          const d = Math.hypot(ox, oy);
+          if (d >= BODY_R) continue;
+          if (d > 1e-6) {
+            p.x = nx + (ox / d) * BODY_R;
+            p.y = ny + (oy / d) * BODY_R;
+          } else if (!corners) {
+            // right inside a piece of wall: leave by the nearest side
+            const left = p.x - x0;
+            const right = x1 - p.x;
+            const up = p.y - y0;
+            const down = y1 - p.y;
+            const m = Math.min(left, right, up, down);
+            if (m === left) p.x = x0 - BODY_R;
+            else if (m === right) p.x = x1 + BODY_R;
+            else if (m === up) p.y = y0 - BODY_R;
+            else p.y = y1 + BODY_R;
+          }
         }
       }
     }
@@ -100,12 +107,12 @@ function pushOut(p: Point, map: GameMap): void {
 
 /**
  * How far a ray from `(x, y)` along the unit direction `(dx, dy)` travels before it meets a wall,
- * capped at `max`. Walks the squares the ray crosses, one at a time.
+ * capped at `max`. Walks the squares the ray crosses, one at a time, and in each tries the
+ * pieces of wall that stand in it.
  */
 export function rayDist(map: GameMap, x: number, y: number, dx: number, dy: number, max: number): number {
   let c = Math.floor(x / TILE);
   let r = Math.floor(y / TILE);
-  if (wallAt(map, c, r)) return 0;
   const stepC = dx > 0 ? 1 : -1;
   const stepR = dy > 0 ? 1 : -1;
   const tDeltaC = dx !== 0 ? Math.abs(TILE / dx) : Infinity;
@@ -113,6 +120,26 @@ export function rayDist(map: GameMap, x: number, y: number, dx: number, dy: numb
   let tC = dx !== 0 ? ((dx > 0 ? (c + 1) * TILE - x : x - c * TILE) / Math.abs(dx)) : Infinity;
   let tR = dy !== 0 ? ((dy > 0 ? (r + 1) * TILE - y : y - r * TILE) / Math.abs(dy)) : Infinity;
   for (;;) {
+    // where, if anywhere, the ray first enters a piece of wall in this square
+    let hit = Infinity;
+    for (const [x0, y0, x1, y1] of wallsAt(map, c, r)) {
+      let near = 0;
+      let far = Infinity;
+      if (dx !== 0) {
+        const a = (x0 - x) / dx;
+        const b = (x1 - x) / dx;
+        near = Math.max(near, Math.min(a, b));
+        far = Math.min(far, Math.max(a, b));
+      } else if (x < x0 || x > x1) continue;
+      if (dy !== 0) {
+        const a = (y0 - y) / dy;
+        const b = (y1 - y) / dy;
+        near = Math.max(near, Math.min(a, b));
+        far = Math.min(far, Math.max(a, b));
+      } else if (y < y0 || y > y1) continue;
+      if (near <= far && near < hit) hit = near;
+    }
+    if (hit < Infinity) return Math.min(hit, max);
     const t = Math.min(tC, tR);
     if (t >= max) return max;
     if (tC < tR) {
@@ -122,7 +149,8 @@ export function rayDist(map: GameMap, x: number, y: number, dx: number, dy: numb
       r += stepR;
       tR += tDeltaR;
     }
-    if (wallAt(map, c, r)) return t;
+    // off the map: nothing more to meet
+    if (c < 0 || r < 0 || c >= map.cols || r >= map.lines) return max;
   }
 }
 

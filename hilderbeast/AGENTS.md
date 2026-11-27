@@ -52,6 +52,9 @@ loop come from `slurp/`. Shared code is imported from `@tggame/base`. Read `READ
 - **`moveBody` and `speedOf` are shared** by the server and the client's prediction. Change them
   in one place only. Anything that changes how fast a body goes, or holds it still (the dash, a Beast door), must show
   in the flags, so the client knows to stop predicting.
+- **Walls are thinner than their squares.** A `#` square is a bar `WALL_T` thick joined to its
+  wall neighbours (a block of four is filled), listed in `GameMap.walls`. Collision (`pushOut`),
+  sight (`rayDist`) and drawing all go by those pieces; only the bots' paths go by squares.
 - **Maps are code, not messages.** Both sides import `MAPS`; a round names its map by number and
   only what changes (pills, chore progress) travels. `mapgen.ts` must stay a pure function of the
   plan and its seed (its own RNG, integer maths only): change a plan or the generator and every

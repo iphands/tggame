@@ -192,7 +192,10 @@ describe('what a player is told', () => {
     const beast = w.beasts()[0];
     const [a, c] = w.cousins();
     const dread = (id: string) => snap(g, id).me![4];
-    // still in its den: no threat yet
+    // the Beast in the Cellar, one Cousin beside it, the other at the far end of the house
+    place(w, beast.id, MAP.den.x, MAP.den.y);
+    place(w, c.id, 37.5 * 40, 1.5 * 40);
+    // still held at the start: no threat yet
     place(w, a.id, beast.x + 60, beast.y);
     expect(dread(a.id)).toBe(0);
     run(g, HEAD_START_MS);
