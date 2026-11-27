@@ -23,6 +23,7 @@ import {
   F_SLOW,
   F_WORK,
   NOISE_SHOW_MS,
+  PORTALS_ON,
   SIGHT_R,
   TASK_R,
   TILE,
@@ -389,7 +390,7 @@ export function playScreen(): Screen {
     const timeMs = (s.round?.clockMs ?? 0) - clockLeft(now, netClock.rtt / 2);
     drawHouse(ctx, MAP, x0, y0, x1, y1, timeMs, now);
 
-    MAP.portals.forEach((p, i) => {
+    (PORTALS_ON ? MAP.portals : []).forEach((p, i) => {
       if (flares[i] > 0) flares[i] = Math.max(0, flares[i] - dt * 1.6);
       drawPortal(ctx, p.x, p.y, now, flares[i], i >> 1);
     });
@@ -513,7 +514,7 @@ export function playScreen(): Screen {
       m.fill();
     };
     MAP.pills.forEach((p, i) => (live.pills >> i) & 1 && dot(p.x, p.y, 1.5, '#ffd23f'));
-    MAP.portals.forEach((p, i) => dot(p.x, p.y, 2.5, PORTAL_COLORS[(i >> 1) % PORTAL_COLORS.length].bright));
+    if (PORTALS_ON) MAP.portals.forEach((p, i) => dot(p.x, p.y, 2.5, PORTAL_COLORS[(i >> 1) % PORTAL_COLORS.length].bright));
     if (escape() && s.round) {
       s.round.tasks.forEach((spot, i) => {
         const t = MAP.tasks[spot];

@@ -114,6 +114,13 @@ export const GHOST_SPEED = 1.3;
 
 // ---- Beast doors
 
+/**
+ * Off for now: the doors took away from the chase. Everything about them is still here (the
+ * maps keep their door squares, the rules and the drawing are untouched): set this to true and
+ * they are back.
+ */
+export const PORTALS_ON: boolean = false;
+
 export const PORTAL_R = 15;
 /** Time spent out of sight between the two ends. */
 export const PORTAL_TRANSIT_MS = 400;

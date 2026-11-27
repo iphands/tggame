@@ -38,6 +38,7 @@ import {
   PILL_BACK_MS,
   PILL_ENERGY,
   PILL_R,
+  PORTALS_ON,
   PORTAL_COOLDOWN_MS,
   PORTAL_R,
   PORTAL_TRANSIT_MS,
@@ -372,7 +373,7 @@ export class World {
   }
 
   private enterPortal(b: Body): void {
-    if (b.portalWaitMs > 0) return;
+    if (!PORTALS_ON || b.portalWaitMs > 0) return;
     const ends = this.map.portals;
     for (let i = 0; i < ends.length; i++) {
       if (Math.hypot(ends[i].x - b.x, ends[i].y - b.y) > PORTAL_R) continue;

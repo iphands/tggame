@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BASE_SPEED, BEAST_BOOST_COOLDOWN_MS, BEAST_BOOST_MS, CATCH_COOLDOWN_MS, CONVERT_MS, ENERGY_MAX, ENERGY_START,
-  DASH_COOLDOWN_MS, DASH_MS, DASH_SPEED, F_BOOST, F_CONVERT, F_DASH, F_HURT, F_SLOW, GOO_SPEED, HURT_SPEED, SPIKE_CYCLE_MS, SPIKE_ENERGY, SPIKE_UP_AT_MS, SPIKE_WARN_AT_MS, NOISE_EVERY_MS, PILL_BACK_MS, PILL_ENERGY, PORTAL_COOLDOWN_MS, PORTAL_TRANSIT_MS, ROLE,
+  DASH_COOLDOWN_MS, DASH_MS, PORTALS_ON, DASH_SPEED, F_BOOST, F_CONVERT, F_DASH, F_HURT, F_SLOW, GOO_SPEED, HURT_SPEED, SPIKE_CYCLE_MS, SPIKE_ENERGY, SPIKE_UP_AT_MS, SPIKE_WARN_AT_MS, NOISE_EVERY_MS, PILL_BACK_MS, PILL_ENERGY, PORTAL_COOLDOWN_MS, PORTAL_TRANSIT_MS, ROLE,
   TASK_WORK_MS, TICK_MS, TILE,
 } from '../shared/src/constants';
 import { parseMap, spikesAt } from '../shared/src/map';
@@ -187,7 +187,9 @@ describe('the dash', () => {
   });
 });
 
-describe('Beast doors', () => {
+// the doors are switched off for now (PORTALS_ON); these run again the day they come back
+describe.skipIf(!PORTALS_ON)('Beast doors', () => {
+  it('is on', () => expect(PORTALS_ON).toBe(true));
   it('carry a Beast to the other end, once per cooldown', () => {
     const w = world(['beast', 'a'], 'last', MAP);
     const [from, to] = MAP.portals;
@@ -351,6 +353,17 @@ describe('traps', () => {
     w.setInput('a', 0, -0.1, false, false);
     steps(w, 100);
     expect(w.fx.filter((e) => e[0] === 'n')).toHaveLength(1);
+  });
+});
+
+describe('Beast doors, while they are off', () => {
+  it.skipIf(PORTALS_ON)('do nothing, even for a Beast', () => {
+    const w = world(['beast', 'a'], 'last', MAP);
+    const from = MAP.portals[0];
+    const b = place(w, 'beast', from.x, from.y);
+    steps(w, 500);
+    expect([b.x, b.y]).toEqual([from.x, from.y]);
+    expect(w.fx.filter((e) => e[0] === 't')).toHaveLength(0);
   });
 });
 
