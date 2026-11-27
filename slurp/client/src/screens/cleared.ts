@@ -1,8 +1,8 @@
 import { h } from '@tggame/base/client/dom';
 import { confetti } from '@tggame/base/client/fx';
-import { CLEARED_MS } from '../../../shared/src/constants';
+import { CLEARED_MS, LAST_BITE_BONUS } from '../../../shared/src/constants';
 import { sfx } from '../audio';
-import { store } from '../store';
+import { nameOf, store } from '../store';
 import type { Bites } from '../../../shared/src/types';
 import { starText, type Screen } from './index';
 
@@ -52,6 +52,7 @@ export function clearedScreen(): Screen {
         h('span', null, c.spills === 0 ? 'nothing spilled' : [h('b', null, c.spills), c.spills === 1 ? ' spill' : ' spills']),
         c.carryMs > 0 && h('span', null, h('b', null, `+${secs(c.carryMs)}`), ' on the next clock'),
       ),
+      c.lastBy && s.players.length > 1 && h('p', { class: 'last-bite' }, '🏁 ', h('b', null, nameOf(c.lastBy)), ` ate the last piece: +${LAST_BITE_BONUS}`),
       bitesList(c.bites),
       next,
     ),

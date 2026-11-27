@@ -17,6 +17,7 @@ import {
   MIN_PLAYERS,
   PLAYER_COLORS,
   STAR_2,
+  LAST_BITE_BONUS,
   STAR_3,
   TICK_MS,
   courseTimeMs,
@@ -237,7 +238,7 @@ export class Game extends Roster<Player> {
       }
     }
     const ids = this.participants().map((p) => p.id);
-    for (const id of ids) if (!this.stats.has(id)) this.stats.set(id, { id, eaten: 0, biggest: -1, spills: 0, herds: 0 });
+    for (const id of ids) if (!this.stats.has(id)) this.stats.set(id, { id, eaten: 0, biggest: -1, spills: 0, herds: 0, lasts: 0 });
     this.eatenBefore = new Map(ids.map((id) => [id, this.stats.get(id)!.eaten]));
     const course = makeCourse(no, ids.length, this.rng);
     this.course = no;
@@ -258,18 +259,24 @@ export class Game extends Roster<Player> {
     const stars = share >= STAR_3 && tidy ? 3 : share >= STAR_2 ? 2 : 1;
     this.stars.push(stars);
     this.carryMs = Math.min(CARRY_MAX_MS, Math.round(leftMs * CARRY_SHARE));
-    this.cleared = { no: this.course, stars, leftMs, spills: world.spills, carryMs: this.carryMs, bites: this.tally(true) };
+    // the last bite on a table is worth extra
+    const closer = this.stats.get(world.lastEater);
+    if (closer) {
+      closer.eaten += LAST_BITE_BONUS;
+      closer.lasts++;
+    }
+    this.cleared = { no: this.course, stars, leftMs, spills: world.spills, carryMs: this.carryMs, bites: this.tally(true, world.lastEater), lastBy: world.lastEater };
     if (this.course >= COURSES) return this.finish(true);
     this.phase = 'cleared';
     this.phaseLeftMs = CLEARED_MS;
   }
 
   /** Close the books on the course being played: who ate how much of it, hungriest first. */
-  private tally(cleared: boolean): Bites {
+  private tally(cleared: boolean, lastBy = ''): Bites {
     const bites = [...this.eatenBefore]
       .map(([id, before]) => ({ id, eaten: (this.stats.get(id)?.eaten ?? before) - before }))
       .sort((a, b) => b.eaten - a.eaten);
-    this.tallies.push({ no: this.course, cleared, bites });
+    this.tallies.push({ no: this.course, cleared, bites, lastBy });
     return bites;
   }
 

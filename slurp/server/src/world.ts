@@ -98,6 +98,8 @@ export class World {
   /** Food not yet eaten (food that fell off still counts). */
   left: number;
   spills = 0;
+  /** The hole that swallowed the most recent piece of food: once the table is empty, the last one. */
+  lastEater = '';
   /** Clock time lost to spills and not yet charged. */
   penaltyMs = 0;
   fx: Fx[] = [];
@@ -322,6 +324,7 @@ export class World {
       }
       f.state = GONE;
       this.left--;
+      this.lastEater = hole.id;
       const value = TIERS[f.tier].value;
       for (const other of this.holes) this.grow(other, other === hole ? value : value * TEAM_SHARE);
       const eater = this.stats.get(hole.id);

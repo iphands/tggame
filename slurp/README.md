@@ -35,6 +35,7 @@ Phones on the same Wi-Fi join at `http://<your-ip>:5178`.
 - **Rotten fish.** Run over one and your hole crawls for a few seconds. They are never drawn in,
   not even by Super Gravity, so steer round them. Neither boxes nor fish have to be eaten to
   clear the table.
+- **Last piece.** Whoever swallows the last piece of food on a table gets 5 bonus bites.
 - **Hungriest.** After each course you see who ate how much of it, with a crown for the most; the
   finale lists the hungriest hole on every course.
 - **Players.** The table's area and the amount of food grow with the number of holes, so it is

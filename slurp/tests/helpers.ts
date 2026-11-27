@@ -51,7 +51,7 @@ export function runUntil(g: Game, done: () => boolean, capMs: number): number {
 
 /** A hand-laid table for physics tests: `w` by `h`, the given food, one hole per id. */
 export function world(foods: Placed[], ids = ['a'], w = 1000, h = 700): { w: World; stats: Map<string, PlayerStats> } {
-  const stats = new Map<string, PlayerStats>(ids.map((id) => [id, { id, eaten: 0, biggest: -1, spills: 0, herds: 0 }]));
+  const stats = new Map<string, PlayerStats>(ids.map((id) => [id, { id, eaten: 0, biggest: -1, spills: 0, herds: 0, lasts: 0 }]));
   const course: Course = { no: 1, w, h, tiers: 5, foods };
   return { w: new World(course, ids, stats), stats };
 }

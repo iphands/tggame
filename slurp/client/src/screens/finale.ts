@@ -27,6 +27,7 @@ export function finaleScreen(): Screen {
   if (stats.length > 1) {
     give(most(stats, (s) => s.eaten), '🍽️ hungriest');
     give(most(stats, (s) => s.herds), '🐑 best herder');
+    give(most(stats, (s) => s.lasts), '🏁 finisher');
     give(most(stats, (s) => s.spills), '🫣 clumsiest');
   }
 
@@ -57,6 +58,7 @@ export function finaleScreen(): Screen {
                 ? 'nobody got a bite'
                 : best.flatMap((b, i) => [i > 0 && ' & ', h('span', { class: 'avatar mini', style: `--c:${colorIn(b.id)}` }, nameIn(b.id).slice(0, 1).toUpperCase()), ' ', nameIn(b.id)]),
               !course.cleared && h('span', { class: 'medals' }, 'the clock ran out here'),
+              course.lastBy && h('span', { class: 'medals' }, `🏁 last piece: ${nameIn(course.lastBy)}`),
             ),
             h('span', { class: 'ate' }, top > 0 ? top : ''),
           );

@@ -34,7 +34,7 @@ export type CourseView = {
 export type Bites = { id: string; eaten: number }[];
 
 /** One course of the run: who ate what, and whether the table was cleared in time. */
-export type CourseTally = { no: number; cleared: boolean; bites: Bites };
+export type CourseTally = { no: number; cleared: boolean; bites: Bites; /** Who ate the last piece ('' when the clock ran out). */ lastBy: string };
 
 /** How the course just cleared went. */
 export type ClearedView = {
@@ -45,8 +45,10 @@ export type ClearedView = {
   spills: number;
   /** Time taken along to the next course. */
   carryMs: number;
-  /** Who ate how much on this course. */
+  /** Who ate how much on this course, the last-bite bonus included. */
   bites: Bites;
+  /** Who swallowed the last piece, and so got the bonus. */
+  lastBy: string;
 };
 
 export type PlayerStats = {
@@ -59,6 +61,8 @@ export type PlayerStats = {
   spills: number;
   /** Food this player pushed into a teammate's hole. */
   herds: number;
+  /** Tables this player finished off by eating the last piece. */
+  lasts: number;
 };
 
 /** The whole run, shown in the finale. */

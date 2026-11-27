@@ -154,6 +154,9 @@ export const DEFAULT_DIFFICULTY = 'normal';
 /** Clock multiplier per difficulty. */
 export const CLOCK_FACTOR = { chill: 1.4, normal: 1, spicy: 0.75 } as const;
 
+/** Whoever swallows the last piece on a table is credited with this many extra bites. */
+export const LAST_BITE_BONUS = 5;
+
 /** Stars for a cleared course: share of the clock left for two and for three. */
 export const STAR_2 = 0.12;
 export const STAR_3 = 0.3;

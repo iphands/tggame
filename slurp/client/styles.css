@@ -547,3 +547,11 @@ input[type='text'] {
 .effects .bad {
   background: #cfe58a;
 }
+
+.last-bite {
+  font-size: 1.1em;
+}
+.last-bite b {
+  font-family: var(--display);
+  font-weight: 400;
+}
