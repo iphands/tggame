@@ -179,6 +179,7 @@ export class Hud {
       else if (me.life === 'out') status = 'Out of lives: spectating';
       else if (me.life === 'waiting') status = 'You joined mid-round: you play next round';
     }
+    if (!me && store.watching && snap.phase === 'playing') status = 'Watching';
     setTextIf(this.status, status);
     this.status.setVisible(!!status);
 

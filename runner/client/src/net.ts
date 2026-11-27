@@ -13,6 +13,8 @@ export type GameClientOptions = {
   onWelcome?: (selfId: string, token: string) => void;
   /** The seat token of an earlier welcome, if any: a reconnect gets the same runner back with it. */
   token?: () => string | undefined;
+  /** True for a screen that only watches: asked at every join. */
+  watch?: () => boolean;
   onSnapshot?: (snap: SnapshotMessage) => void;
   onStatus?: (status: ConnectionStatus) => void;
   onRecords?: (records: Records) => void;
@@ -33,6 +35,7 @@ export class GameClient extends SocketClient<ClientMessage, ServerMessage> {
       url: opts.url ?? defaultWsUrl(window.location),
       name: opts.name,
       token: opts.token,
+      watch: opts.watch,
       onStatus: opts.onStatus,
       onMessage: (msg) => {
         if (msg.type === 'snapshot') opts.onSnapshot?.(msg);

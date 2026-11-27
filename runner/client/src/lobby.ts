@@ -45,7 +45,7 @@ export function syncMuteButton(): void {
 }
 
 /** Wire lobby buttons. `onJoin` receives the chosen name. */
-export function initLobbyDom(onJoin: (name: string) => void): void {
+export function initLobbyDom(onJoin: (name: string, watch?: boolean) => void): void {
   const input = $('name-input') as HTMLInputElement | null;
   try {
     const saved = localStorage.getItem('lsr-name');
@@ -81,6 +81,9 @@ export function initLobbyDom(onJoin: (name: string) => void): void {
   click('lvl-next', () => pick(1));
   click('bot-add', () => store.client?.send({ type: 'addBot' }));
   click('bot-remove', () => store.client?.send({ type: 'removeBot' }));
+  // a screen that only watches (a TV), and the way back
+  click('watch-join', () => onJoin((input?.value ?? '').trim() || 'TV', true));
+  click('watch-btn', () => onJoin(store.name, !store.watching));
   click('go-btn', () => store.client?.send({ type: 'restart' }));
   click('restart-btn', () => store.client?.send({ type: 'restart' }));
   click('name-btn', () => {
@@ -143,7 +146,7 @@ export function initLobbyDom(onJoin: (name: string) => void): void {
 
   // Enter starts the round from the lobby
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && store.joined && store.snapshot?.phase === 'lobby' && document.activeElement?.tagName !== 'INPUT') {
+    if (e.key === 'Enter' && store.joined && !store.watching && store.snapshot?.phase === 'lobby' && document.activeElement?.tagName !== 'INPUT') {
       store.client?.send({ type: 'restart' });
     }
   });
@@ -160,6 +163,10 @@ export function renderLobby(): void {
     pill.classList.toggle('hidden', !show);
     pill.textContent = c === 'full' ? 'Game is full (16 players)' : c === 'connecting' ? 'Connecting…' : 'Reconnecting…';
   }
+
+  document.body.classList.toggle('watching', store.watching);
+  const watchBtn = $('watch-btn');
+  if (watchBtn) watchBtn.textContent = store.watching ? 'PLAY INSTEAD' : 'JUST WATCH';
 
   const snap = store.snapshot;
   if (!snap) {
@@ -211,6 +218,7 @@ export function renderLobby(): void {
     if (snap.autoStartMs !== null) msg = `Starting in ${Math.ceil(snap.autoStartMs / 1000)}…`;
     else if (players.length < 2) msg = 'Waiting for runners. Add a bot or press START to practice.';
     else msg = 'Ready!';
+    if (store.watching && snap.autoStartMs === null) msg = players.length ? 'Watching.' : 'Watching. Waiting for players.';
     status.textContent = msg;
   }
   // nothing can be sent until the socket is up: don't let clicks vanish

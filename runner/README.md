@@ -168,6 +168,9 @@ round. Each is about 13,000 px long with two gates.
 - The round starts on its own 10 s after 2 or more players are in, or right
   away at 10 players.
 - Players who join mid-round watch it and play the next one.
+- A screen can watch without playing: press **WATCH (TV)** on the join screen, or **JUST WATCH** in
+  the lobby. For a TV, open the game with `?watch=1` on the end of the address: it goes straight
+  in, has no runner, takes no place and is not counted as a player. `?watch=0` undoes it.
 - Bots play by the same rules as humans: same inputs, no cheats. They run,
   jump pits and blocks, and shoot boxes and gates. A human joining a full
   game replaces a bot. When the last human leaves, the bots go too.
