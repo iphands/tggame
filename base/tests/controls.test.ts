@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mergeInput, setTouchInput, touchInput, resetTouch, requests, fireHeld } from '../client/src/controls.js';
+import { mergeInput, setTouchInput, touchInput, resetTouch, requests, fireHeld } from '../src/platformer/controls.js';
 
 describe('input merge (keyboard OR touch)', () => {
   beforeEach(() => resetTouch());

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SnapshotBuffer, INTERP_DELAY_MS, lerpPlayer } from '../client/src/interp.js';
+import { SnapshotBuffer, INTERP_DELAY_MS, lerpPlayer } from '@tggame/base/platformer/interp';
 import type { SnapshotMessage } from '../shared/src/protocol.js';
 import type { PlayerState } from '../shared/src/types.js';
 

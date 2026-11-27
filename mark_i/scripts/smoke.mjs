@@ -21,7 +21,8 @@ function connect(name) {
     ws.on('error', reject);
     const deadline = Date.now() + 5000;
     (function poll() {
-      if (c.welcome && c.last) return resolve(c);
+      // a snapshot sent before the join was handled carries no selfId yet
+      if (c.welcome && c.last && c.last.selfId === c.welcome.selfId) return resolve(c);
       if (Date.now() > deadline) return reject(new Error('timeout waiting for welcome + snapshot'));
       setTimeout(poll, 20);
     })();

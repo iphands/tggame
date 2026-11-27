@@ -2,7 +2,7 @@
 import { ARENA, COMBAT, ITEMS, PHYS, RUN } from '../../../shared/src/constants.js';
 import type { ItemKind } from '../../../shared/src/types.js';
 import { findLanding, isSolid } from './platforms.js';
-import { randRange } from './rng.js';
+import { randRange } from '@tggame/base/shared/rng';
 import { activeGate, centerX, type Crate, type Player, type World } from './model.js';
 
 const ITEM_WEIGHTS: [ItemKind, number][] = [

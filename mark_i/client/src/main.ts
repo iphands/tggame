@@ -1,11 +1,12 @@
+import './prefs';
 import Phaser from 'phaser';
 import { GameClient } from './net';
 import { store, onSnapshot } from './store';
-import { initTouchControls, isTouchDevice, setTouchControlsVisible } from './controls';
+import { initTouchControls, isTouchDevice, setTouchControlsVisible } from '@tggame/base/platformer/controls';
 import { initLobbyDom, renderLobby, showScreen } from './lobby';
-import { unlockAudio } from './audio';
-import { QualityManager, SETTINGS, type Setting } from './quality';
-import { perfEnabled, reportCpu, startPerfMeter } from './perfMeter';
+import { unlockAudio } from '@tggame/base/platformer/audio';
+import { QualityManager, SETTINGS, type Setting } from '@tggame/base/platformer/quality';
+import { perfEnabled, reportCpu, startPerfMeter } from '@tggame/base/platformer/perfMeter';
 import { BootScene } from './scenes/BootScene';
 import { LobbyScene } from './scenes/LobbyScene';
 import { ArenaScene } from './scenes/ArenaScene';

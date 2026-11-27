@@ -2,8 +2,8 @@
  * Arena art: painted backdrops, scrolling parallax layers and per-platform
  * textures for each theme. Everything is drawn once onto canvases.
  */
-import type { PlatformKind, ThemeId } from '../../../shared/src/levels';
-import { canvas, gradeCanvas, mulberry32, rgba, shade } from './color';
+import type { PlatformKind, ThemeId } from '../levels.js';
+import { canvas, gradeCanvas, mulberry32, rgba, shade } from './color.js';
 
 export const W = 1280;
 export const H = 720;

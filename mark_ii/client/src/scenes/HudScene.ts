@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { store } from '../store';
-import { play } from '../audio';
+import { play } from '@tggame/base/platformer/audio';
 import { Hud } from '../view/hud';
 
 /** Shared between the arena camera and the HUD overlay. */

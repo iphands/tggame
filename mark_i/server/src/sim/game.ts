@@ -15,7 +15,7 @@ import { scheduleFirstCrate, updateCrates } from './items.js';
 import { createPlayer, resetBody, resetForRound, type Input, type Player, type World } from './model.js';
 import { applyInput, separateBodies, stepPlayer, tryDrop } from './physics.js';
 import { buildPlats, updatePlats } from './platforms.js';
-import { makeRng } from './rng.js';
+import { makeRng } from '@tggame/base/shared/rng';
 
 export type GameOptions = { seed?: number };
 

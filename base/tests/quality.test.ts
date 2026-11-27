@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { QualityManager, FLAGS, nextSetting } from '../client/src/quality.js';
+import { QualityManager, FLAGS, nextSetting } from '../src/platformer/quality.js';
 
 describe('graphics quality', () => {
   it('auto starts at medium everywhere; manual settings are used as-is', () => {

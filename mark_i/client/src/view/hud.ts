@@ -5,7 +5,7 @@ import { levelAt } from '../../../shared/src/levels';
 import type { SnapshotMessage } from '../../../shared/src/protocol';
 import type { FeedEntry, PlayerState } from '../../../shared/src/types';
 import { fighterTexture } from '../art/sprites';
-import { hexNum } from '../art/color';
+import { hexNum } from '@tggame/base/platformer/art/color';
 import { dmgColor, setTextIf, TEXT_RES } from './fighters';
 
 const FONT = '"Trebuchet MS", "Segoe UI", system-ui, sans-serif';

@@ -2,11 +2,11 @@ import Phaser from 'phaser';
 import { LEVELS } from '../../../shared/src/levels';
 import { COLORS } from '../../../shared/src/constants';
 import { store } from '../store';
-import { setTouchControlsVisible } from '../controls';
+import { setTouchControlsVisible } from '@tggame/base/platformer/controls';
 import { LevelView } from '../view/levelView';
 import { fighterTexture, FRAMES } from '../art/sprites';
 import { renderLobby, showScreen } from '../lobby';
-import { setPerfExtra } from '../perfMeter';
+import { setPerfExtra } from '@tggame/base/platformer/perfMeter';
 
 /**
  * Title / lobby: the start of the next course sits live behind the DOM lobby

@@ -16,7 +16,7 @@ import { scheduleFirstCrate, updateCrates } from './items.js';
 import { activeGate, centerX, createPlayer, isRacing, resetBody, resetForRound, type Input, type Player, type World } from './model.js';
 import { applyInput, resolveSolids, separateBodies, stepPlayer, tryDrop, updatePace } from './physics.js';
 import { buildPlats, solidIndices, updatePlats } from './platforms.js';
-import { makeRng } from './rng.js';
+import { makeRng } from '@tggame/base/shared/rng';
 import { armGate, updateScroll } from './scroll.js';
 
 /** `levels` swaps the course list (tests use small static worlds). */

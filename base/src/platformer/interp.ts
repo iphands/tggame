@@ -4,20 +4,21 @@
  * the render time, using the server's sim clock rather than arrival times so
  * network jitter doesn't cause stutter. Pure logic: no DOM, unit-tested.
  */
-import type { SnapshotMessage } from '../../shared/src/protocol';
-import type { PlayerState } from '../../shared/src/types';
+/** The parts of a snapshot and of a player this module reads. */
+type Timed = { simTimeMs: number };
+type Body = { x: number; y: number; life: string };
 
 export const INTERP_DELAY_MS = 75;
 const MAX_SNAPS = 24;
 
-export type Bracket = { a: SnapshotMessage; b: SnapshotMessage; alpha: number };
+export type Bracket<S> = { a: S; b: S; alpha: number };
 
-export class SnapshotBuffer {
-  private snaps: SnapshotMessage[] = [];
+export class SnapshotBuffer<S extends Timed> {
+  private snaps: S[] = [];
   /** Estimated localMs - simMs. Tracks the fastest-arriving packets. */
   private offset: number | null = null;
 
-  get latest(): SnapshotMessage | null {
+  get latest(): S | null {
     return this.snaps.length ? this.snaps[this.snaps.length - 1] : null;
   }
 
@@ -26,7 +27,7 @@ export class SnapshotBuffer {
     this.offset = null;
   }
 
-  push(s: SnapshotMessage, localNow: number): void {
+  push(s: S, localNow: number): void {
     const last = this.latest;
     if (last && s.simTimeMs <= last.simTimeMs) {
       if (s.simTimeMs < last.simTimeMs - 1000) this.clear(); // server restarted
@@ -45,7 +46,7 @@ export class SnapshotBuffer {
     return localNow - this.offset - INTERP_DELAY_MS;
   }
 
-  bracket(localNow: number): Bracket | null {
+  bracket(localNow: number): Bracket<S> | null {
     const n = this.snaps.length;
     if (n === 0) return null;
     const t = this.renderTime(localNow);
@@ -67,7 +68,7 @@ export class SnapshotBuffer {
 }
 
 /** Interpolated copy of player `b` (from the newer snapshot) toward its state in `a`. */
-export function lerpPlayer(a: PlayerState | undefined, b: PlayerState, alpha: number): PlayerState {
+export function lerpPlayer<P extends Body>(a: P | undefined, b: P, alpha: number): P {
   if (!a || a.life !== 'alive' || b.life !== 'alive') return b;
   // big jumps are teleports (respawns): don't smear them across the screen
   if (Math.abs(a.x - b.x) > 220 || Math.abs(a.y - b.y) > 220) return b;

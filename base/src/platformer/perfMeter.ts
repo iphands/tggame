@@ -5,6 +5,8 @@
  * measures what the screen actually shows, on every scene.
  */
 
+import { prefKey } from './prefs.js';
+
 const HISTORY = 120; // frames kept for the sparkline
 const BUDGET_MS = 1000 / 60;
 
@@ -20,9 +22,9 @@ let extra = '';
 export function perfEnabled(): boolean {
   const q = new URLSearchParams(location.search).get('fps');
   try {
-    if (q === '0') localStorage.removeItem('lsr-fps');
-    else if (q !== null) localStorage.setItem('lsr-fps', '1');
-    return localStorage.getItem('lsr-fps') === '1';
+    if (q === '0') localStorage.removeItem(prefKey('fps'));
+    else if (q !== null) localStorage.setItem(prefKey('fps'), '1');
+    return localStorage.getItem(prefKey('fps')) === '1';
   } catch {
     return q !== null && q !== '0';
   }

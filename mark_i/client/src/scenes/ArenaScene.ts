@@ -2,15 +2,15 @@ import Phaser from 'phaser';
 import { PHYS } from '../../../shared/src/constants';
 import type { Fx, PlatformState, PlayerState } from '../../../shared/src/types';
 import { store } from '../store';
-import { lerp, lerpPlayer } from '../interp';
-import { fireHeld, mergeInput, requests, setTouchControlsVisible, touchInput } from '../controls';
-import { play, setMuted, isMuted } from '../audio';
-import { hexNum } from '../art/color';
+import { lerp, lerpPlayer } from '@tggame/base/platformer/interp';
+import { fireHeld, mergeInput, requests, setTouchControlsVisible, touchInput } from '@tggame/base/platformer/controls';
+import { play, setMuted, isMuted } from '@tggame/base/platformer/audio';
+import { hexNum } from '@tggame/base/platformer/art/color';
 import { LevelView } from '../view/levelView';
 import { FighterView, TEXT_RES } from '../view/fighters';
-import { Particles } from '../view/particles';
+import { Particles } from '@tggame/base/platformer/particles';
 import { view as camView } from './HudScene';
-import { setPerfExtra } from '../perfMeter';
+import { setPerfExtra } from '@tggame/base/platformer/perfMeter';
 import { showScreen, syncGfxButton, syncMuteButton, syncRestartButton } from '../lobby';
 
 /** Camera zoom on phone-sized screens (the HUD is unaffected). */

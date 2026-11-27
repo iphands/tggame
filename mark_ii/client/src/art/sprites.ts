@@ -3,7 +3,7 @@
  * projectiles, crates, held weapons and effect textures.
  */
 import Phaser from 'phaser';
-import { canvas, rgba, shade } from './color';
+import { canvas, rgba, shade } from '@tggame/base/platformer/art/color';
 
 export const FIGHTER_W = 32;
 export const FIGHTER_H = 42;

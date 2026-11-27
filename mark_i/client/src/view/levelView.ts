@@ -2,7 +2,7 @@
 import Phaser from 'phaser';
 import { levelAt, platformPos, type LevelDef } from '../../../shared/src/levels';
 import type { PlatformState } from '../../../shared/src/types';
-import { THEMES, backdropCanvas, layerCanvas, platformCanvas, W, H } from '../art/themes';
+import { THEMES, backdropCanvas, layerCanvas, platformCanvas, W, H } from '@tggame/base/platformer/art/themes';
 import { store } from '../store';
 
 type Flake = { img: Phaser.GameObjects.Image; vx: number; vy: number; phase: number };

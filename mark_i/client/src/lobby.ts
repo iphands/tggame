@@ -2,10 +2,10 @@
 import { MATCH } from '../../shared/src/constants';
 import { LEVELS, levelAt } from '../../shared/src/levels';
 import { store } from './store';
-import { isMuted, play, setMuted, unlockAudio } from './audio';
-import { nextSetting } from './quality';
+import { isMuted, play, setMuted, unlockAudio } from '@tggame/base/platformer/audio';
+import { nextSetting } from '@tggame/base/platformer/quality';
 import { applyTextEdit } from '@tggame/base/client/textedit';
-import { canFullscreen, enterFullscreen, isFullscreen, isIOS, isStandalone, toggleFullscreen } from './fullscreen';
+import { canFullscreen, enterFullscreen, isFullscreen, isIOS, isStandalone, toggleFullscreen } from '@tggame/base/platformer/fullscreen';
 
 export type Screen = 'join' | 'lobby' | 'game';
 

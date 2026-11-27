@@ -6,7 +6,7 @@ import Phaser from 'phaser';
 import { BOX } from '../../../shared/src/constants';
 import { levelAt, platformPos, type LevelDef, type PlatformDef } from '../../../shared/src/levels';
 import type { SnapshotBody } from '../../../shared/src/protocol';
-import { THEMES, backdropCanvas, layerCanvas, platformCanvas, W, H } from '../art/themes';
+import { THEMES, backdropCanvas, layerCanvas, platformCanvas, W, H } from '@tggame/base/platformer/art/themes';
 import { blockTexture } from '../art/sprites';
 import { TEXT_RES } from './fighters';
 import { store } from '../store';

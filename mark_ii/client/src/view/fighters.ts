@@ -4,7 +4,7 @@ import { PHYS } from '../../../shared/src/constants';
 import type { PlayerState } from '../../../shared/src/types';
 import { store } from '../store';
 import { FRAMES, fighterTexture } from '../art/sprites';
-import { hexNum } from '../art/color';
+import { hexNum } from '@tggame/base/platformer/art/color';
 
 const W = PHYS.playerW;
 const H = PHYS.playerH;

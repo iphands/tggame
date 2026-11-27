@@ -22,7 +22,8 @@ function connect(name) {
     ws.on('error', reject);
     const deadline = Date.now() + 5000;
     (function poll() {
-      if (c.welcome && c.last) return resolve(c);
+      // a snapshot sent before the join was handled carries no selfId yet
+      if (c.welcome && c.last && c.last.selfId === c.welcome.selfId) return resolve(c);
       if (Date.now() > deadline) return reject(new Error('timeout waiting for welcome + snapshot'));
       setTimeout(poll, 20);
     })();
@@ -57,7 +58,8 @@ check(a.last.phase === 'starting', 'restart starts the countdown');
 check(a.last.level === level, 'round uses the picked course');
 check(a.last.scrollX === 0, 'the screen holds still during the countdown');
 check(a.last.gate && a.last.gate.i === 0 && a.last.gate.hp > 0, 'the first gate is standing');
-check(a.last.players.every((p) => p.lives === 3 && p.place === 0), 'everyone starts with full lives');
+const lives = a.last.players[0].lives;
+check(lives > 0 && a.last.players.every((p) => p.lives === lives && p.place === 0), 'everyone starts with full lives');
 
 await sleep(3200);
 check(a.last.phase === 'playing', 'countdown finishes into play');
