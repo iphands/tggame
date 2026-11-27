@@ -29,6 +29,15 @@ export const BODY_R = 13;
 /** How far anyone sees, walls permitting. */
 export const SIGHT_R = 400;
 
+// ---- dread: a Cousin's sense that a Beast is near
+
+/** A Cousin starts to feel a Beast this far off, walls or no walls. Further than they can see. */
+export const DREAD_R = 560;
+/** At this distance the dread is complete. */
+export const DREAD_FULL_R = 110;
+/** Dread is sent in this many steps: enough to feel it rise, too coarse to find the Beast by. */
+export const DREAD_STEPS = 12;
+
 // ---- moving
 
 /** World units a second at 1.0x. */

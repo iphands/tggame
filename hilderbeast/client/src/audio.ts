@@ -6,6 +6,9 @@ const audio = createAudio(saved);
 export const { isMuted, setMuted, unlockAudio } = audio;
 const { tone, noise } = audio;
 
+/** The low figure of the dread music: two notes a semitone apart, then a step down and back. */
+const CREEP = [82.4, 87.3, 82.4, 87.3, 77.8, 87.3, 82.4, 98];
+
 export const sfx = {
   /** Button / pick. */
   pop: () => tone('sine', 520, 880, 0.09, 0.5),
@@ -51,10 +54,22 @@ export const sfx = {
   done: () => [523, 784].forEach((f, i) => tone('triangle', f, f, 0.12, 0.35, i * 0.1)),
   /** The exits are open. */
   doors: () => [392, 523, 659, 784].forEach((f, i) => tone('triangle', f, f, 0.2, 0.35, i * 0.12)),
-  /** A Beast is close: one beat of a heart. */
-  heart: (near: number) => {
-    tone('sine', 70, 45, 0.12, 0.25 + 0.3 * near);
-    tone('sine', 62, 40, 0.12, 0.18 + 0.25 * near, 0.16);
+  /**
+   * A Beast is near: one beat of the music that says so. `near` is 0 to 1, `step` counts the
+   * beats. A heartbeat under a low figure that creeps up a semitone and back; the nearer the
+   * Beast, the louder it is, and close to it a thin high note starts to whine over the top.
+   */
+  dread: (near: number, step: number) => {
+    tone('sine', 70, 45, 0.12, 0.2 + 0.35 * near);
+    tone('sine', 62, 40, 0.12, 0.14 + 0.28 * near, 0.16);
+    const low = CREEP[step % CREEP.length];
+    tone('sawtooth', low, low, 0.22, 0.05 + 0.13 * near);
+    tone('triangle', low * 2, low * 2, 0.18, 0.04 + 0.1 * near, 0.02);
+    if (near > 0.55) {
+      const high = step % 2 ? 1245 : 1175;
+      tone('sine', high, high * 1.03, 0.16, 0.05 + 0.12 * (near - 0.55));
+    }
+    if (near > 0.85 && step % 2 === 0) noise(0.08, 0.06, 2600, 900);
   },
   /** The last seconds. */
   tick: () => tone('square', 990, 990, 0.04, 0.14),

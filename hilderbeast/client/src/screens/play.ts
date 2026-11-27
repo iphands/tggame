@@ -7,6 +7,7 @@ import {
   BEAST_BOOST_COOLDOWN_MS,
   BEAST_BOOST_MS,
   CATCH_COOLDOWN_MS,
+  DREAD_STEPS,
   ENERGY_MAX,
   ENERGY_TO_START,
   EXIT_R,
@@ -62,6 +63,8 @@ export function playScreen(): Screen {
   const line = h('div', { class: 'line' });
   const count = h('div', { class: 'count' });
   const banner = h('div', { class: 'banner', hidden: true });
+  /** A red edge to the screen that closes in as a Beast nears a Cousin. */
+  const dreadEl = h('div', { class: 'dread' });
   const watching = h('div', { class: 'watching', hidden: true });
   const boostFill = h('i');
   const boostPad = h('button', { class: 'pad boost', type: 'button' }, boostFill, h('span', null, 'BOOST'), h('small', null, 'Space'));
@@ -69,7 +72,7 @@ export function playScreen(): Screen {
   const actText = h('span', null, 'CATCH');
   const actPad = h('button', { class: 'pad act', type: 'button' }, actFill, actText, h('small', null, 'E'));
   const mini = h('canvas', { class: 'minimap', width: MAP.cols * MINI, height: MAP.lines * MINI });
-  const hud = h('div', { class: 'hud' }, sides, clock, role, chores, line, count, banner, watching, mini, boostPad, actPad);
+  const hud = h('div', { class: 'hud' }, dreadEl, sides, clock, role, chores, line, count, banner, watching, mini, boostPad, actPad);
   const el = h('section', { class: 'screen play' }, canvas, hud);
 
   const input = createInput(el, boostPad, actPad);
@@ -95,6 +98,10 @@ export function playScreen(): Screen {
   let lineUntil = 0;
   let bannerUntil = 0;
   let heartAt = 0;
+  let heartStep = 0;
+  /** How near a Beast feels, 0 to 1: eased toward what the server says, so the red creeps rather than steps. */
+  let dread = 0;
+  let shownDread = -1;
   let crankAt = 0;
   let miniAt = 0;
   let hudAt = 0;
@@ -536,14 +543,10 @@ export function playScreen(): Screen {
 
     // a heart that beats faster the nearer a Beast is
     if (mine && !beast && !out && self.ready) {
-      let near = Infinity;
-      for (const b of bodies) if (b.flags & F_BEAST && !(b.flags & (F_CONVERT | F_PORTAL))) near = Math.min(near, Math.hypot(b.x - self.x, b.y - self.y));
-      if (near < 340) {
-        const k = 1 - near / 340;
-        if (now - heartAt > 950 - 600 * k) {
-          heartAt = now;
-          sfx.heart(k);
-        }
+      // the music of a Beast somewhere near: faster and louder the nearer it is, and never says where
+      if (dread > 0.04 && now - heartAt > 980 - 680 * dread) {
+        heartAt = now;
+        sfx.dread(dread, heartStep++);
       }
       if (flags & F_WORK && now - crankAt > 260) {
         crankAt = now;
@@ -588,6 +591,21 @@ export function playScreen(): Screen {
     }
   }
 
+  /** The red at the edge of the screen: how near a Beast is to us as a Cousin, and nothing about where. */
+  function feel(now: number, dt: number): void {
+    const s = store.state!;
+    const cousin = s.phase === 'play' && sideOf(s.selfId) === 'c';
+    const want = cousin ? (live.me?.[4] ?? 0) / DREAD_STEPS : 0;
+    dread += (want - dread) * Math.min(1, dt * (want > dread ? 5 : 2));
+    // it throbs with the heartbeat, unless the player has asked for less motion
+    const beat = reducedMotion() ? 0 : Math.max(0, 1 - (now - heartAt) / 260) * 0.12 * dread;
+    const shown = Math.round(Math.min(1, dread + beat) * 100);
+    if (shown !== shownDread) {
+      shownDread = shown;
+      dreadEl.style.opacity = String(shown / 100);
+    }
+  }
+
   function frame(now: number): void {
     raf = requestAnimationFrame(frame);
     const dt = Math.min(0.1, (now - last) / 1000);
@@ -603,6 +621,7 @@ export function playScreen(): Screen {
     view.cw = cw;
     view.ch = ch;
     bodies = bodiesNow(now);
+    feel(now, dt);
     steer(now, dt);
     aimCamera(dt);
     draw(now, dt);

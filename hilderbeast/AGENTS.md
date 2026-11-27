@@ -31,6 +31,8 @@ loop come from `slurp/`. Shared code is imported from `@tggame/base`. Read `READ
 - **A player is sent only what they can see.** `Game.snapFor` leaves out the other side unless it
   is in sight (`sees`, `SIGHT_R`), and filters events the same way. The client's dark is drawing
   only: hiding something there is not enough, it must not be in the snapshot.
+- **Dread is a distance, never a direction.** `World.dread` sends a Cousin how near the nearest
+  Beast is in `DREAD_STEPS` coarse steps, through walls. Keep it coarse and keep position out of it.
 - **Two channels.** `state` is per player and sent only when its JSON changes: keep anything that
   changes every tick (clock, positions, energy, chore progress) out of `StateView`. Sides are in
   `StateView` because they change only on a catch; bump `World.sidesRev` when they do.

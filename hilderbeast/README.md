@@ -19,6 +19,9 @@ Phones on the same Wi-Fi join at `http://<your-ip>:5180`.
   you push, and slide along walls.
 - **Sight.** You see as far as your eyes reach and never round a corner. The other side is only
   drawn (and only sent to you) while it is in your line of sight. Your own side is always marked.
+- **Dread.** A Cousin feels a Beast coming before they can see it, walls or no walls: the edges
+  of the screen turn red and a heartbeat with a creeping tune starts up, redder, louder and
+  faster the nearer it is. It says how near, never which way.
 - **Cousins** hold **Boost** (Space) to run faster. It burns energy: a full bar is four seconds.
   **Pills** on the floor give back 40 %, and come back 20 seconds after they are taken.
 - **The Beast** is a touch faster than a Cousin. Its **Boost** is a short, sharp burst on a

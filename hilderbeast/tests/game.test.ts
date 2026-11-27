@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COUNTDOWN_MS, ESCAPE_CLOCK_MS, F_HELD, HEAD_START_MS, LAST_CLOCK_MS, MAX_PLAYERS, TICK_MS, tasksFor } from '../shared/src/constants';
+import { COUNTDOWN_MS, DREAD_STEPS, ESCAPE_CLOCK_MS, F_HELD, HEAD_START_MS, LAST_CLOCK_MS, MAX_PLAYERS, TICK_MS, tasksFor } from '../shared/src/constants';
 import { MAP } from '../shared/src/map';
 import { Game } from '../server/src/game';
 import { join, place, run, seeded, started, table } from './helpers';
@@ -113,6 +113,32 @@ describe('what a player is told', () => {
     c.energy = 37.4;
     expect(snap(g, c.id).me![0]).toBe(37);
     expect(snap(g, c.id).pl).toBe((1 << MAP.pills.length) - 1);
+  });
+  it('lets a Cousin feel a Beast coming, through walls, without saying where', () => {
+    const { g, w } = started(3);
+    const beast = w.beasts()[0];
+    const [a, c] = w.cousins();
+    const dread = (id: string) => snap(g, id).me![4];
+    // still in its den: no threat yet
+    place(w, a.id, beast.x + 60, beast.y);
+    expect(dread(a.id)).toBe(0);
+    run(g, HEAD_START_MS);
+    expect(dread(a.id)).toBe(DREAD_STEPS);
+    expect(dread(c.id)).toBe(0);
+    expect(dread(beast.id)).toBe(0);
+    // the same from either side, and with a wall between: the Kitchen and the Library share one
+    place(w, beast.id, 13.5 * 40, 6.5 * 40);
+    place(w, a.id, 13.5 * 40 - 200, 6.5 * 40);
+    place(w, c.id, 13.5 * 40 + 200, 6.5 * 40);
+    expect(dread(a.id)).toBeGreaterThan(0);
+    expect(dread(a.id)).toBeLessThan(DREAD_STEPS);
+    expect(dread(a.id)).toBe(dread(c.id));
+    expect(snap(g, a.id).bodies.map((b) => b[0])).not.toContain(beast.id);
+    // further off it fades, and a Beast that is still turning does not count
+    place(w, a.id, 13.5 * 40 - 400, 6.5 * 40);
+    expect(dread(a.id)).toBeLessThan(dread(c.id));
+    beast.convertMs = 1000;
+    expect(dread(c.id)).toBe(0);
   });
 });
 

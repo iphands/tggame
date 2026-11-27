@@ -8,6 +8,9 @@ import {
   CATCH_COOLDOWN_MS,
   CATCH_R,
   CONVERT_MS,
+  DREAD_FULL_R,
+  DREAD_R,
+  DREAD_STEPS,
   ENERGY_DRAIN_PER_S,
   ENERGY_MAX,
   ENERGY_START,
@@ -448,6 +451,22 @@ export class World {
     if (b.heldMs > 0) f |= F_HELD;
     if (b.out) f |= F_OUT;
     return f;
+  }
+
+  /**
+   * How near the nearest Beast is to this Cousin, 0 (none within `DREAD_R`) to `DREAD_STEPS`
+   * (on top of them). Walls do not matter: this is a feeling, not a sighting. A Beast still in
+   * its den or still turning is no threat yet and does not count.
+   */
+  dread(b: Body): number {
+    if (b.role !== 'cousin' || b.out) return 0;
+    let near = DREAD_R;
+    for (const o of this.bodies) {
+      if (o.role !== 'beast' || o.heldMs > 0 || o.convertMs > 0) continue;
+      near = Math.min(near, Math.hypot(o.x - b.x, o.y - b.y));
+    }
+    const k = (DREAD_R - near) / (DREAD_R - DREAD_FULL_R);
+    return Math.round(Math.min(1, Math.max(0, k)) * DREAD_STEPS);
   }
 
   /** Bit `i` set while pill `i` is there. */

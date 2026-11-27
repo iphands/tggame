@@ -72,8 +72,11 @@ export type StateView = {
 /** `[id, x, y, flags, facing]`: `flags` are the `F_…` bits, `facing` an angle in hundredths of a radian. */
 export type BodySnap = [string, number, number, number, number];
 
-/** What only the player themselves is told: `[energy, boost wait ms, lunge wait ms, door wait ms]`. */
-export type SelfSnap = [number, number, number, number];
+/**
+ * What only the player themselves is told: `[energy, boost wait ms, lunge wait ms, door wait ms, dread]`.
+ * `dread` is how near the nearest Beast is to a Cousin, 0 to `DREAD_STEPS`: a distance only, never a direction.
+ */
+export type SelfSnap = [number, number, number, number, number];
 
 /**
  * Things that happened since the last snapshot:
