@@ -61,20 +61,41 @@ export const sfx = {
   doors: () => [392, 523, 659, 784].forEach((f, i) => tone('triangle', f, f, 0.2, 0.35, i * 0.12)),
   /**
    * A Beast is near: one beat of the music that says so. `near` is 0 to 1, `step` counts the
-   * beats. A heartbeat under a low figure that creeps up a semitone and back; the nearer the
-   * Beast, the louder it is, and close to it a thin high note starts to whine over the top.
+   * beats and `beatS` is how long this beat lasts, so what is played inside it keeps time.
+   *
+   * Far off it is a heartbeat under a low figure that creeps up a semitone and back. As she
+   * closes in the figure climbs in pitch and a second, driving note lands on the off-beat; then
+   * a high pair of notes a semitone apart starts to saw across it; and when she is nearly on
+   * top of you the beat is hammered out in quick stabs, with a shriek over everything.
    */
-  dread: (near: number, step: number) => {
-    tone('sine', 70, 45, 0.12, 0.2 + 0.35 * near);
-    tone('sine', 62, 40, 0.12, 0.14 + 0.28 * near, 0.16);
-    const low = CREEP[step % CREEP.length];
-    tone('sawtooth', low, low, 0.22, 0.05 + 0.13 * near);
-    tone('triangle', low * 2, low * 2, 0.18, 0.04 + 0.1 * near, 0.02);
-    if (near > 0.55) {
-      const high = step % 2 ? 1245 : 1175;
-      tone('sine', high, high * 1.03, 0.16, 0.05 + 0.12 * (near - 0.55));
+  dread: (near: number, step: number, beatS: number) => {
+    const hard = near * near;
+    // the heart: thump-thump, and harder the nearer she is
+    tone('sine', 78, 42, 0.13, 0.22 + 0.45 * near);
+    tone('sine', 66, 38, 0.12, 0.16 + 0.34 * near, Math.min(0.16, beatS * 0.3));
+    // the creeping figure: it rises up to a fifth as she closes in
+    const low = CREEP[step % CREEP.length] * (1 + 0.5 * hard);
+    tone('sawtooth', low, low * (1 + 0.04 * near), 0.2, 0.06 + 0.2 * near);
+    tone('triangle', low * 2, low * 2, 0.16, 0.05 + 0.14 * near, 0.02);
+    if (near > 0.3) {
+      // the off-beat: the same note again, shorter and biting, so the pulse doubles
+      tone('sawtooth', low, low * 0.97, 0.1, 0.05 + 0.2 * (near - 0.3), beatS / 2);
+      tone('square', low / 2, low / 2, 0.09, 0.04 + 0.12 * (near - 0.3), beatS / 2);
     }
-    if (near > 0.85 && step % 2 === 0) noise(0.08, 0.06, 2600, 900);
+    if (near > 0.5) {
+      // two high notes a semitone apart, sawing against each other
+      const k = near - 0.5;
+      const high = step % 2 ? 1245 : 1175;
+      tone('sawtooth', high, high * 1.04, 0.14, 0.04 + 0.16 * k);
+      tone('sawtooth', high * 1.06, high * 1.02, 0.14, 0.03 + 0.14 * k, beatS / 2);
+    }
+    if (near > 0.75) {
+      // nearly caught: the beat hammered out in four, and a shriek that climbs
+      const k = (near - 0.75) * 4;
+      for (let i = 1; i < 4; i++) tone('square', low * 3, low * 3, 0.05, 0.05 + 0.1 * k, (beatS * i) / 4);
+      tone('sawtooth', 1480 + 500 * k, 2100 + 700 * k, Math.min(0.2, beatS * 0.8), 0.05 + 0.12 * k);
+      noise(0.09, 0.07 + 0.1 * k, 3200, 900);
+    }
   },
   /** A ghost bumped a Beast. */
   boo: () => {

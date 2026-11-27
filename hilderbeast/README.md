@@ -21,7 +21,8 @@ Phones on the same Wi-Fi join at `http://<your-ip>:5180`.
   drawn (and only sent to you) while it is in your line of sight. Your own side is always marked.
 - **Dread.** A Cousin feels a Beast coming before they can see it, walls or no walls: the edges
   of the screen turn red and a heartbeat with a creeping tune starts up, redder, louder and
-  faster the nearer it is. It says how near, never which way.
+  faster the nearer it is: the tune climbs and doubles its pulse, high notes saw across it,
+  and when she is nearly on you it is hammered out with a shriek on top. It says how near, never which way.
   A scared Cousin also shivers (and sweats, when it is very near) for anyone who can see them;
   it changes nothing about how they move.
 - **Cousins** hold **Boost** (Space) to run faster. It burns energy: a full bar is four seconds.

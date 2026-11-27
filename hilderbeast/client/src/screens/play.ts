@@ -613,9 +613,11 @@ export function playScreen(): Screen {
     // a heart that beats faster the nearer a Beast is
     if (mine && !beast && !out && self.ready) {
       // the music of a Beast somewhere near: faster and louder the nearer it is, and never says where
-      if (dread > 0.04 && now - heartAt > 980 - 680 * dread) {
+      // from a slow heartbeat (about one a second) to a frantic 240 a minute when she is nearly on us
+      const beatMs = 1000 - 750 * Math.pow(dread, 0.8);
+      if (dread > 0.04 && now - heartAt > beatMs) {
         heartAt = now;
-        sfx.dread(dread, heartStep++);
+        sfx.dread(dread, heartStep++, beatMs / 1000);
       }
       if (flags & F_WORK && now - crankAt > 260) {
         crankAt = now;
