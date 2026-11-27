@@ -33,6 +33,9 @@ origin; `?ws=ws://host:port` overrides it.
 
 1. **Lobby.** Everyone who opens the page lands at the same table (one game per server). The first
    player is the host: they add or remove Doodlebots and start the game.
+   The host also picks the **passing order**: *Fixed order* (seats as people joined, you always
+   pass to the same player), *Shuffle per round* (the default: seats are reshuffled every game) or
+   *Shuffle every turn* (books hop around, so you get pages from a different player each turn).
 2. **Pick.** Each player is dealt four words and secretly picks one, or writes a word or phrase of their own.
 3. **Draw / guess turns.** Everyone works at once, then all sketchbooks pass to the next player.
    You only ever see the single page before yours. There is no timer: a turn ends when everyone has
@@ -82,6 +85,7 @@ tests/        vitest unit tests        scripts/  icon generator, smoke test
 | `addBot` `removeBot` `start` | host, in the lobby |
 | `pick {index}` `write {text}` `draw {strokes}` `guess {text}` | hand in this turn's page (`write`: your own starting word) |
 | `skip {playerId}` | host: blank page for a stalled player |
+| `settings {order}` | host, in the lobby: `fixed`, `round` (default) or `turn`; shows as `state.settings` |
 | `heckle {playerId}` | a player who has handed in shouts at one who has not; arrives as `state.heckle` |
 | `next` | reveal: flip (book owner or host) |
 | `heart {book, page}` | toggle a heart on a revealed page |

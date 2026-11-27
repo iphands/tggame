@@ -3,13 +3,13 @@
  * feeds it player actions and asks it what each player is allowed to see.
  */
 import { randomBytes } from 'node:crypto';
-import { CARD_SIZE, HECKLE_COOLDOWN_MS, HECKLES_PER_LEVEL, MAX_PLAYERS, MIN_PLAYERS, PLAYER_COLORS } from '../../shared/src/constants.js';
+import { CARD_SIZE, DEFAULT_ORDER, HECKLE_COOLDOWN_MS, HECKLES_PER_LEVEL, MAX_PLAYERS, MIN_PLAYERS, PLAYER_COLORS } from '../../shared/src/constants.js';
 import { HECKLE_MAX_LEVEL, pickHeckle } from '../../shared/src/heckles.js';
 import { hasInk, sanitizeDrawing, sanitizeGuess, sanitizeName } from '../../shared/src/drawing.js';
-import { bookHeldBy, turnCount, turnKind } from '../../shared/src/rotation.js';
+import { bookHeldBy, passingSteps, turnCount, turnKind } from '../../shared/src/rotation.js';
 import { heartKey } from '../../shared/src/awards.js';
 import { WORDS } from '../../shared/src/words.js';
-import type { Heckle, Page, PageRef, Phase, PlayerView, StateView, Task } from '../../shared/src/types.js';
+import type { Heckle, Order, Page, PageRef, Phase, PlayerView, Settings, StateView, Task } from '../../shared/src/types.js';
 import { Roster, shuffle } from '@tggame/base/party/roster';
 import { BOT_NAMES, botDoodle, botGuess, type Rng } from './bots.js';
 
@@ -42,6 +42,9 @@ export class Game extends Roster<Player> {
   private cards: string[][] = [];
   /** This turn's handed-in pages per seat; applied to the books when everyone is done. */
   private pending: (Page | null)[] = [];
+  /** How far each book has travelled by each turn of this game. */
+  private steps: number[] = [];
+  settings: Settings = { order: DEFAULT_ORDER };
   private lastHeckle: Heckle | null = null;
   private heckleSeq = 0;
   /** Heckles each player has taken this turn. */
@@ -116,12 +119,20 @@ export class Game extends Roster<Player> {
 
   // ---- game flow
 
+  /** The host picks who passes to whom, before the game starts. */
+  configure(by: string, order: Order): void {
+    if (this.phase !== 'lobby' || by !== this.hostId()) return;
+    this.settings.order = order;
+  }
+
   start(by: string): void {
     if (this.phase !== 'lobby' || by !== this.hostId()) return;
     const seated = this.participants();
     if (seated.length < MIN_PLAYERS || seated.length > MAX_PLAYERS) return;
     this.gameNo++;
     this.seats = seated.map((p) => p.id);
+    if (this.settings.order !== 'fixed') shuffle(this.seats, this.rng);
+    this.steps = passingSteps(this.seats.length, this.settings.order === 'turn', this.rng);
     this.books = this.seats.map(() => []);
     const deck = shuffle([...WORDS], this.rng);
     this.cards = this.seats.map((_, i) => deck.slice(i * CARD_SIZE, (i + 1) * CARD_SIZE));
@@ -297,6 +308,7 @@ export class Game extends Roster<Player> {
       hearts,
       myHearts,
       heckle: inTurn ? this.lastHeckle : null,
+      settings: this.settings,
     };
   }
 
@@ -306,7 +318,7 @@ export class Game extends Roster<Player> {
     if (seat < 0) return null;
     if (this.phase === 'pick') return { kind: 'pick', card: this.cards[seat] };
     if (this.phase !== 'draw' && this.phase !== 'guess') return null;
-    const book = this.books[bookHeldBy(seat, this.turn, this.seats.length)];
+    const book = this.books[bookHeldBy(seat, this.turn, this.seats.length, this.steps)];
     const prev = book[book.length - 1];
     const from = this.players.get(prev.by)?.name ?? '?';
     if (this.phase === 'draw' && prev.kind === 'word') return { kind: 'draw', word: prev.text, from };
@@ -360,7 +372,7 @@ export class Game extends Roster<Player> {
     this.pending[seat] = page;
     if (this.pending.some((p) => p === null)) return;
     const n = this.seats.length;
-    this.pending.forEach((p, s) => this.books[bookHeldBy(s, this.turn, n)].push(p!));
+    this.pending.forEach((p, s) => this.books[bookHeldBy(s, this.turn, n, this.steps)].push(p!));
     this.pending = this.seats.map(() => null);
     this.quietDown();
     this.turn++;

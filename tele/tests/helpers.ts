@@ -1,11 +1,14 @@
 import { seeded } from '@tggame/base/testing/seeded';
 import { Game } from '../server/src/game';
-import type { Drawing } from '../shared/src/types';
+import type { Drawing, Order } from '../shared/src/types';
 
 export const doodle = (tag = 1): Drawing => [{ c: 0, w: 5, p: [tag, tag, tag + 10, tag + 10] }];
 
-/** A lobby with `n` humans named P1..Pn; returns their ids in seat order. */
-export function table(n: number, seed = 1): { g: Game; ids: string[]; tokens: string[] } {
+/**
+ * A lobby with `n` humans named P1..Pn; returns their ids in seat order. The passing order is
+ * `fixed` unless asked otherwise, so tests can count on seat `i` being player `i`.
+ */
+export function table(n: number, seed = 1, order: Order = 'fixed'): { g: Game; ids: string[]; tokens: string[] } {
   const g = new Game(seeded(seed));
   const ids: string[] = [];
   const tokens: string[] = [];
@@ -14,6 +17,7 @@ export function table(n: number, seed = 1): { g: Game; ids: string[]; tokens: st
     ids.push(j.id);
     tokens.push(j.token);
   }
+  g.configure(ids[0], order);
   return { g, ids, tokens };
 }
 

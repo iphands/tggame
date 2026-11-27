@@ -1,4 +1,5 @@
-import type { PageRef, StateView, Task } from './types.js';
+import { ORDERS } from './constants.js';
+import type { Order, PageRef, StateView, Task } from './types.js';
 
 // ---- client → server
 
@@ -8,6 +9,7 @@ export type ClientMessage =
   | { type: 'addBot' }
   | { type: 'removeBot' }
   | { type: 'start' }
+  | { type: 'settings'; order: Order }
   | { type: 'pick'; index: number }
   | { type: 'write'; text: string }
   | { type: 'draw'; strokes: unknown }
@@ -44,6 +46,8 @@ export function isClientMessage(x: unknown): x is ClientMessage {
         (m.name === undefined || typeof m.name === 'string') &&
         (m.token === undefined || (typeof m.token === 'string' && m.token.length <= 64))
       );
+    case 'settings':
+      return (ORDERS as readonly unknown[]).includes(m.order);
     case 'pick':
       return isIndex(m.index);
     case 'draw':

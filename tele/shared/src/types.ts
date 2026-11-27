@@ -47,6 +47,9 @@ export type Heckle = {
   level: number;
 };
 
+export type Order = 'fixed' | 'round' | 'turn';
+export type Settings = { order: Order };
+
 /** Public, per-player game state. Never contains pages; those arrive separately once revealed. */
 export type StateView = {
   /** Increments every time a game starts; clients drop cached pages when it changes. */
@@ -69,6 +72,7 @@ export type StateView = {
   myHearts: string[];
   /** The latest heckle of this turn, if any. */
   heckle: Heckle | null;
+  settings: Settings;
 };
 
 /** A page that has become visible to a player. */

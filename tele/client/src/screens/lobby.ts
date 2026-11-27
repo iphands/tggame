@@ -2,7 +2,15 @@ import { MAX_PLAYERS, MIN_PLAYERS } from '../../../shared/src/constants';
 import { sfx } from '../audio';
 import { h, tilt } from '@tggame/base/client/dom';
 import { isHost, nameOf, send, store } from '../store';
+import type { Order } from '../../../shared/src/types';
 import type { Screen } from './index';
+
+/** The passing orders, with what the host's button says and what it means. */
+const ORDER_CHOICES: [Order, string, string][] = [
+  ['fixed', 'Fixed order', 'Same seats every game. You always pass to the same player.'],
+  ['round', 'Shuffle per round', 'Seats are shuffled every game. You pass to one player all game.'],
+  ['turn', 'Shuffle every turn', 'Books hop around. You get pages from a different player every turn.'],
+];
 
 export function lobbyScreen(): Screen {
   const notes = h('div', { class: 'notes' });
@@ -13,6 +21,13 @@ export function lobbyScreen(): Screen {
   const hostRow = h('div', { class: 'row host-row' }, addBot, removeBot);
   const share = h('p', { class: 'share' }, 'Friends join at ', h('b', null, location.host || 'this address'));
 
+  // who passes to whom: the host chooses, everyone else sees the choice
+  const orderBtns = ORDER_CHOICES.map(([order, label, hint]) =>
+    h('button', { class: 'btn small', type: 'button', title: hint, onclick: () => send({ type: 'settings', order }) }, label),
+  );
+  const settings = h('div', { class: 'settings' }, h('span', { class: 'setting' }, h('span', null, 'Passing order'), orderBtns));
+  const summary = h('p', { class: 'share order-note' });
+
   const el = h(
     'section',
     { class: 'screen lobby' },
@@ -22,6 +37,8 @@ export function lobbyScreen(): Screen {
       h('h2', null, "Who's playing?"),
       notes,
       status,
+      settings,
+      summary,
       hostRow,
       start,
       share,
@@ -63,6 +80,10 @@ export function lobbyScreen(): Screen {
       const online = store.status === 'connected';
       hostRow.hidden = !host;
       start.hidden = !host;
+      settings.hidden = !host;
+      const [, label, hint] = ORDER_CHOICES.find(([order]) => order === s.settings.order)!;
+      orderBtns.forEach((b, i) => b.classList.toggle('primary', ORDER_CHOICES[i][0] === s.settings.order));
+      summary.textContent = host ? hint : `${label}: ${hint.toLowerCase()}`;
       start.disabled = need > 0 || !online;
       addBot.disabled = seated.length >= MAX_PLAYERS || !online;
       removeBot.disabled = !seated.some((p) => p.bot) || !online;

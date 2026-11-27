@@ -8,6 +8,14 @@ export const CARD_SIZE = 4;
 export { NAME_MAX } from '@tggame/base/shared/text';
 export const GUESS_MAX = 40;
 
+/**
+ * Who passes to whom. `fixed`: seats in the order people joined, books move one seat per turn.
+ * `round`: seats are shuffled for every game. `turn`: that, and books also hop around so you
+ * get pages from a different player each turn.
+ */
+export const ORDERS = ['fixed', 'round', 'turn'] as const;
+export const DEFAULT_ORDER: (typeof ORDERS)[number] = 'round';
+
 /** Drawings live on a fixed 4:3 page in integer page units, whatever the screen size. */
 export { ERASER, ERASER_NIBS, INK, NIBS, PAGE_H, PAGE_W } from '@tggame/base/party/draw/kit';
 

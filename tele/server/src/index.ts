@@ -78,6 +78,9 @@ function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
     case 'start':
       game.start(id);
       break;
+    case 'settings':
+      game.configure(id, msg.order);
+      break;
     case 'pick':
       game.pick(id, msg.index);
       break;

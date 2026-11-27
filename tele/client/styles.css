@@ -876,3 +876,22 @@ body.heckled #screen {
 .heckle-all {
   font-size: 1.15em;
 }
+
+/* ---- lobby: the passing-order choice */
+
+.settings {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 22px;
+}
+.setting {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.order-note {
+  max-width: 34ch;
+}
