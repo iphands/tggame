@@ -68,6 +68,9 @@ function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
   const id = peer.id;
   if (!id) return; // must join first
   switch (msg.type) {
+    case 'rename':
+      game.rename(id, msg.name);
+      break;
     case 'leave':
       game.leave(id, now);
       peer.id = null;

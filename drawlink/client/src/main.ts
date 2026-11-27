@@ -1,3 +1,4 @@
+import { askName } from '@tggame/base/client/rename';
 import '@fontsource/patrick-hand/400.css';
 import '@fontsource/chewy/400.css';
 import { NAME_MAX } from '../../shared/src/constants';
@@ -6,7 +7,7 @@ import type { ServerMessage } from '../../shared/src/protocol';
 import { isMuted, setMuted, sfx, unlockAudio } from './audio';
 import { GameClient, type ConnectionStatus } from './net';
 import { makeScreen, screenKey, type Screen } from './screens/index';
-import { amDrawing, canvasChanged, isHost, isSeated, saved, send, store, wire } from './store';
+import { amDrawing, canvasChanged, isHost, isSeated, me, saved, send, store, wire } from './store';
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -173,6 +174,13 @@ menuBtn.addEventListener('click', (e) => {
   menuEl.hidden = !menuEl.hidden;
 });
 document.addEventListener('click', () => (menuEl.hidden = true));
+$('rename').addEventListener('click', () => {
+  const name = askName(me()?.name ?? saved.name());
+  if (!name) return;
+  saved.setName(name);
+  client?.setName(name);
+  send({ type: 'rename', name });
+});
 $('leave').addEventListener('click', () => {
   const inGame = store.state && store.state.phase !== 'lobby' && isSeated();
   if (inGame && !confirm('Leave the game? You give up your seat and your score.')) return;

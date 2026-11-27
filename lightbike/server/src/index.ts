@@ -72,6 +72,9 @@ function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
     case 'bust':
       game.bust(id);
       break;
+    case 'rename':
+      game.rename(id, msg.name);
+      break;
     case 'leave':
       game.leave(id);
       peer.id = null;

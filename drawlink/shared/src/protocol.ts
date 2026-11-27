@@ -5,6 +5,7 @@ import type { ChatLine, Drawing, StateView, Task } from './types.js';
 export type ClientMessage =
   | { type: 'join'; name?: string; token?: string }
   | { type: 'leave' }
+  | { type: 'rename'; name: string }
   | { type: 'addBot' }
   | { type: 'removeBot' }
   | { type: 'settings'; rounds?: number; hints?: boolean }
@@ -56,6 +57,8 @@ export function isClientMessage(x: unknown): x is ClientMessage {
         (m.name === undefined || typeof m.name === 'string') &&
         (m.token === undefined || (typeof m.token === 'string' && m.token.length <= 64))
       );
+    case 'rename':
+      return typeof m.name === 'string' && m.name.length <= 64;
     case 'settings':
       return (m.rounds === undefined || typeof m.rounds === 'number') && (m.hints === undefined || typeof m.hints === 'boolean');
     case 'ink':

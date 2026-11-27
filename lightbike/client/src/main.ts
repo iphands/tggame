@@ -1,3 +1,4 @@
+import { askName } from '@tggame/base/client/rename';
 import { NAME_MAX } from '../../shared/src/constants';
 import { sanitizeName } from '@tggame/base/shared/text';
 import type { ServerMessage } from '../../shared/src/protocol';
@@ -6,7 +7,7 @@ import { FLOOR, drawBike, drawLine } from './art';
 import { clearLive, live, onArena, onSnap } from './live';
 import { GameClient, type ConnectionStatus } from './net';
 import { makeScreen, screenKey, type Screen } from './screens/index';
-import { isHost, isSeated, saved, send, store, wire } from './store';
+import { isHost, isSeated, me, saved, send, store, wire } from './store';
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -144,6 +145,13 @@ menuBtn.addEventListener('click', (e) => {
   menuEl.hidden = !menuEl.hidden;
 });
 document.addEventListener('click', () => (menuEl.hidden = true));
+$('rename').addEventListener('click', () => {
+  const name = askName(me()?.name ?? saved.name());
+  if (!name) return;
+  saved.setName(name);
+  client?.setName(name);
+  send({ type: 'rename', name });
+});
 $('leave').addEventListener('click', () => {
   const inGame = store.state && store.state.phase !== 'lobby' && isSeated();
   if (inGame && !confirm('Leave the match? Your bike and your line go with you.')) return;

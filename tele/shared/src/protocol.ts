@@ -6,6 +6,7 @@ import type { Order, PageRef, StateView, Task } from './types.js';
 export type ClientMessage =
   | { type: 'join'; name?: string; token?: string }
   | { type: 'leave' }
+  | { type: 'rename'; name: string }
   | { type: 'addBot' }
   | { type: 'removeBot' }
   | { type: 'start' }
@@ -46,6 +47,8 @@ export function isClientMessage(x: unknown): x is ClientMessage {
         (m.name === undefined || typeof m.name === 'string') &&
         (m.token === undefined || (typeof m.token === 'string' && m.token.length <= 64))
       );
+    case 'rename':
+      return typeof m.name === 'string' && m.name.length <= 64;
     case 'settings':
       return (ORDERS as readonly unknown[]).includes(m.order);
     case 'pick':

@@ -6,6 +6,7 @@ import type { Difficulty, FoodInit, FoodMove, Fx, HoleSnap, StateView } from './
 export type ClientMessage =
   | { type: 'join'; name?: string; token?: string }
   | { type: 'leave' }
+  | { type: 'rename'; name: string }
   | { type: 'addBot' }
   | { type: 'removeBot' }
   | { type: 'settings'; difficulty?: Difficulty; finale?: boolean }
@@ -68,6 +69,8 @@ export function isClientMessage(x: unknown): x is ClientMessage {
         (m.name === undefined || typeof m.name === 'string') &&
         (m.token === undefined || (typeof m.token === 'string' && m.token.length <= 64))
       );
+    case 'rename':
+      return typeof m.name === 'string' && m.name.length <= 64;
     case 'settings':
       return (m.difficulty === undefined || (DIFFICULTIES as readonly unknown[]).includes(m.difficulty)) && (m.finale === undefined || typeof m.finale === 'boolean');
     case 'aim':

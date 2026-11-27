@@ -6,7 +6,7 @@ describe('isClientMessage', () => {
   it('accepts every well-formed message', () => {
     const good = [
       { type: 'join' }, { type: 'join', name: 'Ann', token: 'abc' },
-      { type: 'leave' }, { type: 'addBot' }, { type: 'removeBot' },
+      { type: 'leave' }, { type: 'rename', name: 'Mo' }, { type: 'addBot' }, { type: 'removeBot' },
       { type: 'settings' }, { type: 'settings', rounds: 8 },
       { type: 'start' }, { type: 'pass', card: 'QH' }, { type: 'grab' }, { type: 'heckle' },
       { type: 'skip' }, { type: 'again' }, { type: 'abort' },
@@ -15,7 +15,7 @@ describe('isClientMessage', () => {
   });
   it('rejects junk', () => {
     const bad = [
-      null, 7, 'join', [], {}, { type: 7 }, { type: 'nope' },
+      null, 7, 'join', [], {}, { type: 7 }, { type: 'nope' }, { type: 'rename' }, { type: 'rename', name: 5 },
       { type: 'join', name: 7 }, { type: 'join', token: 'x'.repeat(65) },
       { type: 'settings', rounds: '8' },
       { type: 'pass' }, { type: 'pass', card: 7 }, { type: 'pass', card: 'ZZ' }, { type: 'pass', card: 'QHX' },

@@ -5,7 +5,7 @@ import { defaultWsUrl } from '../client/src/net';
 describe('isClientMessage', () => {
   it('accepts every well-formed message', () => {
     const ok: unknown[] = [
-      { type: 'join' }, { type: 'join', name: 'Mo', token: 'abc' }, { type: 'leave' },
+      { type: 'join' }, { type: 'join', name: 'Mo', token: 'abc' }, { type: 'leave' }, { type: 'rename', name: 'Mo' },
       { type: 'addBot' }, { type: 'removeBot' }, { type: 'start' },
       { type: 'pick', index: 2 }, { type: 'write', text: 'my cat Bob' }, { type: 'draw', strokes: [] }, { type: 'guess', text: 'cat' },
       { type: 'skip', playerId: 'p3' }, { type: 'next' }, { type: 'heart', book: 0, page: 4 },

@@ -8,6 +8,7 @@ import type { BikeSnap, Fx, Length, Pace, StateView, TrailInit } from './types.j
 export type ClientMessage =
   | { type: 'join'; name?: string; token?: string }
   | { type: 'leave' }
+  | { type: 'rename'; name: string }
   | { type: 'addBot' }
   | { type: 'removeBot' }
   | { type: 'settings'; pace?: Pace; length?: Length; boost?: boolean; bust?: boolean; slip?: boolean; erase?: boolean }
@@ -63,6 +64,8 @@ export function isClientMessage(x: unknown): x is ClientMessage {
   switch (m.type) {
     case 'join':
       return optional(m.name, 'string') && (m.token === undefined || (typeof m.token === 'string' && m.token.length <= 64));
+    case 'rename':
+      return typeof m.name === 'string' && m.name.length <= 64;
     case 'settings':
       return (
         (m.pace === undefined || (PACES as readonly unknown[]).includes(m.pace)) &&

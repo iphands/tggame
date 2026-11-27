@@ -7,7 +7,7 @@ describe('isClientMessage', () => {
     for (const m of [
       { type: 'join' },
       { type: 'join', name: 'Ada', token: 'abc' },
-      { type: 'leave' },
+      { type: 'leave' }, { type: 'rename', name: 'Mo' },
       { type: 'addBot' },
       { type: 'removeBot' },
       { type: 'settings' },

@@ -1,3 +1,4 @@
+import { askName } from '@tggame/base/client/rename';
 import '@fontsource/patrick-hand/400.css';
 import '@fontsource/chewy/400.css';
 import { NAME_MAX } from '../../shared/src/constants';
@@ -8,7 +9,7 @@ import { drawBlanket, drawFood, drawHole } from './art';
 import { clearLive, onCourse, onSnap } from './live';
 import { GameClient, type ConnectionStatus } from './net';
 import { makeScreen, screenKey, type Screen } from './screens/index';
-import { isHost, isSeated, saved, send, store, wire } from './store';
+import { isHost, isSeated, me, saved, send, store, wire } from './store';
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -141,6 +142,13 @@ menuBtn.addEventListener('click', (e) => {
   menuEl.hidden = !menuEl.hidden;
 });
 document.addEventListener('click', () => (menuEl.hidden = true));
+$('rename').addEventListener('click', () => {
+  const name = askName(me()?.name ?? saved.name());
+  if (!name) return;
+  saved.setName(name);
+  client?.setName(name);
+  send({ type: 'rename', name });
+});
 $('leave').addEventListener('click', () => {
   const inGame = store.state && store.state.phase !== 'lobby' && isSeated();
   if (inGame && !confirm('Leave the picnic? Your hole goes with you.')) return;
