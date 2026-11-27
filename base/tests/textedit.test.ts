@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyTextEdit } from '../client/src/textedit.js';
+import { applyTextEdit } from '../src/client/textedit.js';
 
 const MAX = 16;
 

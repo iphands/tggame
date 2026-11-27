@@ -3,7 +3,7 @@ import { HECKLE_BUTTON_MIN_MS, HECKLE_COOLDOWN_MS, HECKLE_STEP_MS, SHOUT_MS } fr
 import type { PlayerView, ResultView, StateView } from '../../../shared/src/types';
 import { sfx } from '../audio';
 import { cardEl, spoonEl } from '../cards';
-import { h, tilt } from '../dom';
+import { h, tilt } from '@tggame/base/client/dom';
 import { isHost, isSeated, me, nameOf, player, send, serverNow, store } from '../store';
 import { seconds } from './finale';
 import type { Screen } from './index';

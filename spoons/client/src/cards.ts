@@ -1,6 +1,6 @@
 /** Cards and spoons, drawn with elements and SVG: no image files. */
 import type { Card } from '../../shared/src/cards';
-import { h } from './dom';
+import { h } from '@tggame/base/client/dom';
 
 const SUIT: Record<string, string> = { S: '♠', H: '♥', D: '♦', C: '♣' };
 const SUIT_NAME: Record<string, string> = { S: 'spades', H: 'hearts', D: 'diamonds', C: 'clubs' };

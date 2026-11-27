@@ -1,5 +1,5 @@
 /** Eye candy: confetti and toasts. */
-import { reducedMotion } from '@tggame/base/client/dom';
+import { reducedMotion } from './dom.js';
 
 const COLORS = ['#ffd23f', '#ff5d73', '#3ddc97', '#7bdff2', '#cdb4ff', '#ff8c42', '#fffaf0'];
 

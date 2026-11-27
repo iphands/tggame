@@ -1,24 +1,10 @@
 import type { ClientMessage, ServerMessage, SnapshotMessage } from '../../shared/src/protocol';
+import { SocketClient, wsUrl, type ConnectionStatus } from '@tggame/base/client/net';
 
-export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'full';
+export type { ConnectionStatus };
 
-type LocationLike = Pick<Location, 'protocol' | 'hostname' | 'host' | 'port' | 'search' | 'pathname'>;
-
-/**
- * Where the game server lives:
- * - `?ws=ws://host:port` overrides everything
- * - the Vite dev server (port 5174) talks to the game server on :8091
- * - otherwise the page was served by the game server itself → same origin, and the same
- *   directory, so the game also works behind a proxy that mounts it under a path
- */
-export function defaultWsUrl(loc: LocationLike): string {
-  const override = new URLSearchParams(loc.search).get('ws');
-  if (override) return override;
-  const proto = loc.protocol === 'https:' ? 'wss' : 'ws';
-  if (loc.port === '5174') return `${proto}://${loc.hostname}:8091`;
-  const dir = loc.pathname.replace(/[^/]*$/, '');
-  return `${proto}://${loc.host || 'localhost:8091'}${dir === '/' ? '' : dir}`;
-}
+/** The Vite dev server (port 5174) talks to the game server on :8091; see `wsUrl`. */
+export const defaultWsUrl = (loc: Parameters<typeof wsUrl>[0]): string => wsUrl(loc, '5174', 8091);
 
 export type GameClientOptions = {
   name: string;
@@ -28,81 +14,25 @@ export type GameClientOptions = {
   onStatus?: (status: ConnectionStatus) => void;
 };
 
-/** WebSocket wrapper: auto-reconnects with backoff and re-joins under the same name. */
-export class GameClient {
-  private ws: WebSocket | null = null;
-  private readonly url: string;
-  private reconnectAttempt = 0;
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private disposed = false;
+/** This game's socket: auto-reconnects and re-joins under the same name. */
+export class GameClient extends SocketClient<ClientMessage, ServerMessage> {
   private lastInput = '';
   private lastInputAt = 0;
 
-  constructor(private readonly opts: GameClientOptions) {
-    this.url = opts.url ?? defaultWsUrl(window.location);
+  constructor(opts: GameClientOptions) {
+    super({
+      url: opts.url ?? defaultWsUrl(window.location),
+      name: opts.name,
+      onStatus: opts.onStatus,
+      onMessage: (msg) => {
+        if (msg.type === 'snapshot') opts.onSnapshot?.(msg);
+        else if (msg.type === 'welcome') opts.onWelcome?.(msg.selfId);
+      },
+    });
   }
 
-  get connected(): boolean {
-    return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
-  }
-
-  connect(): void {
-    if (this.disposed) return;
-    this.opts.onStatus?.('connecting');
-    let ws: WebSocket;
-    try {
-      ws = new WebSocket(this.url);
-    } catch {
-      this.scheduleReconnect();
-      return;
-    }
-    this.ws = ws;
-    ws.onopen = () => {
-      this.reconnectAttempt = 0;
-      this.lastInput = '';
-      this.opts.onStatus?.('connected');
-      this.send({ type: 'join', name: this.opts.name });
-    };
-    ws.onmessage = (ev) => {
-      let msg: ServerMessage;
-      try {
-        msg = JSON.parse(String(ev.data)) as ServerMessage;
-      } catch {
-        return;
-      }
-      if (msg.type === 'snapshot') this.opts.onSnapshot?.(msg);
-      else if (msg.type === 'welcome') this.opts.onWelcome?.(msg.selfId);
-      else if (msg.type === 'full') {
-        this.opts.onStatus?.('full');
-        this.disposed = true;
-        ws.close();
-      }
-    };
-    ws.onclose = () => {
-      if (this.ws !== ws) return;
-      this.ws = null;
-      if (this.disposed) return;
-      this.opts.onStatus?.('disconnected');
-      this.scheduleReconnect();
-    };
-    ws.onerror = () => {
-      try {
-        ws.close();
-      } catch {
-        /* already closed */
-      }
-    };
-  }
-
-  disconnect(): void {
-    this.disposed = true;
-    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-    this.ws?.close();
-    this.ws = null;
-  }
-
-  send(msg: ClientMessage): void {
-    if (this.connected) this.ws!.send(JSON.stringify(msg));
+  protected override opened(): void {
+    this.lastInput = '';
   }
 
   /**
@@ -116,12 +46,5 @@ export class GameClient {
     this.lastInput = key;
     this.lastInputAt = now;
     this.send({ type: 'input', ...input });
-  }
-
-  private scheduleReconnect(): void {
-    if (this.disposed) return;
-    const delay = Math.min(4000, 300 * Math.pow(2, this.reconnectAttempt));
-    this.reconnectAttempt++;
-    this.reconnectTimer = setTimeout(() => this.connect(), delay);
   }
 }

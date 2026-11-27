@@ -1,6 +1,6 @@
 import { sfx } from '../audio';
-import { h, tilt } from '../dom';
-import { confetti } from '../fx';
+import { h, tilt } from '@tggame/base/client/dom';
+import { confetti } from '@tggame/base/client/fx';
 import { isHost, nameOf, send, store } from '../store';
 import type { Screen } from './index';
 

@@ -1,7 +1,7 @@
 import { MAX_PLAYERS, MIN_PLAYERS, ROUND_OPTIONS } from '../../../shared/src/constants';
 import { sfx } from '../audio';
 import { chatPanel } from '../chat';
-import { h, tilt } from '../dom';
+import { h, tilt } from '@tggame/base/client/dom';
 import { isHost, nameOf, send, store } from '../store';
 import type { Screen } from './index';
 

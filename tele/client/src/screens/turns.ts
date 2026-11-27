@@ -4,11 +4,11 @@ import { hasInk, sanitizeGuess } from '../../../shared/src/drawing';
 import type { Drawing } from '../../../shared/src/types';
 import { sfx } from '../audio';
 import { h, tilt } from '@tggame/base/client/dom';
-import { toast } from '../fx';
+import { toast } from '@tggame/base/client/fx';
 import { DrawPad } from '../pad';
 import { drawingCanvas, replay } from '../render';
 import { isHost, isSeated, refresh, saved, send, store } from '../store';
-import { applyTextEdit } from '../textedit';
+import { applyTextEdit } from '@tggame/base/client/textedit';
 import type { Screen } from './index';
 
 /**

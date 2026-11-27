@@ -1,5 +1,5 @@
 /** The table: who is here, who holds the pen, the scores, and the whisper / vote-out buttons. */
-import { h } from './dom';
+import { h } from '@tggame/base/client/dom';
 import { isSeated, refresh, send, store } from './store';
 
 export function playersPanel(): { el: HTMLElement; update(): void } {

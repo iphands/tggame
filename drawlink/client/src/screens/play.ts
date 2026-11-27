@@ -3,8 +3,8 @@ import { ERASER, HINT_BLANK, INK, ROUND_MS } from '../../../shared/src/constants
 import { awardAt } from '../../../shared/src/round';
 import { sfx } from '../audio';
 import { chatPanel } from '../chat';
-import { h, tilt } from '../dom';
-import { toast } from '../fx';
+import { h, tilt } from '@tggame/base/client/dom';
+import { toast } from '@tggame/base/client/fx';
 import { DrawPad } from '../pad';
 import { playersPanel } from '../players';
 import { amDrawing, nameOf, onCanvas, send, serverNow, store } from '../store';

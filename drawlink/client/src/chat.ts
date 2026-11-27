@@ -2,9 +2,9 @@
 import { CHAT_MAX } from '../../shared/src/constants';
 import { sanitizeChat } from '../../shared/src/drawing';
 import type { ChatLine } from '../../shared/src/types';
-import { h } from './dom';
+import { h } from '@tggame/base/client/dom';
 import { amDrawing, isSeated, player, refresh, send, store } from './store';
-import { applyTextEdit } from './textedit';
+import { applyTextEdit } from '@tggame/base/client/textedit';
 
 /** Lines kept in the DOM. */
 const SHOWN = 150;

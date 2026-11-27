@@ -4,7 +4,7 @@ import { LEVELS, levelAt } from '../../shared/src/levels';
 import { store } from './store';
 import { isMuted, play, setMuted, unlockAudio } from './audio';
 import { nextSetting } from './quality';
-import { applyTextEdit } from './textedit';
+import { applyTextEdit } from '@tggame/base/client/textedit';
 import { canFullscreen, enterFullscreen, isFullscreen, isIOS, isStandalone, toggleFullscreen } from './fullscreen';
 
 export type Screen = 'join' | 'lobby' | 'game';
