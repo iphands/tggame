@@ -5,6 +5,7 @@
  * Time only advances through step(); the sim runs in fixed 60 Hz ticks so
  * it's deterministic for a given seed and input sequence.
  */
+import { randomBytes } from 'node:crypto';
 import { ARENA, BOT_NAMES, COLORS, COMBAT, ITEMS, MATCH, PHYS, TICK_MS } from '../../../shared/src/constants.js';
 import { LEVELS, levelAt } from '../../../shared/src/levels.js';
 import type { SelfState, SnapshotBody, Stamp } from '../../../shared/src/protocol.js';
@@ -12,7 +13,7 @@ import type { HitHow, Phase, ResultRow } from '../../../shared/src/types.js';
 import { makeBrain, thinkBot } from './bots.js';
 import { fire, pressFire, releaseFire, updateCharges, updateProjectiles, updateStomps } from './combat.js';
 import { scheduleFirstCrate, updateCrates } from './items.js';
-import { createPlayer, resetBody, resetForRound, type Input, type Player, type World } from '../../../shared/src/sim/model.js';
+import { createPlayer, resetBody, resetForRound, type Input, type Player, type World, NO_INPUT } from '../../../shared/src/sim/model.js';
 import { applyInput, separateBodies, stepPlayer, tryDrop } from '../../../shared/src/sim/physics.js';
 import { buildPlats, updatePlats } from '../../../shared/src/sim/platforms.js';
 import { makeRng } from '@tggame/base/shared/rng';
@@ -22,6 +23,8 @@ export type GameOptions = { seed?: number };
 
 const FEED_MAX = 6;
 
+/** How long a fighter is kept for a player whose connection dropped mid-round. */
+const SEAT_HOLD_MS = 20_000;
 /** A stamped command may ask for a tick at most this far ahead (a third of a second). */
 const MAX_LEAD_TICKS = 20;
 /** Stamped commands waiting for their tick, per player; beyond this the line is flooding. */
@@ -35,6 +38,10 @@ type Line = { queue: Queued[]; ack: number; slack: number | null };
 
 export class Game {
   private readonly lines = new Map<string, Line>();
+  /** Each human's seat token, by player id: a dropped player gets their fighter back with it. */
+  private readonly tokens = new Map<string, string>();
+  /** Humans whose socket dropped mid-round, and the sim ms their seat is given up at. */
+  private readonly gone = new Map<string, number>();
 
   readonly w: World;
   tick = 0;
@@ -96,14 +103,44 @@ export class Game {
   // ------------------------------------------------------------ roster
 
   /** Add a human. Returns null when the arena is full of humans. */
-  join(name?: string): { id: string; name: string; color: string } | null {
+  join(name?: string, token?: string): { id: string; name: string; color: string; token: string; resumed: boolean } | null {
+    if (token) {
+      // back after a dropped connection: the same fighter, as the round left it
+      for (const [id, held] of this.tokens) {
+        const p = this.w.players.get(id);
+        if (held !== token || !p) continue;
+        this.gone.delete(id);
+        return { id, name: p.name, color: p.color, token, resumed: true };
+      }
+    }
     if (this.w.players.size >= MATCH.capacity) {
       // humans take priority over bots
       if (!this.removeBot()) return null;
     }
     const p = this.addPlayer(uniqueName(this.w.players, sanitizeName(name) ?? `Player ${this.idSeq}`), false);
     this.endPracticeIfJoined();
-    return { id: p.id, name: p.name, color: p.color };
+    const seat = randomBytes(16).toString('hex');
+    this.tokens.set(p.id, seat);
+    return { id: p.id, name: p.name, color: p.color, token: seat, resumed: false };
+  }
+
+  /**
+   * The socket closed. Mid-round the fighter is kept, standing idle, for `SEAT_HOLD_MS` in case the
+   * player comes back (a dropped connection must not cost the round); otherwise they simply leave.
+   */
+  disconnect(id: string): void {
+    const p = this.w.players.get(id);
+    if (!p) return;
+    if (p.bot || this.w.phase === 'lobby' || p.life === 'waiting') return this.leave(id);
+    this.gone.set(id, this.w.t + SEAT_HOLD_MS);
+    applyInput(p, NO_INPUT);
+    const line = this.lines.get(id);
+    if (line) line.queue.length = 0;
+  }
+
+  /** Give up the seats whose players did not come back in time (or at all, once the round is over). */
+  private releaseGone(): void {
+    for (const [id, at] of this.gone) if (this.w.t >= at || this.w.phase === 'lobby') this.leave(id);
   }
 
   addBot(): Player | null {
@@ -172,9 +209,14 @@ export class Game {
     }
     this.w.players.delete(id);
     this.lines.delete(id);
+    this.tokens.delete(id);
+    this.gone.delete(id);
     if (this.humanCount() === 0) {
       // nobody left to play with: clear the bots and idle in the lobby
       for (const q of [...this.w.players.values()]) this.w.players.delete(q.id);
+      this.lines.clear();
+      this.tokens.clear();
+      this.gone.clear();
       this.resetToLobby();
       this.fallbackSince = null;
       return;
@@ -317,6 +359,7 @@ export class Game {
     w.t += TICK_MS;
     this.tick++;
     this.applyDue();
+    if (this.gone.size) this.releaseGone();
     switch (w.phase) {
       case 'lobby':
         this.tickLobby();

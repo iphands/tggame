@@ -83,6 +83,12 @@ tests/*.test.ts          levels, interp, protocol, controls
     correction, which only the drawing eases across. Never smooth the sim.
   - `tests/predict.test.ts` runs a real `Game` a line away from a `Predictor`
     and demands they agree to a hundredth of a pixel. It must stay green.
+- **A dropped connection keeps its seat.** `welcome` carries a seat token; a
+  socket that closes mid-round calls `Game.disconnect`, which keeps the fighter
+  standing idle for `SEAT_HOLD_MS`, and a `join` with the token gets the same
+  one back (`tests/sim/seat.test.ts`). `leave` is the player choosing to go.
+  The client keeps the token per tab (`sessionStorage`), so a second tab is a
+  second player.
 - **One global `Game` per server process.** No rooms. Capacity is 16 (humans
   bump bots when full).
 - **Phases:** `lobby → starting → playing → ended → lobby`. Players are placed

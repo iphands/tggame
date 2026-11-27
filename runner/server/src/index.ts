@@ -43,15 +43,22 @@ function send(ws: WebSocket, msg: ServerMessage): void {
 
 function handle(ws: WebSocket, peer: { id: string | null }, msg: ClientMessage): void {
   if (msg.type === 'join') {
-    if (peer.id) game.leave(peer.id); // one identity per socket
-    const joined = game.join(msg.name);
+    const joined = game.join(msg.name, msg.token);
+    if (peer.id && peer.id !== joined?.id) game.leave(peer.id); // one identity per socket
     if (!joined) {
       peer.id = null;
       send(ws, { type: 'full', capacity: MATCH.capacity });
       return;
     }
+    // a seat reclaimed from another socket (a reconnect racing the old one's close): that one lets go
+    for (const [otherWs, other] of peers) {
+      if (other !== peer && other.id === joined.id) {
+        other.id = null;
+        otherWs.close(4000, 'replaced');
+      }
+    }
     peer.id = joined.id;
-    send(ws, { type: 'welcome', selfId: joined.id, capacity: MATCH.capacity, serverTimeMs: Date.now() });
+    send(ws, { type: 'welcome', selfId: joined.id, token: joined.token, capacity: MATCH.capacity, serverTimeMs: Date.now() });
     send(ws, { type: 'records', records: game.records });
     return;
   }
@@ -111,7 +118,7 @@ wss.on('connection', (ws) => {
   });
 
   const drop = () => {
-    if (peer.id) game.leave(peer.id);
+    if (peer.id) game.disconnect(peer.id);
     peer.id = null;
     peers.delete(ws);
   };

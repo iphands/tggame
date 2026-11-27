@@ -62,7 +62,23 @@ function join(name: string): void {
   store.snapshot = null;
   const client = new GameClient({
     name,
-    onWelcome: (id) => (store.selfId = id),
+    // the seat token is kept for this tab only: a reload or a reconnect is the same runner, and a
+    // second tab is a second player
+    token: () => {
+      try {
+        return sessionStorage.getItem('lsr-seat') ?? undefined;
+      } catch {
+        return undefined;
+      }
+    },
+    onWelcome: (id, token) => {
+      store.selfId = id;
+      try {
+        sessionStorage.setItem('lsr-seat', token);
+      } catch {
+        /* private mode: the seat lasts as long as the page */
+      }
+    },
     onOpen: resetPrediction,
     onSnapshot,
     onRenamed: (id, newName) => {

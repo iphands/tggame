@@ -10,7 +10,9 @@ export const defaultWsUrl = (loc: Parameters<typeof wsUrl>[0]): string => wsUrl(
 export type GameClientOptions = {
   name: string;
   url?: string;
-  onWelcome?: (selfId: string) => void;
+  onWelcome?: (selfId: string, token: string) => void;
+  /** The seat token of an earlier welcome, if any: a reconnect gets the same runner back with it. */
+  token?: () => string | undefined;
   onSnapshot?: (snap: SnapshotMessage) => void;
   onStatus?: (status: ConnectionStatus) => void;
   onRecords?: (records: Records) => void;
@@ -30,10 +32,11 @@ export class GameClient extends SocketClient<ClientMessage, ServerMessage> {
     super({
       url: opts.url ?? defaultWsUrl(window.location),
       name: opts.name,
+      token: opts.token,
       onStatus: opts.onStatus,
       onMessage: (msg) => {
         if (msg.type === 'snapshot') opts.onSnapshot?.(msg);
-        else if (msg.type === 'welcome') opts.onWelcome?.(msg.selfId);
+        else if (msg.type === 'welcome') opts.onWelcome?.(msg.selfId, msg.token);
         else if (msg.type === 'records') opts.onRecords?.(msg.records);
         else if (msg.type === 'renamed') opts.onRenamed?.(msg.id, msg.name);
       },
