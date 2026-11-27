@@ -72,7 +72,7 @@ export function lobbyScreen(): Screen {
       if (s.settings.map !== shownMap) {
         shownMap = s.settings.map;
         const map = MAPS[shownMap];
-        mapName.textContent = map ? map.name : 'Any map, by lot';
+        mapName.textContent = map ? map.name : 'Random map';
         const m = mapPic.getContext('2d')!;
         m.clearRect(0, 0, mapPic.width, mapPic.height);
         if (map) m.drawImage(mapPicture(map, 6), 0, 0);

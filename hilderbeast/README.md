@@ -71,8 +71,8 @@ clocks, cooldowns and traps keep their own time.
 ## Maps and traps
 
 Eight maps: the Old House, the Barn, the Wine Cellars, the Hedge Maze, the Attic, the Boathouse,
-the Fairground and the Old Hotel. The host picks one in the lobby, or leaves it on "Any map, by
-lot", which never plays the same map twice running.
+the Fairground and the Old Hotel. The host picks one in the lobby, or leaves it on "Random map",
+which never plays the same map twice running.
 
 Every map has traps. They only ever trouble Cousins: Beasts and ghosts walk straight over them.
 
