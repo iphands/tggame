@@ -11,7 +11,8 @@
     "drawlink",
     "spoons",
     "slurp",
-    "lightbike"
+    "lightbike",
+    "hilderbeast"
   ],
   "scripts": {
     "build": "npm run build -w @tggame/base && npm run build --workspaces --if-present",

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+    <meta name="theme-color" content="#1d1a2b" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Hilder Beast" />
+    <title>Hilder Beast</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-phase="join">
+    <!-- ---- join -->
+    <main id="join">
+      <h1 class="logo" aria-label="Hilder Beast">
+        <span class="logo-a">Hilder</span> <span class="logo-b">Beast</span>
+      </h1>
+      <p class="tagline">Run, Cousins. It only takes one.</p>
+
+      <div id="demo" class="demo" aria-hidden="true"></div>
+
+      <form id="join-form" class="sheet spiral join-card" autocomplete="off">
+        <label for="name">What do they call you?</label>
+        <input id="name" type="text" placeholder="Your name" autocapitalize="words" spellcheck="false" enterkeyhint="go" />
+        <button class="btn primary big" type="submit">Come in</button>
+        <p id="join-error" class="error" role="alert"></p>
+      </form>
+      <p class="fineprint">2 to 10 players · one screen each · get caught and you join the Beasts</p>
+    </main>
+
+    <div id="connecting" hidden>
+      <div class="pencil-spin">●</div>
+      <p>Finding the house…</p>
+    </div>
+
+    <!-- ---- game shell -->
+    <div id="game" hidden>
+      <header id="top">
+        <span class="logo mini" aria-hidden="true"><span class="logo-a">Hilder</span> <span class="logo-b">Beast</span></span>
+        <span id="progress"></span>
+        <span class="spacer"></span>
+        <span id="conn" class="conn" hidden></span>
+        <button id="mute" class="icon-btn" type="button" aria-label="Sound"></button>
+        <button id="menu" class="icon-btn" type="button" aria-label="Menu">☰</button>
+        <div id="menu-pop" hidden>
+          <button id="end-game" type="button">End game for everyone</button>
+          <button id="rename" type="button">Change name</button>
+          <button id="leave" type="button">Leave</button>
+        </div>
+      </header>
+      <div id="screen"></div>
+    </div>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
