@@ -337,26 +337,46 @@ export function drawPill(c: Ctx, x: number, y: number, t: number, there: boolean
   c.restore();
 }
 
-/** One end of a Beast door: a dark swirl in the floor. Brighter for a moment when a Beast comes through. */
-export function drawPortal(c: Ctx, x: number, y: number, t: number, flare: number): void {
+/** A pair of Beast doors shares a colour and a number: red 1, blue 2, green 3. Go in one, come out of its twin. */
+export const PORTAL_COLORS = [
+  { deep: '#8f1f2d', bright: '#ff5d73' },
+  { deep: '#1f4f9f', bright: '#5aa9ff' },
+  { deep: '#1f7a3a', bright: '#4fe07f' },
+];
+
+/**
+ * One end of a Beast door: a swirl in the floor, in its pair's colour and with its pair's
+ * number (so the pairs can be told apart without the colours). Brighter for a moment when a
+ * Beast comes through. `pair` is 0, 1 or 2.
+ */
+export function drawPortal(c: Ctx, x: number, y: number, t: number, flare: number, pair: number): void {
+  const look = PORTAL_COLORS[pair % PORTAL_COLORS.length];
   c.save();
   c.translate(x, y);
-  const g = c.createRadialGradient(0, 0, 2, 0, 0, 20);
+  const g = c.createRadialGradient(0, 0, 2, 0, 0, 22);
   g.addColorStop(0, flare > 0 ? '#ffffff' : '#0c0a14');
-  g.addColorStop(0.6, '#5b3f8f');
-  g.addColorStop(1, 'rgba(91,63,143,0)');
+  g.addColorStop(0.6, look.deep);
+  g.addColorStop(1, 'rgba(12,10,20,0)');
   c.fillStyle = g;
   c.beginPath();
-  c.arc(0, 0, 20 + flare * 14, 0, Math.PI * 2);
+  c.arc(0, 0, 22 + flare * 14, 0, Math.PI * 2);
   c.fill();
-  c.strokeStyle = 'rgba(179,136,255,0.8)';
-  c.lineWidth = 2;
+  c.strokeStyle = look.bright;
+  c.lineWidth = 2.5;
   for (let i = 0; i < 3; i++) {
     const a = t / 500 + (i * Math.PI * 2) / 3;
     c.beginPath();
-    c.arc(0, 0, 9 + i * 3, a, a + 1.8);
+    c.arc(0, 0, 10 + i * 3.5, a, a + 1.8);
     c.stroke();
   }
+  c.font = 'bold 13px sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.lineWidth = 3;
+  c.strokeStyle = INK;
+  c.strokeText(String(pair + 1), 0, 1);
+  c.fillStyle = '#fff';
+  c.fillText(String(pair + 1), 0, 1);
   c.restore();
 }
 

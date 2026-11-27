@@ -28,7 +28,8 @@ Phones on the same Wi-Fi join at `http://<your-ip>:5180`.
   it has two boosts: **Boost** (Space), a big burst on a 9-second cooldown, and **Dash** (E), a
   quick small one every 3.5 seconds. After a catch its touch is harmless for a moment, so a
   huddle is not swept in one step.
-- **Beast doors.** The swirls in the floor are paired: a Beast that walks onto one comes out of
+- **Beast doors.** The swirls in the floor are paired, and each pair has its own colour and
+  number (red 1, blue 2, green 3), so a Beast knows where a door comes out: a Beast that walks onto one comes out of
   the other a moment later. Cousins cannot use them, but can see them flare when a Beast does.
 - **Caught.** Every catch stops the round for everybody for 2.5 seconds, clock and all, while it
   is shown: Hilder bites, the Cousin turns, and two of her sayings flash across the screen. When

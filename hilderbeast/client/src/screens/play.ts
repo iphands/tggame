@@ -31,7 +31,7 @@ import { T_GOO, kindAt, roomAt } from '../../../shared/src/map';
 import { MAPS } from '../../../shared/src/maps';
 import { moveBody, rayDist, sees, speedOf } from '../../../shared/src/sim';
 import type { Fx } from '../../../shared/src/types';
-import { INK, NIGHT, drawBody, drawExit, drawHouse, drawPill, drawPortal, drawTask, mapPicture } from '../art';
+import { INK, NIGHT, PORTAL_COLORS, drawBody, drawExit, drawHouse, drawPill, drawPortal, drawTask, mapPicture } from '../art';
 import { buzz, sfx } from '../audio';
 import { endCutscene, playCutscene } from '../cutscene';
 import { createInput } from '../input';
@@ -389,7 +389,7 @@ export function playScreen(): Screen {
 
     MAP.portals.forEach((p, i) => {
       if (flares[i] > 0) flares[i] = Math.max(0, flares[i] - dt * 1.6);
-      drawPortal(ctx, p.x, p.y, now, flares[i]);
+      drawPortal(ctx, p.x, p.y, now, flares[i], i >> 1);
     });
     if (escape() && s.round) {
       const open = exitsOpen();
@@ -511,7 +511,7 @@ export function playScreen(): Screen {
       m.fill();
     };
     MAP.pills.forEach((p, i) => (live.pills >> i) & 1 && dot(p.x, p.y, 1.5, '#ffd23f'));
-    for (const p of MAP.portals) dot(p.x, p.y, 2, '#b388ff');
+    MAP.portals.forEach((p, i) => dot(p.x, p.y, 2.5, PORTAL_COLORS[(i >> 1) % PORTAL_COLORS.length].bright));
     if (escape() && s.round) {
       s.round.tasks.forEach((spot, i) => {
         const t = MAP.tasks[spot];
