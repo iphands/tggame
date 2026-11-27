@@ -75,7 +75,11 @@ export function lobbyScreen(): Screen {
         mapName.textContent = map ? map.name : 'Random map';
         const m = mapPic.getContext('2d')!;
         m.clearRect(0, 0, mapPic.width, mapPic.height);
-        if (map) m.drawImage(mapPicture(map, 6), 0, 0);
+        if (map) {
+          // as big as fits, in the middle
+          const px = Math.floor(Math.min(mapPic.width / map.cols, mapPic.height / map.lines));
+          m.drawImage(mapPicture(map, px), Math.floor((mapPic.width - map.cols * px) / 2), Math.floor((mapPic.height - map.lines * px) / 2));
+        }
         else {
           m.fillStyle = 'rgba(31,26,46,0.75)';
           m.fillRect(0, 0, mapPic.width, mapPic.height);

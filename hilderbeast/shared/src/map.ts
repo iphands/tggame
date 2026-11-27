@@ -88,7 +88,12 @@ function build(): string[] {
 
 export type Spot = { x: number; y: number };
 /** A room, in squares: `x0..x1` and `y0..y1` inclusive. */
-export type Room = { name: string; x0: number; y0: number; x1: number; y1: number };
+/**
+ * A room, in squares: `x0..x1` and `y0..y1` inclusive are the box it fits in (it need not fill
+ * it). `lx`, `ly` is a square inside it, where its name is written; `ways` is how many passages
+ * lead out of it, when the map was laid out from a plan.
+ */
+export type Room = { name: string; x0: number; y0: number; x1: number; y1: number; lx?: number; ly?: number; ways?: number };
 
 /** What a square is. */
 export const T_FLOOR = 0;
@@ -101,7 +106,8 @@ export const T_SPIKE = 3;
 export const T_CREAK = 4;
 
 /** The colours a map is drawn in. */
-export type Look = { floors: string[]; wall: string; wallTop: string };
+/** `hall`: the floor of the passages between rooms. */
+export type Look = { floors: string[]; wall: string; wallTop: string; hall?: string };
 
 export type GameMap = {
   name: string;
@@ -130,6 +136,8 @@ export type GameMap = {
   tasks: Spot[];
   exits: Spot[];
   rooms: Room[];
+  /** Which room each square is in (an index into `rooms`), row by row; -1 for passages and walls. */
+  zone: Int16Array;
   look: Look;
 };
 
@@ -141,7 +149,7 @@ export const OLD_HOUSE_LOOK: Look = {
 
 const centre = (c: number, r: number): Spot => ({ x: (c + 0.5) * TILE, y: (r + 0.5) * TILE });
 
-export function parseMap(rows: string[], meta: { name?: string; rooms?: Room[]; look?: Look } = {}): GameMap {
+export function parseMap(rows: string[], meta: { name?: string; rooms?: Room[]; look?: Look; zone?: Int16Array } = {}): GameMap {
   const cols = rows[0].length;
   const lines = rows.length;
   const solid = new Uint8Array(cols * lines);
@@ -176,23 +184,37 @@ export function parseMap(rows: string[], meta: { name?: string; rooms?: Room[]; 
   // a wall square is a post in its middle, an arm to each neighbouring wall square, and a
   // filled corner wherever it is part of a solid block of four
   const isWall = (c: number, r: number): boolean => c >= 0 && r >= 0 && c < cols && r < lines && solid[r * cols + c] === 1;
+  // a wall square with no floor anywhere round it is outside the house: nothing, not even a bar
+  // (off the map counts as wall: the map's own edge is no reason to draw one)
+  const outside = (c: number, r: number): boolean => {
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        const x = c + dc;
+        const y = r + dr;
+        if (x >= 0 && y >= 0 && x < cols && y < lines && !isWall(x, y)) return false;
+      }
+    }
+    return true;
+  };
+  /** A wall square on the edge of the floor somewhere: the only kind that is drawn and bumped into. */
+  const edge = (c: number, r: number): boolean => isWall(c, r) && !outside(c, r);
   const half = WALL_T / 2;
   const walls: number[][][] = [];
   for (let r = 0; r < lines; r++) {
     for (let c = 0; c < cols; c++) {
       const out: number[][] = [];
       walls.push(out);
-      if (!isWall(c, r)) continue;
+      if (!edge(c, r)) continue;
       const cx = (c + 0.5) * TILE;
       const cy = (r + 0.5) * TILE;
       out.push([cx - half, cy - half, cx + half, cy + half]);
-      if (isWall(c + 1, r)) out.push([cx, cy - half, (c + 1) * TILE, cy + half]);
-      if (isWall(c - 1, r)) out.push([c * TILE, cy - half, cx, cy + half]);
-      if (isWall(c, r + 1)) out.push([cx - half, cy, cx + half, (r + 1) * TILE]);
-      if (isWall(c, r - 1)) out.push([cx - half, r * TILE, cx + half, cy]);
+      if (edge(c + 1, r)) out.push([cx, cy - half, (c + 1) * TILE, cy + half]);
+      if (edge(c - 1, r)) out.push([c * TILE, cy - half, cx, cy + half]);
+      if (edge(c, r + 1)) out.push([cx - half, cy, cx + half, (r + 1) * TILE]);
+      if (edge(c, r - 1)) out.push([cx - half, r * TILE, cx + half, cy]);
       for (const dc of [-1, 1]) {
         for (const dr of [-1, 1]) {
-          if (!isWall(c + dc, r) || !isWall(c, r + dr) || !isWall(c + dc, r + dr)) continue;
+          if (!edge(c + dc, r) || !edge(c, r + dr) || !edge(c + dc, r + dr)) continue;
           out.push([dc < 0 ? c * TILE : cx, dr < 0 ? r * TILE : cy, dc < 0 ? cx : (c + 1) * TILE, dr < 0 ? cy : (r + 1) * TILE]);
         }
       }
@@ -215,6 +237,7 @@ export function parseMap(rows: string[], meta: { name?: string; rooms?: Room[]; 
     tasks,
     exits,
     rooms: meta.rooms ?? [],
+    zone: meta.zone ?? zoneOf(meta.rooms ?? [], cols, lines, solid),
     look: meta.look ?? OLD_HOUSE_LOOK,
   };
 }
@@ -265,10 +288,29 @@ export function spikesAt(timeMs: number, c: number, r: number): number {
   return t >= SPIKE_UP_AT_MS ? SPIKES_UP : t >= SPIKE_WARN_AT_MS ? SPIKES_WARN : SPIKES_DOWN;
 }
 
+/** Which room each floor square is in, for a map whose rooms are plain boxes. */
+function zoneOf(rooms: Room[], cols: number, lines: number, solid: Uint8Array): Int16Array {
+  const zone = new Int16Array(cols * lines).fill(-1);
+  rooms.forEach((room, i) => {
+    for (let r = room.y0; r <= room.y1; r++) for (let c = room.x0; c <= room.x1; c++) if (!solid[r * cols + c]) zone[r * cols + c] = i;
+  });
+  return zone;
+}
+
+/** Is the square at column `c`, row `r` outside the house: wall with no floor anywhere round it? */
+export function outsideAt(map: GameMap, c: number, r: number): boolean {
+  for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if (!wallAt(map, c + dc, r + dr)) return false;
+  return true;
+}
+
 /** The room a point is in, or the nearest one when it stands in a doorway. */
 export function roomAt(map: GameMap, x: number, y: number): Room {
   const c = x / TILE;
   const r = y / TILE;
+  const ci = Math.floor(c);
+  const ri = Math.floor(r);
+  const z = ci >= 0 && ri >= 0 && ci < map.cols && ri < map.lines ? map.zone[ri * map.cols + ci] : -1;
+  if (z >= 0) return map.rooms[z];
   let best = map.rooms[0];
   let bestD = Infinity;
   for (const room of map.rooms) {

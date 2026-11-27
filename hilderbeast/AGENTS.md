@@ -8,8 +8,8 @@ loop come from `slurp/`. Shared code is imported from `@tggame/base`. Read `READ
 | Path | What |
 |---|---|
 | `shared/src/constants.ts` | every tunable number: speeds, boosts, the dash, catching, Beast doors, clocks, chores |
-| `shared/src/map.ts` | what a map is; the Old House as rows of text; `wallAt`, `kindAt`, `roomAt`, `spikesAt` |
-| `shared/src/mapgen.ts`, `maps.ts` | the other seven maps, laid out from plans by a seeded generator; `MAPS` |
+| `shared/src/map.ts` | what a map is; the hand-laid test house; `wallAt`, `kindAt`, `roomAt`, `spikesAt`, `outsideAt` |
+| `shared/src/mapgen.ts`, `maps.ts` | the eight maps, laid out from plans by a seeded generator: odd-shaped rooms joined by passages; `MAPS` |
 | `shared/src/sim.ts` | rules both sides run: `moveBody`, `speedOf`, `rayDist`, `sees` |
 | `shared/src/protocol.ts`, `types.ts` | messages and views |
 | `server/src/world.ts` | one round: bodies, boosts, pills, catches by touch, Beast doors, chores, exits |
@@ -55,6 +55,12 @@ loop come from `slurp/`. Shared code is imported from `@tggame/base`. Read `READ
 - **Walls are thinner than their squares.** A `#` square is a bar `WALL_T` thick joined to its
   wall neighbours (a block of four is filled), listed in `GameMap.walls`. Collision (`pushOut`),
   sight (`rayDist`) and drawing all go by those pieces; only the bots' paths go by squares.
+- **Outside the house is nothing.** A wall square with no floor anywhere round it has no bars, is
+  not drawn, and lights nothing on the minimap. `GameMap.zone` says which room each floor square
+  is in (-1 for passages); floors are drawn and named by it.
+- **Tests play in the hand-laid house** (`MAP` in `maps.ts`, not one of `MAPS`), where they know
+  their way about: `helpers.table` gives `Game` that house alone. Bot tests and `maps.test.ts`
+  go through the real `MAPS`.
 - **Maps are code, not messages.** Both sides import `MAPS`; a round names its map by number and
   only what changes (pills, chore progress) travels. `mapgen.ts` must stay a pure function of the
   plan and its seed (its own RNG, integer maths only): change a plan or the generator and every

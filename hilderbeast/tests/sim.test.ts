@@ -103,7 +103,8 @@ describe('seeing', () => {
     // with the bar as thick as a body is wide, a body's middle reaches the edge of the wall's square and no further
     const p = { x: 4 * TILE, y: 2.5 * TILE };
     moveBody(p, 100, 0, YARD);
-    expect(p.x).toBeCloseTo(5 * TILE);
+    expect(p.x).toBeCloseTo(FACE - BODY_R);
+    expect(p.x).toBeGreaterThan(5 * TILE);
     expect(sees(YARD, p.x, p.y, 1.5 * TILE, 2.5 * TILE)).toBe(true);
     expect(sees(YARD, p.x, p.y, 8.5 * TILE, 2.5 * TILE)).toBe(false);
     // the wall ends half a square sooner than its squares do

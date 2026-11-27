@@ -80,6 +80,11 @@ Eight maps: the Old House, the Barn, the Wine Cellars, the Hedge Maze, the Attic
 the Fairground and the Old Hotel. The host picks one in the lobby, or leaves it on "Random map",
 which never plays the same map twice running.
 
+No map is a box. Each is a sprawl of rooms of all shapes (L-shapes, crosses, rounded halls,
+rooms with corners cut away) with dark gaps between them, joined by narrow hallways and wide
+breezeways. Every room has at least two ways out, and there are loops to run round. Walls are
+thin, and the furniture is thin too: posts, short bars and L-shaped corners to dodge round.
+
 Every map has traps. They only ever trouble Cousins: Beasts and ghosts walk straight over them.
 
 - **Goo** (green pools) halves a Cousin's speed while they wade through it.

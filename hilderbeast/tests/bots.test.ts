@@ -34,8 +34,8 @@ describe('bot rounds', () => {
     expect(caught).toBeGreaterThan(5);
   });
   it('can finish the chores and get out', { timeout: 120_000 }, () => {
-    // a full house: with one exit and one Beast, a handful of bots seldom make it, a crowd does
-    const wins = [1, 2, 3, 4].map((seed) => botRound('escape', 8, seed)).filter((r) => r.result.why === 'escaped');
+    // bots are poor at hiding and seldom make it, so give a crowd of them a go on every map
+    const wins = MAPS.map((_, i) => botRound('escape', 12, 10 + i, i)).filter((r) => r.result.why === 'escaped');
     expect(wins.length).toBeGreaterThan(0);
   });
   it('end with a full house of 24', { timeout: 240_000 }, () => {

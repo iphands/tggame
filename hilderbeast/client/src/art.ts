@@ -16,35 +16,64 @@ export function drawHouse(c: Ctx, map: GameMap, x0: number, y0: number, x1: numb
   const look = map.look;
   c.fillStyle = INK;
   c.fillRect(0, 0, map.w, map.h);
-  map.rooms.forEach((room, i) => {
-    const rx = (room.x0 - 0.5) * TILE;
-    const ry = (room.y0 - 0.5) * TILE;
-    const rw = (room.x1 - room.x0 + 2) * TILE;
-    const rh = (room.y1 - room.y0 + 2) * TILE;
-    if (rx > x1 || ry > y1 || rx + rw < x0 || ry + rh < y0) return;
-    c.fillStyle = look.floors[i % look.floors.length];
-    c.fillRect(rx, ry, rw, rh);
-    // floorboards
-    c.strokeStyle = 'rgba(0,0,0,0.16)';
-    c.lineWidth = 1.5;
-    c.beginPath();
-    for (let y = ry + TILE; y < ry + rh; y += TILE) {
-      c.moveTo(rx, y);
-      c.lineTo(rx + rw, y);
-    }
-    c.stroke();
-    // a name only where there is room to read it
-    if (room.x1 - room.x0 < 7) return;
-    c.fillStyle = 'rgba(255,255,255,0.1)';
-    c.font = `${TILE * 1.1}px Chewy, sans-serif`;
-    c.textAlign = 'center';
-    c.textBaseline = 'middle';
-    c.fillText(room.name, rx + rw / 2, ry + rh / 2);
-  });
   const c0 = Math.max(0, Math.floor(x0 / TILE));
   const c1 = Math.min(map.cols - 1, Math.floor(x1 / TILE));
   const r0 = Math.max(0, Math.floor(y0 / TILE));
   const r1 = Math.min(map.lines - 1, Math.floor(y1 / TILE));
+  const hall = look.hall ?? look.floors[0];
+  /** The floor colour of a square that is floor, or null. */
+  const floorOf = (col: number, r: number): string | null => {
+    if (col < 0 || r < 0 || col >= map.cols || r >= map.lines || map.kind[r * map.cols + col] === T_WALL) return null;
+    const z = map.zone[r * map.cols + col];
+    return z >= 0 ? look.floors[z % look.floors.length] : hall;
+  };
+  // the floor, a square at a time. A wall square is floor too, all but its thin bar: each quarter
+  // of it takes the colour of the floor beside that quarter, so the change of colour is at the wall.
+  const half = TILE / 2;
+  for (let r = r0; r <= r1; r++) {
+    for (let col = c0; col <= c1; col++) {
+      const own = floorOf(col, r);
+      if (own) {
+        c.fillStyle = own;
+        c.fillRect(col * TILE, r * TILE, TILE + 0.5, TILE + 0.5);
+        continue;
+      }
+      for (const qx of [0, 1]) {
+        for (const qy of [0, 1]) {
+          const dx = qx ? 1 : -1;
+          const dy = qy ? 1 : -1;
+          const fill = floorOf(col + dx, r) ?? floorOf(col, r + dy) ?? floorOf(col + dx, r + dy);
+          if (!fill) continue;
+          c.fillStyle = fill;
+          c.fillRect(col * TILE + qx * half, r * TILE + qy * half, half + 0.5, half + 0.5);
+        }
+      }
+    }
+  }
+  // floorboards
+  c.strokeStyle = 'rgba(0,0,0,0.16)';
+  c.lineWidth = 1.5;
+  c.beginPath();
+  for (let r = r0; r <= r1; r++) {
+    for (let col = c0; col <= c1; col++) {
+      if (!floorOf(col, r)) continue;
+      c.moveTo(col * TILE, r * TILE);
+      c.lineTo((col + 1) * TILE, r * TILE);
+    }
+  }
+  c.stroke();
+  // room names, faint on the floor, where there is room to read them
+  c.fillStyle = 'rgba(255,255,255,0.1)';
+  c.font = `${TILE * 1.1}px Chewy, sans-serif`;
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  for (const room of map.rooms) {
+    if (room.x1 - room.x0 < 6) continue;
+    const lx = ((room.lx ?? (room.x0 + room.x1) / 2) + 0.5) * TILE;
+    const ly = ((room.ly ?? (room.y0 + room.y1) / 2) + 0.5) * TILE;
+    if (lx < x0 - 300 || lx > x1 + 300 || ly < y0 - 60 || ly > y1 + 60) continue;
+    c.fillText(room.name, lx, ly);
+  }
   for (let r = r0; r <= r1; r++) {
     for (let col = c0; col <= c1; col++) {
       const kind = map.kind[r * map.cols + col];
@@ -136,23 +165,31 @@ export function mapPicture(map: GameMap, px: number): HTMLCanvasElement {
   pic.width = map.cols * px;
   pic.height = map.lines * px;
   const m = pic.getContext('2d')!;
-  m.fillStyle = 'rgba(244,236,216,0.16)';
-  m.fillRect(0, 0, pic.width, pic.height);
+  // only the house is lit: what is outside it stays dark
   for (let r = 0; r < map.lines; r++) {
     for (let col = 0; col < map.cols; col++) {
       const kind = map.kind[r * map.cols + col];
       if (kind === T_WALL) {
-        // the bars themselves, to scale, and never too thin to see
-        m.fillStyle = 'rgba(12,10,20,0.9)';
-        const k = px / TILE;
-        for (const [x0, y0, x1, y1] of map.walls[r * map.cols + col]) m.fillRect(x0 * k, y0 * k, Math.max(1.5, (x1 - x0) * k), Math.max(1.5, (y1 - y0) * k));
+        // the part of a wall square that is not bar is floor, if it is inside the house at all
+        if (map.walls[r * map.cols + col].length) {
+          m.fillStyle = 'rgba(244,236,216,0.22)';
+          m.fillRect(col * px, r * px, px, px);
+        }
         continue;
       }
-      if (kind === T_FLOOR) continue;
+      if (kind === T_FLOOR) {
+        m.fillStyle = 'rgba(244,236,216,0.22)';
+        m.fillRect(col * px, r * px, px, px);
+        continue;
+      }
       m.fillStyle = kind === T_GOO ? '#6fb93a' : kind === T_SPIKE ? '#ff5d73' : 'rgba(244,236,216,0.45)';
       m.fillRect(col * px, r * px, px, px);
     }
   }
+  // the walls: the bars themselves, to scale, and never too thin to see
+  m.fillStyle = 'rgba(12,10,20,0.95)';
+  const k = px / TILE;
+  for (const pieces of map.walls) for (const [x0, y0, x1, y1] of pieces) m.fillRect(x0 * k, y0 * k, Math.max(1.5, (x1 - x0) * k), Math.max(1.5, (y1 - y0) * k));
   return pic;
 }
 

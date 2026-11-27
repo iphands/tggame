@@ -38,7 +38,7 @@ export const TILE = 40;
  * How thick a wall is. A wall square is not a solid cube: it is a bar this thick through the
  * middle of the square, joined to the wall squares next to it. A block of four is filled in.
  */
-export const WALL_T = 14;
+export const WALL_T = 10;
 /** A player is a circle this big. */
 export const BODY_R = 13;
 /** How far anyone sees, walls permitting. */

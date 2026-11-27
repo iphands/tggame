@@ -16,8 +16,8 @@ export function join(g: Game, name: string, token?: string): Joined {
 
 /** A lobby with `n` humans named P1..Pn; returns their ids in seat order. */
 export function table(n: number, seed = 1): { g: Game; ids: string[]; tokens: string[] } {
-  const g = new Game(seeded(seed));
-  // the rules are tested on the Old House, where the tests know their way about
+  // the rules are tested on the hand-laid house, where the tests know their way about
+  const g = new Game(seeded(seed), [MAP]);
   g.settings.map = 0;
   const ids: string[] = [];
   const tokens: string[] = [];

@@ -87,7 +87,11 @@ export class Game extends Roster<Player> {
   /** How often each player has started a round as the Beast, so it goes round. */
   private beastTurns = new Map<string, number>();
 
-  constructor(rng: Rng = Math.random) {
+  constructor(
+    rng: Rng = Math.random,
+    /** The maps this table can play. Tests give it the house they know their way about. */
+    private readonly maps: GameMap[] = MAPS,
+  ) {
     super(rng, MAX_PLAYERS, PLAYER_COLORS);
   }
 
@@ -166,7 +170,7 @@ export class Game extends Roster<Player> {
     if (this.phase !== 'lobby' || by !== this.hostId()) return;
     if (mode !== undefined && MODES.includes(mode)) this.settings.mode = mode;
     if (speed !== undefined && Number.isInteger(speed) && speed >= 0 && speed < SPEEDS.length) this.settings.speed = speed;
-    if (map !== undefined && Number.isInteger(map) && map >= -1 && map < MAPS.length) this.settings.map = map;
+    if (map !== undefined && Number.isInteger(map) && map >= -1 && map < this.maps.length) this.settings.map = map;
   }
 
   start(by: string): void {
@@ -184,9 +188,9 @@ export class Game extends Roster<Player> {
     const mode = this.settings.mode;
     // by lot, never the same map twice running
     let mapNo = this.settings.map;
-    while (mapNo < 0 || (this.settings.map < 0 && mapNo === this.mapNo && MAPS.length > 1)) mapNo = Math.floor(this.rng() * MAPS.length);
+    while (mapNo < 0 || (this.settings.map < 0 && mapNo === this.mapNo && this.maps.length > 1)) mapNo = Math.floor(this.rng() * this.maps.length);
     this.mapNo = mapNo;
-    const map = MAPS[mapNo];
+    const map = this.maps[mapNo];
     // which of the map's two exits opens first, by lot
     this.exitNo = Math.floor(this.rng() * map.exits.length);
     const spots = shuffle(

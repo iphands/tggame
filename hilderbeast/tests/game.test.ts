@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BEAST_START_CLEAR, F_FLUNG, GHOST_BUMP_COOLDOWN_MS, GHOST_FLING, GHOST_FLING_MS, GHOST_NUDGE, SPEEDS, F_SCARE_SHIFT, SCARE_MAX, COUNTDOWN_MS, CUTSCENE_MS, DREAD_STEPS, ESCAPE_CLOCK_MS, F_HELD, HEAD_START_MS, LAST_CLOCK_MS, MAX_PLAYERS, TICK_MS, tasksFor } from '../shared/src/constants';
-import { MAP } from '../shared/src/maps';
+import { MAP, MAPS } from '../shared/src/maps';
 import { Game } from '../server/src/game';
 import { sees, speedOf } from '../shared/src/sim';
 import { join, place, run, seeded, started, table } from './helpers';
@@ -26,15 +26,18 @@ describe('the lobby', () => {
     expect(g.settings.mode).toBe('escape');
   });
   it('lets the host pick the map, or leaves it to chance without a repeat', () => {
-    const { g, ids } = table(3);
+    // every map there is, not the one test house
+    const g = new Game(seeded(1));
+    const ids = ['A', 'B', 'C'].map((n) => join(g, n).id);
+    // a random map until the host says otherwise
     g.configure(ids[1], undefined, 5);
-    expect(g.settings.map).toBe(0);
+    expect(g.settings.map).toBe(-1);
     g.configure(ids[0], undefined, 99);
-    expect(g.settings.map).toBe(0);
+    expect(g.settings.map).toBe(-1);
     g.configure(ids[0], undefined, 5);
     g.start(ids[0]);
     expect(g.viewFor(ids[0]).round!.map).toBe(5);
-    expect(g.world!.map.name).toBe('The Boathouse');
+    expect(g.world!.map).toBe(MAPS[5]);
     g.abort(ids[0]);
     g.configure(ids[0], undefined, -1);
     let last = 5;
@@ -129,7 +132,8 @@ describe('a round', () => {
       }
       g.abort(ids[0]);
     }
-    expect(places.size).toBeGreaterThan(3);
+    // the test house is small: every map there is is held to more (tests/maps.test.ts)
+    expect(places.size).toBeGreaterThan(1);
   });
   it('takes turns at being the Beast', () => {
     const { g, ids } = table(3, 5);

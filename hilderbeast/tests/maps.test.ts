@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { START_SPOTS, TASKS_MAX, TILE } from '../shared/src/constants';
-import { T_FLOOR, T_GOO, T_SPIKE, T_WALL, kindAt, wallAt } from '../shared/src/map';
+import { BEAST_START_CLEAR, START_SPOTS, TASKS_MAX, TILE } from '../shared/src/constants';
+import { T_FLOOR, T_GOO, T_SPIKE, T_WALL, kindAt, outsideAt, wallAt } from '../shared/src/map';
 import { MAPS } from '../shared/src/maps';
 import { sees } from '../shared/src/sim';
 import { FAR, stepsAt, stepsFrom } from '../server/src/path';
@@ -18,8 +18,15 @@ describe('the maps', () => {
   });
   for (const m of MAPS) {
     describe(m.name, () => {
-      it('is a closed box of the usual size', () => {
-        expect([m.cols, m.lines]).toEqual([40, 26]);
+      it('is a closed house of a fair size, and not a box', () => {
+        expect(m.cols).toBeGreaterThanOrEqual(36);
+        expect(m.cols).toBeLessThanOrEqual(64);
+        expect(m.lines).toBeGreaterThanOrEqual(24);
+        expect(m.lines).toBeLessThanOrEqual(40);
+        // plenty of the outline is outside the house: dark, with nothing in it
+        let outside = 0;
+        for (let r = 0; r < m.lines; r++) for (let c = 0; c < m.cols; c++) if (outsideAt(m, c, r)) outside++;
+        expect(outside / (m.cols * m.lines)).toBeGreaterThan(0.2);
         for (let c = 0; c < m.cols; c++) expect(wallAt(m, c, 0) && wallAt(m, c, m.lines - 1)).toBe(true);
         for (let r = 0; r < m.lines; r++) expect(wallAt(m, 0, r) && wallAt(m, m.cols - 1, r)).toBe(true);
       });
@@ -48,6 +55,13 @@ describe('the maps', () => {
           }
         }
       });
+      it('has somewhere new for the Beast to start most rounds', () => {
+        // the places the game picks from: the den, the pills and the chores, out of sight of every start
+        const fair = [m.den, ...m.pills, ...m.tasks].filter((at) =>
+          m.cousinStarts.every((s) => Math.hypot(s.x - at.x, s.y - at.y) >= BEAST_START_CLEAR * TILE && !sees(m, at.x, at.y, s.x, s.y)),
+        );
+        expect(fair.length).toBeGreaterThanOrEqual(4);
+      });
       it('starts no Cousin in sight of the den, or near it', () => {
         const field = stepsFrom(m, m.den.x, m.den.y);
         for (const s of m.cousinStarts) {
@@ -59,13 +73,29 @@ describe('the maps', () => {
         for (const s of [...m.cousinStarts, m.den, ...m.pills, ...m.portals, ...m.tasks, ...m.exits]) expect(kindAt(m, s.x, s.y)).toBe(T_FLOOR);
         for (const s of m.cousinStarts) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) expect([T_GOO, T_SPIKE]).not.toContain(kindAt(m, s.x + dx * TILE, s.y + dy * TILE));
       });
-      it('leaves every room at least two ways out', () => {
-        // a doorway is a floor square in the wall round a room
-        for (const room of m.rooms) {
-          let gaps = 0;
-          for (let c = room.x0; c <= room.x1; c++) for (const r of [room.y0 - 1, room.y1 + 1]) if (!wallAt(m, c, r)) gaps++;
-          for (let r = room.y0; r <= room.y1; r++) for (const c of [room.x0 - 1, room.x1 + 1]) if (!wallAt(m, c, r)) gaps++;
-          expect(gaps).toBeGreaterThanOrEqual(2);
+      it('leaves every room at least two ways out, and joins the rooms by passages', () => {
+        for (const room of m.rooms) expect(room.ways).toBeGreaterThanOrEqual(2);
+        let passage = 0;
+        for (let i = 0; i < m.zone.length; i++) if (m.zone[i] < 0 && m.kind[i] !== T_WALL) passage++;
+        expect(passage).toBeGreaterThan(40);
+      });
+      it('has rooms that are not all boxes', () => {
+        const odd = m.rooms.filter((room, i) => {
+          let n = 0;
+          for (let k = 0; k < m.zone.length; k++) if (m.zone[k] === i) n++;
+          return n < (room.x1 - room.x0 + 1) * (room.y1 - room.y0 + 1) - 2;
+        });
+        expect(odd.length).toBeGreaterThan(0);
+      });
+      it('never leaves a gap between two walls that only touch at a corner', () => {
+        for (let r = 0; r + 1 < m.lines; r++) {
+          for (let c = 0; c + 1 < m.cols; c++) {
+            const a = wallAt(m, c, r);
+            const b = wallAt(m, c + 1, r);
+            const d = wallAt(m, c, r + 1);
+            const e = wallAt(m, c + 1, r + 1);
+            expect((!a && !e && b && d) || (!b && !d && a && e)).toBe(false);
+          }
         }
       });
     });
