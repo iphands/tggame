@@ -3,7 +3,7 @@ import http from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs';
 import { createHash } from 'node:crypto';
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, type WebSocket } from 'ws';
 
 export type GameServerOptions = {
   /** Shown in the log line and on the placeholder page. */
@@ -151,6 +151,25 @@ export function createGameServer(opts: GameServerOptions) {
     perMessageDeflate: { threshold: 1024, zlibDeflateOptions: { level: 3 } },
   });
 
+  // Ping/pong lives below the games (see `client/net.ts`): answered here, at once, with this
+  // server's clock. The game's own listener also sees the ping and ignores it as unknown.
+  wss.on('connection', (ws) => {
+    ws.on('message', (raw, isBinary) => {
+      if (isBinary || !Buffer.isBuffer(raw) || raw.length > 96 || raw[0] !== 0x7b) return;
+      const text = raw.toString();
+      if (!text.startsWith('{"type":"ping"')) return;
+      let msg: { t?: unknown; rtt?: unknown };
+      try {
+        msg = JSON.parse(text) as { t?: unknown; rtt?: unknown };
+      } catch {
+        return;
+      }
+      if (typeof msg.t !== 'number' || !Number.isFinite(msg.t)) return;
+      if (typeof msg.rtt === 'number' && msg.rtt >= 0 && msg.rtt < 10_000) pings.set(ws, msg.rtt);
+      if (ws.readyState === ws.OPEN) ws.send(`{"type":"pong","t":${msg.t},"now":${Date.now()}}`);
+    });
+  });
+
   const listen = (): void => {
     server.listen(opts.port, () => {
       console.log(`${opts.title}: listening on http://0.0.0.0:${opts.port} (static dir: ${STATIC_DIR})`);
@@ -159,3 +178,8 @@ export function createGameServer(opts: GameServerOptions) {
 
   return { server, wss, listen };
 }
+
+const pings = new WeakMap<WebSocket, number>();
+
+/** The round trip this socket's page last reported, in ms (its own measurement); 0 if none yet. */
+export const pingOf = (ws: WebSocket): number => pings.get(ws) ?? 0;
