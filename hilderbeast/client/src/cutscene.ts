@@ -23,6 +23,9 @@ export const SAYINGS = [
   "I'm not doin this anymore",
   'Rebeccer!',
   'Go to the Walmarts',
+  'Yall dont even know who came in',
+  'What?!',
+  'Look yall need to find my three towels I brought',
 ];
 
 /** When, in the 3 seconds, she bites, and when the Cousin turns. */
