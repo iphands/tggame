@@ -189,15 +189,52 @@ describe('Escape', () => {
     expect(g.viewFor(ids[0]).round!.tasks).toHaveLength(tasksFor(3));
     expect(snap(g, ids[0]).tk).toHaveLength(tasksFor(3));
   });
-  it('is won by the first Cousin out', () => {
+  it('goes on until every Cousin still free has got out or been caught', () => {
     const { g, ids, w } = started(4, 'escape');
     for (const t of w.tasks) t.progress = 1;
     w.exitsOpen = true;
-    const c = w.cousins()[0];
-    place(w, c.id, MAP.exits[0].x, MAP.exits[0].y);
-    g.input(c.id, 0, 0, false, true);
+    const [a, b, c] = w.cousins();
+    for (const x of [a, b]) {
+      place(w, x.id, MAP.exits[0].x, MAP.exits[0].y);
+      g.input(x.id, 0, 0, false, true);
+    }
     run(g, 2000);
-    expect(g.viewFor(ids[0]).result).toMatchObject({ winner: 'cousins', why: 'escaped', escaped: [c.id] });
+    // two are out, one is still in the house: the round is not over
+    expect(w.escaped).toEqual([a.id, b.id]);
+    expect(g.phase).toBe('play');
+    expect(g.viewFor(ids[0]).round!.sides[a.id]).toBe('x');
+    // someone who is out sees the whole house
+    expect(snap(g, a.id).bodies.map((s) => s[0])).toContain(w.firstBeast);
+    turn(g, c.id);
+    run(g, TICK_MS * 2);
+    expect(g.viewFor(ids[0]).result).toMatchObject({ winner: 'cousins', why: 'escaped', escaped: [a.id, b.id], survivors: [] });
+  });
+  it('ends at once when the last Cousin in the house gets out', () => {
+    const { g, ids, w } = started(3, 'escape');
+    for (const t of w.tasks) t.progress = 1;
+    w.exitsOpen = true;
+    for (const x of w.cousins()) {
+      place(w, x.id, MAP.exits[1].x, MAP.exits[1].y);
+      g.input(x.id, 0, 0, false, true);
+    }
+    run(g, 2000);
+    expect(g.viewFor(ids[0]).result).toMatchObject({ winner: 'cousins', why: 'escaped' });
+    expect(g.viewFor(ids[0]).result!.escaped).toHaveLength(2);
+  });
+  it('counts whoever got out if the clock runs out on the rest', () => {
+    const { g, ids, w } = started(4, 'escape');
+    for (const t of w.tasks) t.progress = 1;
+    w.exitsOpen = true;
+    const [a, b, c] = w.cousins();
+    place(w, a.id, MAP.exits[0].x, MAP.exits[0].y);
+    g.input(a.id, 0, 0, false, true);
+    run(g, 2000);
+    // the Beast and the other two stand apart for the rest of the night
+    place(w, w.firstBeast, MAP.den.x, MAP.den.y);
+    place(w, b.id, MAP.cousinStarts[0].x, MAP.cousinStarts[0].y);
+    place(w, c.id, MAP.cousinStarts[1].x, MAP.cousinStarts[1].y);
+    run(g, ESCAPE_CLOCK_MS);
+    expect(g.viewFor(ids[0]).result).toMatchObject({ winner: 'cousins', why: 'escaped', escaped: [a.id], survivors: [b.id, c.id] });
   });
   it('goes to the Beasts when everyone is caught, or the clock runs out', () => {
     const one = started(3, 'escape');

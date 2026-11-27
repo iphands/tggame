@@ -217,12 +217,17 @@ export class Game extends Roster<Player> {
   /** Is the round over? */
   private judge(world: World): void {
     const free = world.cousins().length;
-    if (world.escaped.length) return this.finish(world, 'cousins', 'escaped');
-    if (free === 0) return this.finish(world, 'beasts', 'caught');
+    // Escape goes on until nobody is left in the house to catch: everyone still free must get out
+    const out = world.escaped.length > 0;
+    if (free === 0) return out ? this.finish(world, 'cousins', 'escaped') : this.finish(world, 'beasts', 'caught');
     // every Beast walked out: nothing left to run from
     if (world.beasts().length === 0) return this.finish(world, 'cousins', 'last');
     if (world.mode === 'last' && free === 1 && this.cousinsAtStart > 1) return this.finish(world, 'cousins', 'last');
-    if (this.clockMs <= 0) return this.finish(world, world.mode === 'escape' ? 'beasts' : 'cousins', 'clock');
+    if (this.clockMs <= 0) {
+      if (world.mode === 'last') return this.finish(world, 'cousins', 'clock');
+      // whoever got out got out, even if others ran out of time
+      return out ? this.finish(world, 'cousins', 'escaped') : this.finish(world, 'beasts', 'clock');
+    }
   }
 
   private finish(world: World, winner: ResultView['winner'], why: ResultView['why']): void {

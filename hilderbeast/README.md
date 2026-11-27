@@ -47,8 +47,10 @@ win too; with two players, that is how the Cousin wins.
 - **Working makes noise.** The Beasts hear a chore being worked on: at once, then every 3 seconds.
   They are shown roughly where, never exactly, and the workers are told they were heard.
 - When every chore is done the two exits open. Hold the action at an exit for 1.5 seconds to get
-  out. The first Cousin out wins the round for the Cousins.
-- The Beasts win by catching everyone, or if 6 minutes pass with nobody out.
+  out. Whoever gets out is safe and watches the rest of the round.
+- The round goes on until nobody is left in the house: every Cousin has got out or been caught,
+  or 6 minutes have passed. The Cousins win if at least one of them got out; the Beasts win if
+  nobody did.
 
 ## Bots
 

@@ -44,7 +44,7 @@ export type Catch = { by: string; who: string; atMs: number };
 export type ResultView = {
   mode: Mode;
   winner: 'cousins' | 'beasts';
-  /** `last`: one Cousin left. `clock`: time ran out. `escaped`: somebody got out. `caught`: nobody is left. */
+  /** `last`: one Cousin left. `clock`: time ran out. `escaped`: at least one Cousin got out before the round ended. `caught`: nobody is left. */
   why: 'last' | 'clock' | 'escaped' | 'caught';
   /** Cousins still free at the end. */
   survivors: string[];

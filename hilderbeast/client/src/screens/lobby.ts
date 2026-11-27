@@ -6,7 +6,7 @@ import { MODE_NAMES, type Screen } from './index';
 
 const BLURB = {
   last: 'No chores, no way out. The last Cousin left uncaught wins.',
-  escape: 'Do the chores together to open the exits, then get out. Working makes noise.',
+  escape: 'Do the chores together to open the exits, then everyone gets out. Working makes noise.',
 } as const;
 
 export function lobbyScreen(): Screen {
