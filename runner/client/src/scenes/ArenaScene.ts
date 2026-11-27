@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { PHYS, RUN } from '../../../shared/src/constants';
 import type { Fx, PlayerState } from '../../../shared/src/types';
+import { LEVELS, platformPos } from '../../../shared/src/levels';
 import { store } from '../store';
 import { lerp, lerpPlayer, lerpScroll } from '@tggame/base/platformer/interp';
 import { fireHeld, mergeInput, requests, setTouchControlsVisible, touchInput } from '@tggame/base/platformer/controls';
@@ -61,6 +62,13 @@ export class ArenaScene extends Phaser.Scene {
   private vignette: Phaser.GameObjects.Image | null = null;
   private zoomKick = 0;
   private keys = {} as Record<KeyName, Phaser.Input.Keyboard.Key[]>;
+  /** How much of our own runner's place is taken from the platform it rides, as drawn (0 to 1). */
+  private ride = 0;
+  private rideIdx = -1;
+  /** Is the screen's scroll coming from the prediction, what was last drawn, and the easing between. */
+  private scrollAhead = false;
+  private scrollDrawn: number | null = null;
+  private scrollOff = 0;
   private prevDown = false;
   private lastFireSent = 0;
 
@@ -188,12 +196,15 @@ export class ArenaScene extends Phaser.Scene {
     // the screen scroll is interpolated like everything else (a new round cuts instead of panning back)
     this.scrollX = a.round === b.round ? lerpScroll(a.scrollX, b.scrollX, alpha) : b.scrollX;
 
+    this.predictSelf(players, snap.level, simNow, now, delta);
+
     this.updateCamera(players, snap.phase, delta);
     this.level!.update(simNow, delta, camView.x, { scrollX: this.scrollX, crumble: b.crumble, boxes: b.boxes, gate: b.gate });
     this.renderFighters(players, simNow, delta);
     this.renderProjectiles(a, b, alpha, delta);
     this.renderCrates(b, simNow);
 
+    while (store.localFx.length) this.handleFx(store.localFx.shift()!);
     while (store.fxQueue.length && store.fxQueue[0].t <= renderT + 20) {
       this.handleFx(store.fxQueue.shift()!.fx);
     }
@@ -257,16 +268,73 @@ export class ArenaScene extends Phaser.Scene {
     camView.y = Phaser.Math.Clamp(this.camY - h / 2, 0, 720 - h);
   }
 
+  // ------------------------------------------------------------ prediction
+
+  /**
+   * Our own runner is not drawn from the snapshots like everyone else: it is carried ahead of
+   * them through what we have pressed since (`predict.ts`), so it answers at once. The screen
+   * goes with it, so the edge that catches stragglers is drawn where the server will have it.
+   */
+  private predictSelf(players: PlayerState[], level: number, simNow: number, now: number, delta: number): void {
+    const edge = store.buffer.simTime(now);
+    const pred = edge === null ? null : store.predictor.advance(edge, now);
+    const i = pred ? players.findIndex((p) => p.id === store.selfId) : -1;
+    const s = Math.min(delta, 50) / 1000;
+
+    // the screen: from the prediction while there is one, from the snapshots otherwise, and
+    // eased across whenever it changes hands (a fall, a respawn) so the view never jumps
+    const ahead = !!pred && i >= 0;
+    const target = ahead ? pred!.scrollX + pred!.errScroll : this.scrollX;
+    if (ahead !== this.scrollAhead && this.scrollDrawn !== null && Math.abs(this.scrollDrawn - target) < 400) {
+      this.scrollOff = this.scrollDrawn - target;
+    }
+    this.scrollAhead = ahead;
+    this.scrollOff *= Math.exp(-8 * s);
+    this.scrollX = this.scrollDrawn = target + this.scrollOff;
+
+    if (!pred || i < 0) {
+      this.ride = 0;
+      return;
+    }
+    // The platforms on screen are a moment behind the one the prediction stands on. While we
+    // ride one, draw ourselves by where it is drawn, and ease out of that when we leave it.
+    if (pred.platIdx >= 0) {
+      this.rideIdx = pred.platIdx;
+      this.ride += (1 - this.ride) * (1 - Math.exp(-14 * s));
+    } else {
+      this.ride *= Math.exp(-6 * s);
+    }
+    const def = LEVELS[level]?.platforms[this.rideIdx]; // a box (past the platforms) never moves
+    const drawn = def ? platformPos(def, simNow) : null;
+    const there = drawn ? store.predictor.platAt(this.rideIdx) : null;
+    const rx = drawn && there ? (drawn.x - there.x) * this.ride : 0;
+    const ry = drawn && there ? (drawn.y - there.y) * this.ride : 0;
+    players[i] = {
+      ...players[i],
+      x: pred.x + pred.errX + rx,
+      y: pred.y + pred.errY + ry,
+      vx: pred.vx,
+      vy: pred.vy,
+      face: pred.face,
+      grounded: pred.grounded,
+      airJumps: pred.airJumps,
+    };
+  }
+
   // ------------------------------------------------------------ input
 
   private handleInput(): void {
     const client = store.client;
     if (!client) return;
     const input = mergeInput({ left: this.down('left'), right: this.down('right'), jump: this.down('jump') }, touchInput);
-    client.sendInput(input);
+    // a command is stamped with the tick it is for, so the server does it where our prediction did
+    const edge = store.buffer.simTime(performance.now());
+    client.sendInput(input, edge === null ? undefined : () => store.predictor.command(input, edge));
 
     const downNow = this.down('down');
-    if ((downNow && !this.prevDown) || requests.drop) client.send({ type: 'drop' });
+    if ((downNow && !this.prevDown) || requests.drop) {
+      client.send({ type: 'drop', ...(edge === null ? {} : store.predictor.command(null, edge)) });
+    }
     this.prevDown = downNow;
     requests.drop = false;
 

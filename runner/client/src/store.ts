@@ -1,7 +1,10 @@
 import type { SnapshotMessage } from '../../shared/src/protocol';
 import type { Fx, Records } from '../../shared/src/types';
 import type { ConnectionStatus, GameClient } from './net';
+import { clock } from '@tggame/base/client/clock';
+import { netMeterShown, setNetExtra } from '@tggame/base/client/netMeter';
 import { SnapshotBuffer } from '@tggame/base/platformer/interp';
+import { Predictor, isMoveFx } from './predict';
 import { QualityManager } from '@tggame/base/platformer/quality';
 
 /** Mutable state shared by the network client, the Phaser scenes and the DOM overlay. */
@@ -17,6 +20,12 @@ export const store = {
   buffer: new SnapshotBuffer<SnapshotMessage>(),
   /** Effects waiting for the render clock to reach their sim time. */
   fxQueue: [] as { t: number; fx: Fx }[],
+  /** Effects our own runner caused in the prediction: played at once. */
+  localFx: [] as Fx[],
+  /** Our own runner and the screen, carried ahead of the snapshots (`predict.ts`). */
+  predictor: new Predictor((fx) => localFx(fx)),
+  /** Has the predictor's lead been set from the measured line yet? */
+  leadSeeded: false,
   /** Best finishing time on each course, by course id. */
   records: {} as Records,
   touchMode: false,
@@ -24,11 +33,39 @@ export const store = {
   quality: new QualityManager('auto'),
 };
 
+function localFx(fx: Fx): void {
+  store.localFx.push(fx);
+  if (store.localFx.length > 40) store.localFx.shift();
+}
+
+/** A new connection is a new runner: nothing predicted for the old one holds. */
+export function resetPrediction(): void {
+  store.predictor.reset();
+  store.leadSeeded = false;
+  store.localFx.length = 0;
+}
+
 export function onSnapshot(snap: SnapshotMessage): void {
   store.snapshot = snap;
   store.selfId = snap.selfId || store.selfId;
   store.buffer.push(snap, performance.now());
-  for (const fx of snap.fx) store.fxQueue.push({ t: snap.simTimeMs, fx });
+  const pred = store.predictor;
+  if (!store.leadSeeded && clock.synced) {
+    pred.seedLead(clock.rtt, clock.jitter);
+    store.leadSeeded = true;
+  }
+  pred.jitterMs = clock.jitter;
+  // several snapshots after a stall each land here; the predictor only ever keeps the newest
+  pred.onSnapshot(snap);
+  if (netMeterShown()) {
+    setNetExtra('lead', `${pred.leadMs.toFixed(0)} ms · late ${pred.late}×`);
+    setNetExtra('fixed', `${pred.corrections}× · last ${pred.lastCorrection.toFixed(0)} px`);
+  }
+  for (const fx of snap.fx) {
+    // our own jumps and landings were already played, from the prediction
+    if (pred.active && isMoveFx(fx) && 'id' in fx && fx.id === snap.selfId) continue;
+    store.fxQueue.push({ t: snap.simTimeMs, fx });
+  }
   if (store.fxQueue.length > 400) store.fxQueue.splice(0, store.fxQueue.length - 400);
 }
 

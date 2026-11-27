@@ -4,7 +4,7 @@ import { WebSocket } from 'ws';
 import { createGameServer } from '@tggame/base/server/http';
 import { Game } from './sim/game.js';
 import { loadRecords, saveRecords } from './records.js';
-import { isClientMessage, type ClientMessage, type ServerMessage } from '../../shared/src/protocol.js';
+import { isClientMessage, stampOf, type ClientMessage, type ServerMessage } from '../../shared/src/protocol.js';
 import { MATCH, SNAP_EVERY_TICKS, TICK_MS } from '../../shared/src/constants.js';
 
 const PORT = Number(process.env.PORT ?? 8091);
@@ -58,13 +58,13 @@ function handle(ws: WebSocket, peer: { id: string | null }, msg: ClientMessage):
   if (!id) return; // must join first
   switch (msg.type) {
     case 'input':
-      game.setInput(id, msg);
+      game.setInput(id, msg, stampOf(msg));
       break;
     case 'shoot':
       game.shoot(id);
       break;
     case 'drop':
-      game.drop(id);
+      game.drop(id, stampOf(msg));
       break;
     case 'restart':
       game.restart();
@@ -130,11 +130,13 @@ let lastSnapTick = 0;
 
 function broadcast(): void {
   const body = JSON.stringify(game.snapshot());
-  // splice the per-client selfId into the shared payload instead of re-serializing
+  // splice what is each client's own (its id, its own runner's hidden state) into the shared
+  // payload instead of re-serializing it all
   const tail = body.slice(1);
   for (const [ws, peer] of peers) {
     if (ws.readyState !== WebSocket.OPEN) continue;
-    ws.send(`{"type":"snapshot","selfId":${JSON.stringify(peer.id ?? '')},${tail}`);
+    const you = JSON.stringify(game.selfState(peer.id));
+    ws.send(`{"type":"snapshot","selfId":${JSON.stringify(peer.id ?? '')},"you":${you},${tail}`);
   }
 }
 

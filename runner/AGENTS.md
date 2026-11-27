@@ -78,6 +78,27 @@ tests/*.test.ts          levels (course validation), interp, protocol, controls
   transitions all live in `server/src/sim/`. The client never simulates. It
   sends input + one-shot actions, interpolates snapshots (`INTERP_DELAY_MS` in
   `interp.ts`), and plays `fx` events. Keep gameplay logic out of the client.
+- **The one thing the client simulates is your own runner's movement, and
+  the screen's scroll** (`client/src/predict.ts`), so both answer at once on a
+  slow line. It runs the very `stepPlayer`, `resolveSolids` and `updateScroll`
+  the server runs (that is why they live in `shared/src/sim/`), starting from
+  each snapshot's private `you` block and replaying the commands the server
+  has not done yet. Rules that keep it exact:
+  - `input` and `drop` are **stamped** with `seq` and the server `tick` they
+    are for; the server holds them until that tick (`Game.enqueue`,
+    `applyDue`). Anything else that moves a runner by the player's hand must
+    be stamped and replayed the same way.
+  - `SelfState` (`shared/src/protocol.ts`) must carry every field of `Player`
+    and `World` that those three functions read. Add a field to one, add it to
+    the other, and to `Predictor.load`.
+  - Boxes, crumbling platforms and the gate are taken from the snapshot;
+    other runners are assumed to keep their speed (it only matters when one of
+    them is the leader the screen chases).
+  - Hits, shoves, stomps, deaths and respawns are not predicted: they arrive
+    as a correction, which only the drawing eases across.
+  - `tests/predict.test.ts` runs a real `Game` a line away from a `Predictor`
+    and demands they agree to a hundredth of a pixel. It must stay green.
+
 - **One global `Game` per server process.** No rooms. Capacity is 16 (humans
   bump bots when full).
 - **Phases:** `lobby → starting → playing → ended → lobby`. Players are lined
