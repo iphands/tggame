@@ -5,20 +5,36 @@
 import {
   BOUNCE,
   EAT_INSET,
+  FEAST_MASS,
+  FLAG_GRAVITY,
+  FLAG_SLOW,
+  FLAG_TURBO,
   FRICTION,
+  GRAVITY_ACCEL,
+  GRAVITY_MS,
+  GRAVITY_REACH,
   MAX_FOOD_R,
   MAX_FOOD_SPEED,
+  POWERS,
+  PRIZE,
+  PRIZE_RESPAWN_MS,
   PULL_ACCEL,
   PULL_REACH,
   PUSH_KEEP,
   PUSH_MEMORY_MS,
   RESPAWN_MS,
+  ROTTEN,
+  ROTTEN_RESPAWN_MS,
   SLEEP_SPEED,
+  SLOW_MS,
   SPILL_PENALTY_MS,
   SWALLOW_MS,
   TEAM_SHARE,
   TICK_MS,
   TIERS,
+  TURBO_MS,
+  itemRadius,
+  speedFactor,
 } from '../../shared/src/constants.js';
 import { canEat, holeRadius, holeStart, moveHole } from '../../shared/src/sim.js';
 import type { FoodInit, FoodMove, Fx, HoleSnap, PlayerStats } from '../../shared/src/types.js';
@@ -51,7 +67,21 @@ export type Food = {
   respawnAt: number;
 };
 
-export type Hole = { id: string; x: number; y: number; ax: number; ay: number; mass: number; r: number };
+export type Hole = {
+  id: string;
+  x: number;
+  y: number;
+  ax: number;
+  ay: number;
+  mass: number;
+  r: number;
+  /** 0, or 1 + the index in `POWERS` of the power it is carrying. */
+  held: number;
+  /** World time until which each effect lasts. */
+  slowUntil: number;
+  turboUntil: number;
+  gravityUntil: number;
+};
 
 const CELL = 128;
 const DT_S = TICK_MS / 1000;
@@ -88,13 +118,13 @@ export class World {
     this.h = course.h;
     playerIds.forEach((id, i) => {
       const p = holeStart(i, playerIds.length, this.w, this.h);
-      this.holes.push({ id, x: p.x, y: p.y, ax: p.x, ay: p.y, mass: 0, r: holeRadius(0) });
+      this.holes.push({ id, x: p.x, y: p.y, ax: p.x, ay: p.y, mass: 0, r: holeRadius(0), held: 0, slowUntil: 0, turboUntil: 0, gravityUntil: 0 });
     });
     course.foods.forEach((f, id) => {
       this.foods.push({
         id,
         tier: f.tier,
-        r: TIERS[f.tier].r,
+        r: itemRadius(f.tier),
         x: f.x,
         y: f.y,
         vx: 0,
@@ -109,7 +139,7 @@ export class World {
         respawnAt: 0,
       });
     });
-    this.left = this.foods.length;
+    this.left = this.foods.filter((f) => f.tier < TIERS.length).length;
     this.cols = Math.ceil(this.w / CELL) + 1;
     this.rows = Math.ceil(this.h / CELL) + 1;
     this.cellHead = new Int32Array(this.cols * this.rows);
@@ -144,9 +174,35 @@ export class World {
     if (heir) this.grow(heir, gone.mass);
   }
 
+  /** The `FLAG_…` bits for what is acting on a hole right now. */
+  flagsOf(hole: Hole): number {
+    return (hole.slowUntil > this.t ? FLAG_SLOW : 0) | (hole.turboUntil > this.t ? FLAG_TURBO : 0) | (hole.gravityUntil > this.t ? FLAG_GRAVITY : 0);
+  }
+
+  /** Set off the power a hole is carrying. Returns false when it has none. */
+  usePower(id: string): boolean {
+    const hole = this.hole(id);
+    if (!hole || !hole.held) return false;
+    const power = hole.held - 1;
+    hole.held = 0;
+    switch (POWERS[power]) {
+      case 'gravity':
+        hole.gravityUntil = this.t + GRAVITY_MS;
+        break;
+      case 'turbo':
+        hole.turboUntil = this.t + TURBO_MS;
+        break;
+      case 'feast':
+        for (const other of this.holes) this.grow(other, other === hole ? FEAST_MASS : FEAST_MASS * TEAM_SHARE);
+        break;
+    }
+    this.fx.push(['p', hole.id, power]);
+    return true;
+  }
+
   /** Holes glide to their aim points; nothing else happens (the countdown). */
   moveHoles(): void {
-    for (const hole of this.holes) moveHole(hole, this.w, this.h, DT_S);
+    for (const hole of this.holes) moveHole(hole, this.w, this.h, DT_S, speedFactor(this.flagsOf(hole)));
   }
 
   /** One tick of play. */
@@ -155,7 +211,7 @@ export class World {
     this.moveHoles();
     this.buildGrid();
     this.holesMeetFood();
-    this.swallow();
+    this.swallow(rng);
     this.moveFood();
     this.spillAndRespawn(rng);
   }
@@ -199,7 +255,10 @@ export class World {
     for (let k = 0; k < n; k++) {
       const hi = (k + this.turn) % n;
       const hole = this.holes[hi];
-      const pull = hole.r * PULL_REACH;
+      // Super Gravity: the same pull, from much further off and harder
+      const strong = hole.gravityUntil > this.t;
+      const pull = hole.r * PULL_REACH * (strong ? GRAVITY_REACH : 1);
+      const accel = PULL_ACCEL * (strong ? GRAVITY_ACCEL : 1);
       this.near(hole.x, hole.y, hole.r + pull + MAX_FOOD_R, (i) => {
         const f = this.foods[i];
         if (f.state !== ON) return;
@@ -213,8 +272,9 @@ export class World {
             f.capMs = 0;
             f.vx = f.vy = 0;
             this.fx.push(['e', f.id, hole.id]);
-          } else if (d < hole.r + f.r + pull) {
-            const a = (PULL_ACCEL * DT_S) / d;
+          } else if (f.tier !== ROTTEN && d < hole.r + f.r + pull) {
+            // (a rotten fish is never drawn in: it only goes down a hole that runs over it)
+            const a = (accel * DT_S) / d;
             f.vx -= dx * a;
             f.vy -= dy * a;
             f.awake = true;
@@ -241,12 +301,25 @@ export class World {
     }
   }
 
-  private swallow(): void {
+  private swallow(rng: Rng): void {
     for (const f of this.foods) {
       if (f.state !== CAPTURED) continue;
       const hole = this.holes[f.captor];
       f.capMs += TICK_MS;
       if (f.capMs < SWALLOW_MS) continue;
+      if (f.tier >= TIERS.length) {
+        // not food: it does its thing to the hole and turns up again somewhere else later
+        f.state = FALLEN;
+        f.pusher = '';
+        if (f.tier === PRIZE) {
+          hole.held = 1 + Math.floor(rng() * POWERS.length);
+          f.respawnAt = this.t + PRIZE_RESPAWN_MS;
+        } else {
+          hole.slowUntil = this.t + SLOW_MS;
+          f.respawnAt = this.t + ROTTEN_RESPAWN_MS;
+        }
+        continue;
+      }
       f.state = GONE;
       this.left--;
       const value = TIERS[f.tier].value;
@@ -338,6 +411,11 @@ export class World {
         const by = this.t - f.pushedAt <= PUSH_MEMORY_MS ? f.pusher : '';
         f.pusher = '';
         f.pushedAt = -Infinity;
+        if (f.tier >= TIERS.length) {
+          // a box or a fish knocked off by other food is nobody's loss: it just comes back
+          this.fx.push(['s', f.id, '']);
+          continue;
+        }
         this.spills++;
         this.penaltyMs += SPILL_PENALTY_MS;
         const clumsy = this.stats.get(by);
@@ -378,7 +456,7 @@ export class World {
   }
 
   holeList(): HoleSnap[] {
-    return this.holes.map((h) => [h.id, round1(h.x), round1(h.y), round1(h.r)]);
+    return this.holes.map((h) => [h.id, round1(h.x), round1(h.y), round1(h.r), this.flagsOf(h), h.held]);
   }
 
   /** Food that moved since this was last called. */

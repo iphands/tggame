@@ -51,7 +51,7 @@ export class Game extends Roster<Player> {
   phase: Phase = 'lobby';
   /** Bumped each time a run starts. */
   gameNo = 0;
-  settings: Settings = { difficulty: DEFAULT_DIFFICULTY };
+  settings: Settings = { difficulty: DEFAULT_DIFFICULTY, finale: false };
   /** 1-based course number; 0 in the lobby. */
   course = 0;
   /** Bumped each time a table is laid. */
@@ -151,9 +151,10 @@ export class Game extends Roster<Player> {
 
   // ---- game flow
 
-  configure(by: string, difficulty?: Difficulty): void {
+  configure(by: string, difficulty?: Difficulty, finale?: boolean): void {
     if (this.phase !== 'lobby' || by !== this.hostId()) return;
     if (difficulty !== undefined && DIFFICULTIES.includes(difficulty)) this.settings.difficulty = difficulty;
+    if (finale !== undefined) this.settings.finale = finale;
   }
 
   start(by: string): void {
@@ -165,7 +166,8 @@ export class Game extends Roster<Player> {
     this.carryMs = 0;
     this.stats.clear();
     this.tallies = [];
-    this.layCourse(1);
+    // the host may skip straight to the last, biggest table
+    this.layCourse(this.settings.finale ? COURSES : 1);
   }
 
   /** Where this player's hole should head. */
@@ -204,6 +206,11 @@ export class Game extends Roster<Player> {
     }
   }
 
+  /** A player presses Use: their hole sets off the power it is carrying. */
+  use(id: string): void {
+    if (this.phase === 'play') this.world?.usePower(id);
+  }
+
   /** Bots, and the holes of humans who dropped off, steer themselves. */
   private autopilot(world: World): void {
     this.botThinkMs -= TICK_MS;
@@ -211,7 +218,11 @@ export class Game extends Roster<Player> {
     this.botThinkMs = BOT_THINK_MS;
     for (const hole of world.holes) {
       const p = this.players.get(hole.id);
-      if (p && (p.bot || !p.connected)) botAim(world, hole, this.rng);
+      if (p && (p.bot || !p.connected)) {
+        botAim(world, hole, this.rng);
+        // whoever is not at the controls sets a power off as soon as they have one
+        world.usePower(hole.id);
+      }
     }
   }
 

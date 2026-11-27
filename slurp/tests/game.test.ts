@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CARRY_MAX_MS, CLEARED_MS, CLOCK_FACTOR, COUNTDOWN_MS, COURSES, MAX_PLAYERS, TICK_MS, courseTimeMs, tableSize } from '../shared/src/constants';
+import { CARRY_MAX_MS, CLEARED_MS, CLOCK_FACTOR, COUNTDOWN_MS, COURSES, MAX_PLAYERS, TICK_MS, TIERS, courseTimeMs, tableSize } from '../shared/src/constants';
 import { GONE, ON } from '../server/src/world';
 import { join, run, runUntil, started, table } from './helpers';
 
@@ -61,7 +61,7 @@ describe('a course', () => {
     g.aim(ids[0], f.x, f.y);
     run(g, COUNTDOWN_MS - 100);
     expect(g.phase).toBe('countdown');
-    expect(g.world!.left).toBe(g.world!.foods.length);
+    expect(g.world!.left).toBe(g.world!.foods.filter((x) => x.tier < TIERS.length).length);
     expect(g.snapshot()!.left).toBe(courseTimeMs(1));
     expect(g.snapshot()!.cd).toBeGreaterThan(0);
     run(g, 200);
@@ -205,7 +205,7 @@ describe('the wire', () => {
     run(g, 100);
     const quiet = g.snapshot()!;
     expect(quiet.foods).toEqual([]);
-    expect(quiet.holes).toEqual([[ids[0], g.world!.w / 2, g.world!.h / 2, 18]]);
+    expect(quiet.holes).toEqual([[ids[0], g.world!.w / 2, g.world!.h / 2, 18, 0, 0]]);
     const big = g.world!.foods.find((f) => f.tier === 1)!;
     const hole = g.world!.hole(ids[0])!;
     hole.x = big.x - big.r - hole.r + 4;

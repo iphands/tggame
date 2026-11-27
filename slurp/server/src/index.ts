@@ -66,6 +66,9 @@ function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
     case 'aim':
       game.aim(id, msg.x, msg.y);
       break;
+    case 'use':
+      game.use(id);
+      break;
     case 'leave':
       game.leave(id);
       peer.id = null;
@@ -77,7 +80,7 @@ function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
       game.removeBot(id);
       break;
     case 'settings':
-      game.configure(id, msg.difficulty);
+      game.configure(id, msg.difficulty, msg.finale);
       break;
     case 'start':
       game.start(id);

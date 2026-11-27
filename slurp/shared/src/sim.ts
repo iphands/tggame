@@ -28,13 +28,13 @@ export function tiersEdible(holeR: number): number {
 
 export type Mover = { x: number; y: number; ax: number; ay: number };
 
-/** Move a hole toward its aim point for `dtS` seconds, staying on a `w` by `h` table. */
-export function moveHole(m: Mover, w: number, h: number, dtS: number): void {
+/** Move a hole toward its aim point for `dtS` seconds, staying on a `w` by `h` table. `speed` scales its top speed. */
+export function moveHole(m: Mover, w: number, h: number, dtS: number, speed = 1): void {
   const dx = m.ax - m.x;
   const dy = m.ay - m.y;
   const d = Math.hypot(dx, dy);
   if (d > 0.01) {
-    const step = Math.min(d, Math.min(HOLE_SPEED, d * HOLE_FOLLOW) * dtS);
+    const step = Math.min(d, Math.min(HOLE_SPEED * speed, d * HOLE_FOLLOW) * dtS);
     m.x += (dx / d) * step;
     m.y += (dy / d) * step;
   }

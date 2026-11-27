@@ -492,3 +492,58 @@ input[type='text'] {
   font-size: 0.8em;
   vertical-align: middle;
 }
+
+/* ---- powers: the Use button and what is acting on your hole */
+
+.use {
+  position: absolute;
+  right: calc(12px + env(safe-area-inset-right));
+  bottom: calc(64px + env(safe-area-inset-bottom));
+  min-width: 108px;
+  padding: 8px 14px 10px;
+  pointer-events: auto;
+  touch-action: none;
+  font-family: var(--display);
+  font-size: 1.2em;
+  line-height: 1.1;
+  text-align: center;
+  background: var(--sun);
+  border-radius: 22px;
+  box-shadow: 4px 5px 0 rgba(12, 20, 60, 0.4);
+  animation: use-ready 0.9s ease-in-out infinite alternate;
+}
+.use small {
+  display: block;
+  font-size: 0.7em;
+  letter-spacing: 0.12em;
+}
+.use.bump {
+  animation:
+    bump 0.4s,
+    use-ready 0.9s ease-in-out 0.4s infinite alternate;
+}
+@keyframes use-ready {
+  to {
+    background: #ffe98a;
+    scale: 1.05;
+  }
+}
+.effects {
+  position: absolute;
+  left: 50%;
+  bottom: calc(52px + env(safe-area-inset-bottom));
+  translate: -50% 0;
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 0.85em;
+}
+.effects span {
+  padding: 1px 10px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 99px;
+}
+.effects .bad {
+  background: #cfe58a;
+}

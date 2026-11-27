@@ -8,10 +8,12 @@ export type ClientMessage =
   | { type: 'leave' }
   | { type: 'addBot' }
   | { type: 'removeBot' }
-  | { type: 'settings'; difficulty?: Difficulty }
+  | { type: 'settings'; difficulty?: Difficulty; finale?: boolean }
   | { type: 'start' }
   /** Where this player's hole should head, in table coordinates. */
   | { type: 'aim'; x: number; y: number }
+  /** Set off the power this player's hole is carrying. */
+  | { type: 'use' }
   | { type: 'again' }
   | { type: 'abort' };
 
@@ -52,7 +54,7 @@ export type ServerMessage =
   | CourseMessage
   | SnapMessage;
 
-const NO_ARGS = new Set(['leave', 'addBot', 'removeBot', 'start', 'again', 'abort']);
+const NO_ARGS = new Set(['leave', 'addBot', 'removeBot', 'start', 'again', 'abort', 'use']);
 
 /** Shape check for anything a socket sends. Deeper validation (who, which phase) is the game's job. */
 export function isClientMessage(x: unknown): x is ClientMessage {
@@ -67,7 +69,7 @@ export function isClientMessage(x: unknown): x is ClientMessage {
         (m.token === undefined || (typeof m.token === 'string' && m.token.length <= 64))
       );
     case 'settings':
-      return m.difficulty === undefined || (DIFFICULTIES as readonly unknown[]).includes(m.difficulty);
+      return (m.difficulty === undefined || (DIFFICULTIES as readonly unknown[]).includes(m.difficulty)) && (m.finale === undefined || typeof m.finale === 'boolean');
     case 'aim':
       return Number.isFinite(m.x) && Number.isFinite(m.y);
     default:

@@ -16,7 +16,16 @@ export function lobbyScreen(): Screen {
   const share = h('p', { class: 'share' }, 'Friends join at ', h('b', null, location.host || 'this address'));
 
   const paceBtns = DIFFICULTIES.map((d) => h('button', { class: 'btn small', type: 'button', onclick: () => send({ type: 'settings', difficulty: d }) }, d));
-  const settings = h('div', { class: 'settings' }, h('span', { class: 'setting' }, h('span', null, 'Pace'), paceBtns));
+  // where the run starts: the whole banquet, or straight to the last and biggest table
+  const startBtns = [false, true].map((finale) =>
+    h('button', { class: 'btn small', type: 'button', onclick: () => send({ type: 'settings', finale }) }, finale ? `Last course only` : 'All courses'),
+  );
+  const settings = h(
+    'div',
+    { class: 'settings' },
+    h('span', { class: 'setting' }, h('span', null, 'Pace'), paceBtns),
+    h('span', { class: 'setting' }, h('span', null, 'Play'), startBtns),
+  );
   const summary = h('p', { class: 'share' });
 
   const el = h(
@@ -61,7 +70,8 @@ export function lobbyScreen(): Screen {
       start.hidden = !host;
       settings.hidden = !host;
       summary.hidden = host;
-      summary.textContent = `Pace: ${s.settings.difficulty} (${BLURB[s.settings.difficulty]})`;
+      summary.textContent = `Pace: ${s.settings.difficulty} (${BLURB[s.settings.difficulty]})${s.settings.finale ? ' · last course only' : ''}`;
+      startBtns.forEach((b, i) => b.classList.toggle('primary', (i === 1) === s.settings.finale));
       paceBtns.forEach((b, i) => b.classList.toggle('primary', DIFFICULTIES[i] === s.settings.difficulty));
       start.disabled = !online;
       addBot.disabled = seated.length >= MAX_PLAYERS || !online;

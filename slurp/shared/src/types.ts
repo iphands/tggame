@@ -7,7 +7,8 @@ import type { DIFFICULTIES } from './constants.js';
 export type Phase = 'lobby' | 'countdown' | 'play' | 'cleared' | 'finale';
 
 export type Difficulty = (typeof DIFFICULTIES)[number];
-export type Settings = { difficulty: Difficulty };
+/** `finale`: skip the first seven courses and play only the last, biggest one. */
+export type Settings = { difficulty: Difficulty; finale: boolean };
 
 export type PlayerView = {
   id: string;
@@ -91,8 +92,8 @@ export type StateView = {
   result: ResultView | null;
 };
 
-/** `[id, x, y, radius]` */
-export type HoleSnap = [string, number, number, number];
+/** `[id, x, y, radius, flags, held]`: `flags` are the `FLAG_…` bits, `held` is 0 or 1 + the index of the power it carries. */
+export type HoleSnap = [string, number, number, number, number, number];
 /** `[id, tier, x, y]` */
 export type FoodInit = [number, number, number, number];
 /** `[id, x, y]` */
@@ -102,5 +103,6 @@ export type FoodMove = [number, number, number];
  * - `['e', food, hole]` a hole started swallowing this food
  * - `['s', food, player]` it fell off the table (`player` shoved it, or '')
  * - `['r', food, x, y, tier]` it was put back
+ * - `['p', hole, power]` a hole set off the power with this index
  */
-export type Fx = ['e', number, string] | ['s', number, string] | ['r', number, number, number, number];
+export type Fx = ['e', number, string] | ['s', number, string] | ['r', number, number, number, number] | ['p', string, number];

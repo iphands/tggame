@@ -53,6 +53,49 @@ export const countFactor = (no: number): number => 0.85 + 0.05 * no;
 /** The share of food laid near the table's edge. */
 export const edgeShare = (no: number): number => Math.min(0.4, 0.04 + 0.04 * no);
 
+// ---- things on the table that are not food
+
+/**
+ * Prize boxes and rotten fish lie among the food and are swallowed like it, but they do not have
+ * to be eaten to clear the table. Their tier numbers follow the food tiers. Both are small
+ * enough for a brand-new hole.
+ */
+export const PRIZE = TIERS.length;
+export const ROTTEN = TIERS.length + 1;
+export const EXTRAS = [
+  { name: 'prize', r: 15 },
+  { name: 'rotten', r: 14 },
+] as const;
+/** Radius of anything on the table, food or not. */
+export const itemRadius = (tier: number): number => (tier < TIERS.length ? TIERS[tier].r : EXTRAS[tier - TIERS.length].r);
+/** How many prize boxes and rotten fish a table has. */
+export const prizesInCourse = (no: number, players: number): number => 1 + Math.floor(players / 3) + (no >= 5 ? 1 : 0);
+export const rottenInCourse = (no: number, players: number): number => 1 + no + Math.floor(players / 2);
+/** A swallowed prize box is put back somewhere else after this long, a rotten fish after that long. */
+export const PRIZE_RESPAWN_MS = 14_000;
+export const ROTTEN_RESPAWN_MS = 7_000;
+
+/** What a prize box can hold. A hole carries one at a time and sets it off with the Use button. */
+export const POWERS = ['gravity', 'turbo', 'feast'] as const;
+/** Super Gravity: for this long the hole draws in edible food from this many times further, this much harder. */
+export const GRAVITY_MS = 6000;
+export const GRAVITY_REACH = 5;
+export const GRAVITY_ACCEL = 2.2;
+/** Turbo: this much faster for this long. */
+export const TURBO_MS = 6000;
+export const TURBO_SPEED = 1.6;
+/** Feast: the hole grows as if it had eaten this much, at once. */
+export const FEAST_MASS = 30;
+/** A hole that swallowed a rotten fish crawls at this share of its speed for this long. */
+export const SLOW_MS = 4500;
+export const SLOW_SPEED = 0.45;
+/** Bits of a hole's `flags` in a snapshot. */
+export const FLAG_SLOW = 1;
+export const FLAG_TURBO = 2;
+export const FLAG_GRAVITY = 4;
+/** How fast a hole with these flags moves, as a share of normal. The server and the client's own-hole prediction both use this. */
+export const speedFactor = (flags: number): number => (flags & FLAG_SLOW ? SLOW_SPEED : 1) * (flags & FLAG_TURBO ? TURBO_SPEED : 1);
+
 // ---- holes
 
 export const HOLE_R0 = 18;

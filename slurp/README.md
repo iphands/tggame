@@ -29,13 +29,19 @@ Phones on the same Wi-Fi join at `http://<your-ip>:5178`.
   Clear the table for 1 to 3 stars (time to spare, few spills). Run out and the run is over.
 - **Courses.** Eight of them. Each has a bigger table, more food, more food near the edge and,
   up to course 5, one more size of food. Clear all eight to finish the banquet.
+- **Prize boxes.** Swallow a wrapped box and your hole carries a power: 🧲 Super Gravity (draws
+  in food from far off for 6 s), ⚡ Turbo (much faster for 6 s) or 🍗 Feast (grows at once). Press
+  **Use** (or Space) to set it off. One at a time; a new box replaces what you carry. Boxes come back.
+- **Rotten fish.** Run over one and your hole crawls for a few seconds. They are never drawn in,
+  not even by Super Gravity, so steer round them. Neither boxes nor fish have to be eaten to
+  clear the table.
 - **Hungriest.** After each course you see who ate how much of it, with a crown for the most; the
   finale lists the hungriest hole on every course.
 - **Players.** The table's area and the amount of food grow with the number of holes, so it is
   as crowded for eight as for one. Late arrivals watch and get a hole on the next course. A
   player who drops off keeps the seat (the hole steers itself meanwhile) and can come straight back.
 - **Host.** The first player (or EasyE) picks the pace (chill, normal, spicy: the clock's length),
-  adds Slurpbots and starts.
+  chooses the whole banquet or the last course only, adds Slurpbots and starts.
 
 ## How it works
 

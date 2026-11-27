@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { CLEARED_MS, COUNTDOWN_MS, TICK_MS } from '../shared/src/constants';
+import { CLEARED_MS, COUNTDOWN_MS, COURSES, TICK_MS, TIERS } from '../shared/src/constants';
 import type { PlayerStats } from '../shared/src/types';
 import { GONE } from '../server/src/world';
-import { run, runUntil, started } from './helpers';
+import { run, runUntil, started, table } from './helpers';
 
 type G = ReturnType<typeof started>['g'];
 
@@ -69,5 +69,40 @@ describe('who ate the most on each course', () => {
     g.start(ids[0]);
     runUntil(g, () => g.phase === 'finale', 10 * 60_000);
     expect(g.viewFor(ids[0]).result!.courses).toHaveLength(1);
+  });
+});
+
+describe('last course only', () => {
+  it('is the host\'s choice in the lobby and starts the run on the last table', () => {
+    const { g, ids } = table(2);
+    g.configure(ids[1], undefined, true);
+    expect(g.settings.finale).toBe(false);
+    g.configure(ids[0], undefined, true);
+    expect(g.viewFor(ids[1]).settings.finale).toBe(true);
+    g.start(ids[0]);
+    expect(g.course).toBe(COURSES);
+    expect(g.viewFor(ids[0]).course).toMatchObject({ no: COURSES, of: COURSES });
+    expect(g.world!.foods.some((f) => f.tier === TIERS.length - 1)).toBe(true);
+  });
+
+  it('clearing that one table wins the run', () => {
+    const { g, ids } = table(1);
+    g.configure(ids[0], undefined, true);
+    g.start(ids[0]);
+    runUntil(g, () => g.phase === 'play', COUNTDOWN_MS + 1000);
+    clearTable(g);
+    expect(g.phase).toBe('finale');
+    const r = g.viewFor(ids[0]).result!;
+    expect(r).toMatchObject({ won: true, cleared: 1 });
+    expect(r.courses.map((c) => c.no)).toEqual([COURSES]);
+  });
+
+  it('can be switched back off, and the pace is left alone', () => {
+    const { g, ids } = table(1);
+    g.configure(ids[0], 'spicy', true);
+    g.configure(ids[0], undefined, false);
+    expect(g.settings).toEqual({ difficulty: 'spicy', finale: false });
+    g.start(ids[0]);
+    expect(g.course).toBe(1);
   });
 });

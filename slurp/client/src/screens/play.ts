@@ -1,16 +1,28 @@
 /** A course being played: one canvas for the table, a few floating labels over it, one frame loop. */
 import { h } from '@tggame/base/client/dom';
 import { lerp } from '@tggame/base/platformer/interp';
-import { SPILL_PENALTY_MS, SWALLOW_MS, TIERS } from '../../../shared/src/constants';
+import {
+  EXTRAS,
+  FLAG_GRAVITY,
+  FLAG_SLOW,
+  FLAG_TURBO,
+  GRAVITY_REACH,
+  PRIZE,
+  PULL_REACH,
+  SPILL_PENALTY_MS,
+  SWALLOW_MS,
+  TIERS,
+  speedFactor,
+} from '../../../shared/src/constants';
 import { canEat, massForRadius, massForTier, moveHole, tiersEdible } from '../../../shared/src/sim';
-import { GRASS, TIER_NAMES, drawBlanket, drawFood, drawHole, foodSprites } from '../art';
+import { GRASS, POWER_NAMES, TIER_NAMES, drawBlanket, drawFood, drawHole, foodSprites } from '../art';
 import { buzz, sfx } from '../audio';
 import { createInput, type View } from '../input';
 import { clockLeft, live, type FoodView, type LiveEvent } from '../live';
 import { isSeated, player, send, store } from '../store';
 import type { Screen } from './index';
 
-type HoleView = { id: string; x: number; y: number; r: number };
+type HoleView = { id: string; x: number; y: number; r: number; flags: number };
 type Spark = { x: number; y: number; vx: number; vy: number; at: number; color: string };
 type Float = { x: number; y: number; at: number; text: string };
 
@@ -20,7 +32,7 @@ const AIM_EVERY_MS = 33;
 /** How much grass the camera shows beyond the table's edge, in world units. */
 const EDGE_VIEW = 70;
 /** Minimap dot colours, by tier. */
-const DOT = ['#ff5d73', '#c98b4a', '#e9c46a', '#c0304a', '#2f9e44'];
+const DOT = ['#ff5d73', '#c98b4a', '#e9c46a', '#c0304a', '#2f9e44', '#c97a2b', '#ffd23f', '#8e44d9'];
 
 export function playScreen(): Screen {
   const canvas = h('canvas');
@@ -34,7 +46,26 @@ export function playScreen(): Screen {
   const grow = h('div', { class: 'grow' }, growText, nextIcon, h('span', { class: 'bar' }, bar));
   const count = h('div', { class: 'count' });
   const watching = h('div', { class: 'watching' }, 'Watching. You get a hole on the next course.');
-  const hud = h('div', { class: 'hud' }, team, clock, left, count, grow, watching);
+  // the power this hole is carrying, and the button that sets it off
+  const use = h('button', { class: 'btn use', type: 'button', hidden: true });
+  const effects = h('div', { class: 'effects' });
+  const fire = (): void => {
+    if (!use.hidden) send({ type: 'use' });
+  };
+  // pressed, not clicked: it must answer at once, and the press must not start steering the hole
+  use.addEventListener('pointerdown', (ev) => {
+    ev.stopPropagation();
+    ev.preventDefault();
+    fire();
+  });
+  const onKey = (ev: KeyboardEvent): void => {
+    if (ev.code === 'Space' || ev.code === 'Enter') {
+      ev.preventDefault();
+      fire();
+    }
+  };
+  window.addEventListener('keydown', onKey);
+  const hud = h('div', { class: 'hud' }, team, clock, left, count, effects, grow, use, watching);
   const el = h('section', { class: 'screen play' }, canvas, hud);
 
   const input = createInput(el);
@@ -44,7 +75,7 @@ export function playScreen(): Screen {
   const pulses = new Map<string, number>();
   const sparks: Spark[] = [];
   const floats: Float[] = [];
-  const byTier: FoodView[][] = TIERS.map(() => []);
+  const byTier: FoodView[][] = [...TIERS, ...EXTRAS].map(() => []);
   let holes: HoleView[] = [];
   let raf = 0;
   let last = performance.now();
@@ -58,6 +89,8 @@ export function playScreen(): Screen {
   /** Until when the grow badge announces the food just unlocked, instead of the next one. */
   let unlockedUntil = 0;
   let unlockedName = '';
+  let shownHeld = -1;
+  let shownFlags = -1;
   let goTimer = 0;
   let camReady = false;
   let teamAt = 0;
@@ -73,7 +106,27 @@ export function playScreen(): Screen {
   }
 
   function onEvent(e: LiveEvent): void {
-    if (e.kind === 'eat') {
+    if (e.kind === 'power') {
+      const mine = e.hole === selfId();
+      pulses.set(e.hole, 1);
+      sfx.power(mine);
+      if (mine) buzz(50);
+      const at = holes.find((o) => o.id === e.hole);
+      if (at) floats.push({ x: at.x, y: at.y - at.r, at: performance.now(), text: POWER_NAMES[e.power] ?? '' });
+    } else if (e.kind === 'eat' && e.food.tier >= TIERS.length) {
+      // a prize box or a rotten fish
+      pulses.set(e.hole, 1);
+      if (e.hole !== selfId()) return;
+      if (e.food.tier === PRIZE) {
+        sfx.prize();
+        buzz(30);
+        floats.push({ x: e.food.x, y: e.food.y, at: performance.now(), text: 'Prize!' });
+      } else {
+        sfx.yuck();
+        buzz(120);
+        floats.push({ x: e.food.x, y: e.food.y, at: performance.now(), text: 'Yuck! Slowed…' });
+      }
+    } else if (e.kind === 'eat') {
       const mine = e.hole === selfId();
       pulses.set(e.hole, 1);
       sfx.gulp(e.food.tier, mine);
@@ -100,9 +153,9 @@ export function playScreen(): Screen {
   function holesNow(now: number): HoleView[] {
     const br = live.buffer.bracket(now);
     if (!br) return [];
-    return br.b.holes.map(([id, x, y, r]) => {
+    return br.b.holes.map(([id, x, y, r, flags]) => {
       const a = br.a.holes.find((o) => o[0] === id);
-      return a ? { id, x: lerp(a[1], x, br.alpha), y: lerp(a[2], y, br.alpha), r: lerp(a[3], r, br.alpha) } : { id, x, y, r };
+      return a ? { id, x: lerp(a[1], x, br.alpha), y: lerp(a[2], y, br.alpha), r: lerp(a[3], r, br.alpha), flags } : { id, x, y, r, flags };
     });
   }
 
@@ -124,7 +177,8 @@ export function playScreen(): Screen {
     const aim = input.aim(self, view);
     self.ax = Math.min(live.w, Math.max(0, aim.x));
     self.ay = Math.min(live.h, Math.max(0, aim.y));
-    moveHole(self, live.w, live.h, dt);
+    // slowed or boosted exactly as the server moves it, so the prediction stays true
+    moveHole(self, live.w, live.h, dt, speedFactor(latest[4]));
     // the server has the last word; lean toward it gently so a lost message cannot leave us adrift
     const pull = Math.min(1, dt * 1.5);
     self.x += (latest[1] - self.x) * pull;
@@ -186,6 +240,7 @@ export function playScreen(): Screen {
       const p = pulses.get(o.id) ?? 0;
       if (p > 0) pulses.set(o.id, Math.max(0, p - dt * 4));
       drawHole(ctx, o.x, o.y, o.r, colorOf(o.id), p);
+      if (o.flags) drawEffects(o, now);
     }
 
     // food, small under big, each easing to where the server has it
@@ -206,7 +261,7 @@ export function playScreen(): Screen {
     for (const list of byTier) {
       for (const f of list) {
         // every piece lies at its own angle; round food at any angle, the rest only a little askew
-        const lie = f.tier === 0 || f.tier === 2 ? (((f.id * 53) % 100) / 100 - 0.5) * 0.9 : (f.id * 2.399) % 6.283;
+        const lie = f.tier === 0 || f.tier === 2 || f.tier >= TIERS.length ? (((f.id * 53) % 100) / 100 - 0.5) * 0.9 : (f.id * 2.399) % 6.283;
         const turn = lie + Math.sin(now / 70 + f.id) * 0.16 * f.nudge;
         if (f.state === 'on') {
           const age = (now - f.at) / 260;
@@ -215,7 +270,7 @@ export function playScreen(): Screen {
             ctx.globalAlpha = age;
             drawFood(ctx, f.tier, f.x, f.y, 1.7 - 0.7 * age, turn);
             ctx.globalAlpha = 1;
-          } else drawFood(ctx, f.tier, f.x, f.y, 1, turn);
+          } else drawFood(ctx, f.tier, f.x, f.y, f.tier === PRIZE ? 1 + 0.12 * Math.sin(now / 180 + f.id) : 1, turn);
           if (me && !canEat(me.r, f.r) && Math.hypot(f.x - me.x, f.y - me.y) < me.r + f.r + 22) {
             ctx.beginPath();
             ctx.arc(f.x, f.y, f.r + 5, 0, Math.PI * 2);
@@ -321,6 +376,48 @@ export function playScreen(): Screen {
     drawMap(x0, y0, x1, y1);
   }
 
+  /** Rings round a hole for whatever is acting on it. */
+  function drawEffects(o: HoleView, now: number): void {
+    ctx.lineCap = 'round';
+    if (o.flags & FLAG_GRAVITY) {
+      // how far the pull reaches, slowly turning inwards
+      const reach = o.r * (1 + PULL_REACH * GRAVITY_REACH);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = 'rgba(142,68,217,.55)';
+      for (let i = 0; i < 3; i++) {
+        const k = ((now / 900 + i / 3) % 1 + 1) % 1;
+        ctx.globalAlpha = k;
+        ctx.setLineDash([14, 12]);
+        ctx.lineDashOffset = now / 30;
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r + (reach - o.r) * (1 - k), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.setLineDash([]);
+    }
+    if (o.flags & FLAG_TURBO) {
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = '#ffb000';
+      ctx.setLineDash([10, 9]);
+      ctx.lineDashOffset = -now / 12;
+      ctx.beginPath();
+      ctx.arc(o.x, o.y, o.r + 7, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    if (o.flags & FLAG_SLOW) {
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = 'rgba(122,154,58,.9)';
+      ctx.beginPath();
+      for (let a = 0; a <= Math.PI * 2 + 0.01; a += Math.PI / 16) {
+        const rr = o.r + 6 + Math.sin(a * 6 + now / 220) * 3;
+        ctx.lineTo(o.x + Math.cos(a) * rr, o.y + Math.sin(a) * rr);
+      }
+      ctx.stroke();
+    }
+  }
+
   /** The whole table in the top right corner, once it no longer fits on the screen. */
   function drawMap(x0: number, y0: number, x1: number, y1: number): void {
     if (x0 <= 0 && y0 <= 0 && x1 >= live.w && y1 >= live.h) return;
@@ -414,6 +511,29 @@ export function playScreen(): Screen {
       }
     }
 
+    // the Use button and what is acting on our hole, from the newest snapshot
+    const mine = live.buffer.latest?.holes.find((o) => o[0] === s.selfId);
+    const held = s.phase === 'play' && mine ? mine[5] : 0;
+    const flags = mine ? mine[4] : 0;
+    if (held !== shownHeld) {
+      shownHeld = held;
+      use.hidden = held === 0;
+      if (held) {
+        use.replaceChildren(h('small', null, 'USE'), POWER_NAMES[held - 1]);
+        use.classList.remove('bump');
+        void use.offsetWidth;
+        use.classList.add('bump');
+      }
+    }
+    if (flags !== shownFlags) {
+      shownFlags = flags;
+      const chips: HTMLElement[] = [];
+      if (flags & FLAG_SLOW) chips.push(h('span', { class: 'bad' }, '🤢 Slowed'));
+      if (flags & FLAG_GRAVITY) chips.push(h('span', null, POWER_NAMES[0]));
+      if (flags & FLAG_TURBO) chips.push(h('span', null, POWER_NAMES[1]));
+      effects.replaceChildren(...chips);
+    }
+
     if (now - teamAt > 250) {
       teamAt = now;
       team.replaceChildren(
@@ -454,6 +574,7 @@ export function playScreen(): Screen {
     },
     destroy() {
       cancelAnimationFrame(raf);
+      window.removeEventListener('keydown', onKey);
       clearTimeout(goTimer);
       input.destroy();
       if (live.onEvent === onEvent) live.onEvent = null;

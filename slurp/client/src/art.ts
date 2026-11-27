@@ -1,5 +1,5 @@
 /** Every picture in the game is drawn here, in code: food sprites, holes, the blanket. */
-import { TIERS } from '../../shared/src/constants';
+import { EXTRAS, TIERS, itemRadius } from '../../shared/src/constants';
 
 const INK = '#1f2440';
 /** Sprites are drawn this many pixels per world unit, enough for a zoomed-in phone screen. */
@@ -221,12 +221,90 @@ const DRAW: ((c: Ctx, r: number) => void)[] = [
     c.strokeStyle = 'rgba(255,255,255,.7)';
     c.stroke();
   },
+  // prize box: a wrapped present with a question mark
+  (c, r) => {
+    const half = r * 0.8;
+    c.beginPath();
+    c.roundRect(-half, -half, half * 2, half * 2, r * 0.2);
+    c.fillStyle = '#ffd23f';
+    c.fill();
+    ink(c, 2.4);
+    c.fillStyle = '#ff5d73';
+    c.fillRect(-r * 0.16, -half, r * 0.32, half * 2);
+    c.fillRect(-half, -r * 0.16, half * 2, r * 0.32);
+    c.beginPath();
+    c.roundRect(-half, -half, half * 2, half * 2, r * 0.2);
+    ink(c, 2.4);
+    // the bow
+    for (const side of [-1, 1]) {
+      c.beginPath();
+      c.ellipse(side * r * 0.3, -half - r * 0.04, r * 0.26, r * 0.17, side * -0.5, 0, Math.PI * 2);
+      c.fillStyle = '#ff5d73';
+      c.fill();
+      ink(c, 1.8);
+    }
+    circle(c, 0, -half, r * 0.13);
+    c.fillStyle = '#fff';
+    c.fill();
+    ink(c, 1.6);
+    c.font = `${r * 1.05}px 'Chewy', sans-serif`;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.lineWidth = 3;
+    c.strokeStyle = INK;
+    c.strokeText('?', 0, r * 0.12);
+    c.fillStyle = '#fff';
+    c.fillText('?', 0, r * 0.12);
+  },
+  // rotten fish: green, cross-eyed, and it stinks
+  (c, r) => {
+    // the stink
+    c.strokeStyle = '#8e44d9';
+    c.lineWidth = r * 0.13;
+    c.lineCap = 'round';
+    for (const x of [-0.45, 0.05, 0.5]) {
+      c.beginPath();
+      c.moveTo(x * r, -r * 0.5);
+      c.bezierCurveTo(x * r - r * 0.2, -r * 0.7, x * r + r * 0.2, -r * 0.82, x * r, -r * 1.02);
+      c.stroke();
+    }
+    // tail
+    c.beginPath();
+    c.moveTo(r * 0.45, r * 0.12);
+    c.lineTo(r * 0.98, -r * 0.28);
+    c.lineTo(r * 0.98, r * 0.52);
+    c.closePath();
+    c.fillStyle = '#7a9a3a';
+    c.fill();
+    ink(c, 2);
+    // body
+    c.beginPath();
+    c.ellipse(-r * 0.12, r * 0.12, r * 0.72, r * 0.44, 0, 0, Math.PI * 2);
+    c.fillStyle = '#a3c14a';
+    c.fill();
+    ink(c, 2.4);
+    // mouldy spots
+    c.fillStyle = '#5c7d2a';
+    for (const [x, y, k] of [[0.1, 0.2, 0.1], [-0.2, 0.32, 0.07], [0.3, 0.02, 0.07]]) {
+      circle(c, x * r, y * r, k * r);
+      c.fill();
+    }
+    // a crossed-out eye
+    c.strokeStyle = INK;
+    c.lineWidth = r * 0.1;
+    c.beginPath();
+    c.moveTo(-r * 0.62, -r * 0.08);
+    c.lineTo(-r * 0.4, r * 0.14);
+    c.moveTo(-r * 0.4, -r * 0.08);
+    c.lineTo(-r * 0.62, r * 0.14);
+    c.stroke();
+  },
 ];
 
 export type Sprite = { img: HTMLCanvasElement; /** Half the sprite's size in world units. */ half: number };
 
 function makeSprite(tier: number): Sprite {
-  const r = TIERS[tier].r;
+  const r = itemRadius(tier);
   const half = r + PAD;
   const img = document.createElement('canvas');
   img.width = img.height = Math.ceil(half * 2 * RES);
@@ -242,7 +320,8 @@ function makeSprite(tier: number): Sprite {
 }
 
 let sprites: Sprite[] | null = null;
-export const foodSprites = (): Sprite[] => (sprites ??= TIERS.map((_, tier) => makeSprite(tier)));
+/** One sprite per tier: the food, then the prize box and the rotten fish. */
+export const foodSprites = (): Sprite[] => (sprites ??= [...TIERS, ...EXTRAS].map((_, tier) => makeSprite(tier)));
 
 /** Draw a food sprite centred at (x, y) in the current transform, `scale` times its natural size. */
 export function drawFood(c: Ctx, tier: number, x: number, y: number, scale = 1, turn = 0): void {
@@ -316,3 +395,6 @@ export function drawBlanket(c: Ctx, w: number, h: number, x0: number, y0: number
 
 export const GRASS = '#5fae57';
 export const TIER_NAMES = ['berries', 'cookies', 'sandwiches', 'pies', 'melons', 'turkeys'] as const;
+
+/** What the Use button and the banners call each power, in `POWERS` order. */
+export const POWER_NAMES = ['🧲 Super Gravity', '⚡ Turbo', '🍗 Feast'] as const;

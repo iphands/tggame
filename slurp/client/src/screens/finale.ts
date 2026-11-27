@@ -66,9 +66,12 @@ export function finaleScreen(): Screen {
 
   const again = h('button', { class: 'btn primary big', type: 'button', onclick: () => send({ type: 'again' }) }, 'Play again');
   const waiting = h('p', { class: 'sub' });
-  const headline = r.won ? 'The whole banquet, gone!' : r.cleared === 0 ? 'Out of time!' : `Out of time on course ${r.failedOn}`;
+  // a run of the last course alone is a win too, just not the whole banquet
+  const headline = r.won ? (r.courses.length === 1 ? 'The big table, gone!' : 'The whole banquet, gone!') : r.cleared === 0 ? 'Out of time!' : `Out of time on course ${r.failedOn}`;
   const sub = r.won
-    ? `All ${r.cleared} courses cleared.`
+    ? r.courses.length === 1
+      ? 'The last and biggest course, cleared.'
+      : `All ${r.cleared} courses cleared.`
     : `${r.cleared} ${r.cleared === 1 ? 'course' : 'courses'} cleared. ${r.leftOver} ${r.leftOver === 1 ? 'bite was' : 'bites were'} left on the table.`;
 
   const el = h(

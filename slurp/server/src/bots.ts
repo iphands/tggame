@@ -1,4 +1,5 @@
 /** Hungry helpers: a bot heads for the nearest thing it can swallow. Also steers a human's hole while they are away. */
+import { PRIZE, ROTTEN } from '../../shared/src/constants.js';
 import { canEat } from '../../shared/src/sim.js';
 import { ON, type Hole, type World } from './world.js';
 
@@ -15,7 +16,8 @@ export function botAim(world: World, hole: Hole, rng: Rng): void {
   let tx = 0;
   let ty = 0;
   for (const f of world.foods) {
-    if (f.state !== ON || !canEat(hole.r, f.r)) continue;
+    // a bot never goes for a rotten fish, and wants a prize box only while its hands are empty
+    if (f.state !== ON || !canEat(hole.r, f.r) || f.tier === ROTTEN || (f.tier === PRIZE && hole.held)) continue;
     const d = Math.hypot(f.x - hole.x, f.y - hole.y);
     // other holes are after the same food: go for what is nearer to you than to them
     let score = d;

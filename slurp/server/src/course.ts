@@ -1,11 +1,16 @@
 /** Lays a table: how much of what, and where. Deterministic for a given RNG. */
 import {
   BASE_COUNTS,
+  PRIZE,
+  ROTTEN,
   TEAM_SHARE,
   TIERS,
   areaFactor,
   countFactor,
   edgeShare,
+  itemRadius,
+  prizesInCourse,
+  rottenInCourse,
   tableSize,
   tiersInCourse,
 } from '../../shared/src/constants.js';
@@ -54,11 +59,11 @@ export function makeCourse(no: number, players: number, rng: Rng): Course {
 
   const foods: Placed[] = [];
   const fits = (tier: number, x: number, y: number): boolean => {
-    const r = TIERS[tier].r;
+    const r = itemRadius(tier);
     if (x < r + 10 || y < r + 10 || x > w - r - 10 || y > h - r - 10) return false;
     if (Math.hypot(x - w / 2, y - h / 2) < clear + r) return false;
     for (const f of foods) {
-      const gap = r + TIERS[f.tier].r + 3;
+      const gap = r + itemRadius(f.tier) + 3;
       const dx = f.x - x;
       const dy = f.y - y;
       if (dx * dx + dy * dy < gap * gap) return false;
@@ -103,5 +108,18 @@ export function makeCourse(no: number, players: number, rng: Rng): Course {
       foods.push({ tier, x: Math.round(spot.x * 10) / 10, y: Math.round(spot.y * 10) / 10 });
     }
   }
+  // prize boxes and rotten fish go in the gaps, anywhere on the table
+  const scatter = (tier: number, count: number): void => {
+    const r = itemRadius(tier);
+    for (let i = 0; i < count; i++) {
+      let spot = { x: r + 20 + rng() * (w - 2 * r - 40), y: r + 20 + rng() * (h - 2 * r - 40) };
+      for (let attempt = 0; attempt < 120 && !fits(tier, spot.x, spot.y); attempt++) {
+        spot = { x: r + 20 + rng() * (w - 2 * r - 40), y: r + 20 + rng() * (h - 2 * r - 40) };
+      }
+      foods.push({ tier, x: Math.round(spot.x * 10) / 10, y: Math.round(spot.y * 10) / 10 });
+    }
+  };
+  scatter(PRIZE, prizesInCourse(no, players));
+  scatter(ROTTEN, rottenInCourse(no, players));
   return { no, w, h, tiers, foods };
 }

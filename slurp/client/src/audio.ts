@@ -31,6 +31,18 @@ export const sfx = {
     tone('square', 260, 110, 0.22, 0.16);
     noise(0.12, 0.12, 1400, 400);
   },
+  /** A prize box went down your hole. */
+  prize: () => [660, 880, 1175].forEach((f, i) => tone('triangle', f, f, 0.09, 0.35, i * 0.07)),
+  /** A rotten fish went down your hole. */
+  yuck: () => {
+    tone('sawtooth', 220, 90, 0.35, 0.3);
+    tone('sawtooth', 180, 70, 0.3, 0.2, 0.12);
+  },
+  /** Somebody set a power off. */
+  power: (mine: boolean) => {
+    tone('sawtooth', 220, 880, 0.3, mine ? 0.3 : 0.12);
+    tone('sine', 440, 1760, 0.35, mine ? 0.3 : 0.12, 0.05);
+  },
   /** It came back. */
   plop: () => tone('sine', 300, 520, 0.08, 0.2),
   /** The last seconds. */

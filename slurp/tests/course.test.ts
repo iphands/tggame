@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { foodCounts, guaranteedMass, makeCourse } from '../server/src/course';
-import { COURSES, MAX_PLAYERS, TIERS, tableSize, tiersInCourse } from '../shared/src/constants';
+import { COURSES, MAX_PLAYERS, TIERS, itemRadius, prizesInCourse, rottenInCourse, tableSize, tiersInCourse } from '../shared/src/constants';
 import { massForTier, startRing } from '../shared/src/sim';
 import { seeded } from './helpers';
 
@@ -53,10 +53,11 @@ describe('makeCourse', () => {
     for (let seed = 1; seed <= 8; seed++) {
       for (const [no, n] of [[1, 1], [3, 2], [5, 4], [8, 8], [8, 1]] as const) {
         const c = makeCourse(no, n, seeded(seed));
-        expect(c.foods.length).toBe(foodCounts(no, n).reduce((a, b) => a + b, 0));
+        // the food, plus the prize boxes and rotten fish scattered among it
+        expect(c.foods.length).toBe(foodCounts(no, n).reduce((a, b) => a + b, 0) + prizesInCourse(no, n) + rottenInCourse(no, n));
         let overlaps = 0;
         c.foods.forEach((f, i) => {
-          const r = TIERS[f.tier].r;
+          const r = itemRadius(f.tier);
           expect(f.x).toBeGreaterThanOrEqual(r);
           expect(f.y).toBeGreaterThanOrEqual(r);
           expect(f.x).toBeLessThanOrEqual(c.w - r);
@@ -64,7 +65,7 @@ describe('makeCourse', () => {
           if (Math.hypot(f.x - c.w / 2, f.y - c.h / 2) < startRing(n) + 30) overlaps++;
           for (let j = 0; j < i; j++) {
             const g = c.foods[j];
-            if (Math.hypot(f.x - g.x, f.y - g.y) < r + TIERS[g.tier].r) overlaps++;
+            if (Math.hypot(f.x - g.x, f.y - g.y) < r + itemRadius(g.tier)) overlaps++;
           }
         });
         expect(overlaps).toBe(0);
