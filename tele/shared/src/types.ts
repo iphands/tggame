@@ -1,9 +1,6 @@
-/**
- * One marker stroke: colour index (or ERASER), width in page units, flat `x,y,x,y…` page coordinates.
- * With `f: 1` it is a fill-bucket tap instead: one point, flooded with colour `c`.
- */
-export type Stroke = { c: number; w: number; p: number[]; f?: 1 };
-export type Drawing = Stroke[];
+import type { Drawing } from '@tggame/base/party/draw/kit';
+
+export type { Drawing, Stroke } from '@tggame/base/party/draw/kit';
 
 export type Phase = 'lobby' | 'pick' | 'draw' | 'guess' | 'reveal' | 'finale';
 

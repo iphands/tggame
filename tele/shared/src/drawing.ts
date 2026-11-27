@@ -1,5 +1,9 @@
-import { DRAW_LIMITS, ERASER, GUESS_MAX, INK, NAME_MAX, PAGE_H, PAGE_W } from './constants.js';
-import type { Drawing, Stroke } from './types.js';
+import { clamp, sanitizeStroke, type Drawing, type Stroke } from '@tggame/base/party/draw/kit';
+import { sanitizeLine } from '@tggame/base/shared/text';
+import { DRAW_LIMITS, GUESS_MAX } from './constants.js';
+
+export { hasInk } from '@tggame/base/party/draw/kit';
+export { sameWord, sanitizeName } from '@tggame/base/shared/text';
 
 /**
  * Validate and normalise an untrusted drawing. Returns null when the shape is
@@ -11,33 +15,14 @@ export function sanitizeDrawing(input: unknown): Drawing | null {
   let total = 0;
   let fills = 0;
   for (const raw of input) {
-    if (typeof raw !== 'object' || raw === null) return null;
-    const { c, w, p, f } = raw as Record<string, unknown>;
-    // a fill is one point in a real colour
-    if (f !== undefined && (f !== 1 || c === ERASER || !Array.isArray(p) || p.length !== 2)) return null;
-    if (f === 1 && ++fills > DRAW_LIMITS.maxFills) return null;
-    if (typeof c !== 'number' || !Number.isInteger(c) || c < ERASER || c >= INK.length) return null;
-    if (typeof w !== 'number' || !Number.isFinite(w)) return null;
-    if (!Array.isArray(p) || p.length < 2 || p.length % 2 !== 0) return null;
-    if (p.length / 2 > DRAW_LIMITS.maxPointsPerStroke) return null;
-    total += p.length / 2;
+    const stroke = sanitizeStroke(raw);
+    if (!stroke) return null;
+    if (stroke.f === 1 && ++fills > DRAW_LIMITS.maxFills) return null;
+    total += stroke.p.length / 2;
     if (total > DRAW_LIMITS.maxPoints) return null;
-    const pts: number[] = new Array(p.length);
-    for (let i = 0; i < p.length; i++) {
-      const v = p[i];
-      if (typeof v !== 'number' || !Number.isFinite(v)) return null;
-      pts[i] = clamp(Math.round(v), 0, i % 2 === 0 ? PAGE_W : PAGE_H);
-    }
-    const stroke: Stroke = { c, w: clamp(Math.round(w), DRAW_LIMITS.minWidth, DRAW_LIMITS.maxWidth), p: pts };
-    if (f === 1) stroke.f = 1;
     out.push(stroke);
   }
   return out;
-}
-
-/** True when a drawing has at least one visible (non-eraser) mark. */
-export function hasInk(d: Drawing): boolean {
-  return d.some((s) => s.c !== ERASER);
 }
 
 /**
@@ -90,30 +75,5 @@ export function splitStroke(s: Stroke): Stroke[] {
   return out;
 }
 
-export function sanitizeName(raw: unknown): string {
-  const s = typeof raw === 'string' ? raw : '';
-  return s.replace(/[^\p{L}\p{N} _-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX);
-}
-
 /** Clean a typed guess: single line, no control characters, bounded length. */
-export function sanitizeGuess(raw: unknown): string {
-  const s = typeof raw === 'string' ? raw : '';
-  return [...s.replace(/[\p{C}\s]+/gu, ' ').trim()].slice(0, GUESS_MAX).join('').trim();
-}
-
-/** Loose comparison used to decide whether a word "survived" the telephone. */
-export function sameWord(a: string, b: string): boolean {
-  const norm = (s: string) =>
-    s
-      .toLowerCase()
-      .normalize('NFKD')
-      .replace(/[^\p{L}\p{N}]/gu, '')
-      .replace(/^(the|a|an)(?=.{3,})/, '')
-      .replace(/s$/, '');
-  const x = norm(a);
-  return x.length > 0 && x === norm(b);
-}
-
-function clamp(v: number, lo: number, hi: number): number {
-  return v < lo ? lo : v > hi ? hi : v;
-}
+export const sanitizeGuess = (raw: unknown): string => sanitizeLine(raw, GUESS_MAX);

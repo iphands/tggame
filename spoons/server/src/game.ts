@@ -26,7 +26,7 @@ import {
   ROUND_OPTIONS,
 } from '../../shared/src/constants.js';
 import { pickFumble, pickHeckle } from '../../shared/src/heckles.js';
-import { sanitizeName } from '../../shared/src/names.js';
+import { sanitizeName } from '@tggame/base/shared/text';
 import type { Phase, PlayerView, ResultView, Settings, Shout, StateView, Task } from '../../shared/src/types.js';
 import { BOT_NAMES, botPass, type Rng } from './bots.js';
 

@@ -2,8 +2,8 @@
 import { DRAW_LIMITS, ERASER, ERASER_NIBS, NIBS, PAGE_H, PAGE_W } from '../../shared/src/constants';
 import { simplify, splitStroke } from '../../shared/src/drawing';
 import type { Drawing, Stroke } from '../../shared/src/types';
-import { isFill } from './fill';
-import { paint, paintFill, paintStroke } from './render';
+import { isFill } from '@tggame/base/party/draw/fill';
+import { paint, paintFill, paintStroke } from '@tggame/base/party/draw/paint';
 
 export class DrawPad {
   readonly el: HTMLDivElement;

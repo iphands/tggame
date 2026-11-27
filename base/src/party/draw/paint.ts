@@ -1,7 +1,6 @@
-/** Painting vector drawings. */
-import { ERASER, INK, PAGE_H, PAGE_W } from '../../shared/src/constants';
-import type { Drawing, Stroke } from '../../shared/src/types';
-import { flood, isFill, newCanon, stamp, type Canon } from './fill';
+/** Painting vector drawings onto a canvas. */
+import { ERASER, INK, PAGE_H, PAGE_W, type Drawing, type Stroke } from './kit.js';
+import { flood, isFill, newCanon, stamp, type Canon } from './fill.js';
 
 type Ctx = CanvasRenderingContext2D;
 

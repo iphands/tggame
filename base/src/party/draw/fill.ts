@@ -4,8 +4,7 @@
  * monitor, the flood always runs on a "canon" copy of the page at one pixel
  * per page unit, and the result is stamped onto the real canvas at its scale.
  */
-import { INK, PAGE_H, PAGE_W } from '../../shared/src/constants';
-import type { Stroke } from '../../shared/src/types';
+import { INK, PAGE_H, PAGE_W, type Stroke } from './kit.js';
 
 const W = PAGE_W;
 const H = PAGE_H;

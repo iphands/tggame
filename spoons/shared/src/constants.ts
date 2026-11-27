@@ -3,7 +3,7 @@
 export const MIN_PLAYERS = 3;
 /** Eight hands of four leave twenty cards to keep the deck flowing. */
 export const MAX_PLAYERS = 8;
-export const NAME_MAX = 16;
+export { NAME_MAX } from '@tggame/base/shared/text';
 export const HAND_SIZE = 4;
 
 // ---- the round

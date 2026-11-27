@@ -1,7 +1,7 @@
 import '@fontsource/patrick-hand/400.css';
 import '@fontsource/chewy/400.css';
 import { NAME_MAX } from '../../shared/src/constants';
-import { sanitizeName } from '../../shared/src/names';
+import { sanitizeName } from '@tggame/base/shared/text';
 import type { ServerMessage } from '../../shared/src/protocol';
 import { isMuted, setMuted, sfx, unlockAudio } from './audio';
 import { cardEl, spoonEl } from './cards';

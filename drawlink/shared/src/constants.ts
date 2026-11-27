@@ -1,8 +1,9 @@
 /** Every tunable number and palette lives here. Dependency-free (shared by client and server). */
+import { STROKE_LIMITS } from '@tggame/base/party/draw/kit';
 
 export const MIN_PLAYERS = 3;
 export const MAX_PLAYERS = 16;
-export const NAME_MAX = 16;
+export { NAME_MAX } from '@tggame/base/shared/text';
 /** Longest chat line; guesses are chat lines. */
 export const CHAT_MAX = 80;
 
@@ -40,39 +41,14 @@ export const CHAT_KEEP = 80;
 export const CHAT_GAP_MS = 250;
 
 /** Drawings live on a fixed 4:3 page in integer page units, whatever the screen size. */
-export const PAGE_W = 1000;
-export const PAGE_H = 750;
+export { ERASER, ERASER_NIBS, INK, NIBS, PAGE_H, PAGE_W } from '@tggame/base/party/draw/kit';
 
+/** Limits on a whole drawing, on top of the shared per-stroke ones. */
 export const DRAW_LIMITS = {
+  ...STROKE_LIMITS,
   maxStrokes: 600,
-  maxPointsPerStroke: 1500,
   maxPoints: 40000,
-  /** Bucket fills per drawing: each one is a flood on every screen, every repaint. */
-  maxFills: 40,
-  minWidth: 2,
-  maxWidth: 90,
 };
-
-/** Marker colours; a stroke stores an index into this list. */
-export const INK = [
-  '#1f2440', // ink
-  '#e63946', // red
-  '#ff8c42', // orange
-  '#ffc21a', // yellow
-  '#3fa34d', // green
-  '#19a7ce', // sky
-  '#3d5af1', // blue
-  '#8e44d9', // purple
-  '#ff6fb5', // pink
-  '#8d5a3b', // brown
-] as const;
-
-/** Stroke colour index meaning "erase" (rendered with destination-out). */
-export const ERASER = -1;
-
-/** Nib widths in page units. */
-export const NIBS = [5, 11, 24] as const;
-export const ERASER_NIBS = [16, 34, 64] as const;
 
 /** Sticky-note colours handed to players in join order. */
 export const PLAYER_COLORS = [
