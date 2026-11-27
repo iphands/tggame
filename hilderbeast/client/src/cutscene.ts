@@ -19,6 +19,10 @@ export const SAYINGS = [
   'What in the dog?',
   'Now GET OUT!!',
   "I don't know about all that",
+  'I aint fooling with all that',
+  "I'm not doin this anymore",
+  'Rebeccer!',
+  'Go to the Walmarts',
 ];
 
 /** When, in the 3 seconds, she bites, and when the Cousin turns. */
