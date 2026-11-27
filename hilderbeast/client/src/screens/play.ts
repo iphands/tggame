@@ -62,6 +62,8 @@ const MINI = 4;
 export function playScreen(): Screen {
   /** The map this round is played on. A new round is a new play screen, so it never changes under us. */
   const MAP = MAPS[store.state?.round?.map ?? 0] ?? MAPS[0];
+  /** The one way out this round. */
+  const exitAt = MAP.exits[store.state?.round?.exit ?? 0];
   const canvas = h('canvas');
   const ctx = canvas.getContext('2d')!;
   const clock = h('div', { class: 'clock' }, '');
@@ -209,7 +211,7 @@ export function playScreen(): Screen {
       }
       case 'o':
         sfx.doors();
-        say(sideOf(me) === 'b' ? 'The exits are open. Guard them!' : 'The exits are open. Get out!', 4000, 'open');
+        say(sideOf(me) === 'b' ? 'The exit is open. Guard it!' : 'The exit is open. Get out!', 4000, 'open');
         break;
       case 'x':
         say(`${who(e[1])} got out!`);
@@ -398,7 +400,7 @@ export function playScreen(): Screen {
         const busy = bodies.some((b) => b.flags & F_WORK && Math.hypot(b.x - t.x, b.y - t.y) <= TASK_R + 4);
         drawTask(ctx, t.x, t.y, live.tasks[i] ?? 0, now, busy);
       });
-      for (const e of MAP.exits) drawExit(ctx, e.x, e.y, open, now);
+      if (exitAt) drawExit(ctx, exitAt.x, exitAt.y, open, now);
     }
     MAP.pills.forEach((p, i) => drawPill(ctx, p.x, p.y, now, ((live.pills >> i) & 1) === 1));
 
@@ -518,7 +520,7 @@ export function playScreen(): Screen {
         m.fillStyle = (live.tasks[i] ?? 0) >= 100 ? '#3ddc97' : '#c98b5b';
         m.fillRect(t.x * k - 3, t.y * k - 3, 6, 6);
       });
-      for (const e of MAP.exits) {
+      for (const e of exitAt ? [exitAt] : []) {
         m.strokeStyle = exitsOpen() ? '#3ddc97' : '#8a8298';
         m.lineWidth = 2;
         m.strokeRect(e.x * k - 3.5, e.y * k - 3.5, 7, 7);
@@ -610,7 +612,7 @@ export function playScreen(): Screen {
     setText(sides, `Cousins ${all.filter((x) => x === 'c').length} · Beasts ${all.filter((x) => x === 'b').length}${outs ? ` · Out ${outs}` : ''}${ghosts ? ` · Ghosts ${ghosts}` : ''}`);
     chores.hidden = !escape();
     if (escape()) {
-      setText(chores, exitsOpen() ? 'Exits open!' : `Chores ${live.tasks.filter((p) => p >= 100).length} of ${live.tasks.length}`);
+      setText(chores, exitsOpen() ? 'Exit open!' : `Chores ${live.tasks.filter((p) => p >= 100).length} of ${live.tasks.length}`);
       chores.classList.toggle('open', exitsOpen());
     }
     watching.hidden = isSeated() && !out;

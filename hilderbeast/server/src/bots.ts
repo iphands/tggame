@@ -14,11 +14,11 @@ export const BOT_NAMES = ['Agnes', 'Barnaby', 'Clementine', 'Dudley', 'Edith', '
 /** A Beast bot dashes when a Cousin is this near. */
 const DASH_AT = 130;
 /** A Cousin bot runs from a Beast it can see within this distance. */
-const DANGER = 360;
+const DANGER = 400;
 /** How long a Cousin bot keeps running after it loses sight of the Beast. */
 const KEEP_RUNNING_MS = 3000;
 /** How long a Beast bot heads for the place it last saw a Cousin. */
-const REMEMBER_MS = 2500;
+const REMEMBER_MS = 1500;
 
 type Mind = {
   /** Where it is heading when it has nothing better to do. */
@@ -89,7 +89,7 @@ export class Bots {
       const dy = (prey.y - b.y) / near;
       const dash = near < DASH_AT && b.dashWaitMs <= 0;
       // the button must come up between dashes for the next press to count
-      world.setInput(b.id, dx, dy, near > 140 && near < 340, dash && !b.actHeld);
+      world.setInput(b.id, dx, dy, near > 140 && near < 240, dash && !b.actHeld);
       return;
     }
     if (mind.seen && mind.seenMs < REMEMBER_MS && Math.hypot(mind.seen.x - b.x, mind.seen.y - b.y) > TILE) {
@@ -103,7 +103,7 @@ export class Bots {
     }
     // patrol: the places Cousins want to be
     if (!mind.goal || Math.hypot(mind.goal.x - b.x, mind.goal.y - b.y) < TILE) {
-      const spots = [...map.pills, ...world.tasks.filter((t) => t.progress < 1), ...(world.exitsOpen ? map.exits : [])];
+      const spots = [...map.pills, ...world.tasks.filter((t) => t.progress < 1), ...(world.exitsOpen ? [world.exit] : [])];
       mind.goal = spots[Math.floor(rng() * spots.length)];
     }
     this.go(world, b, mind.goal);
@@ -127,7 +127,7 @@ export class Bots {
       const fromMe = stepsFrom(map, b.x, b.y);
       let best: Spot | null = null;
       let bestScore = -Infinity;
-      for (const s of [...map.pills, ...map.cousinStarts, ...map.tasks, ...map.exits]) {
+      for (const s of [...map.pills, ...map.cousinStarts, ...map.tasks, world.exit]) {
         const mine = stepsAt(map, fromMe, s.x, s.y);
         const theirs = stepsAt(map, fromBeast, s.x, s.y);
         // never run to a spot the Beast reaches first
@@ -141,7 +141,7 @@ export class Bots {
       mind.goal = null;
       mind.flee = best;
       mind.fleeMs = KEEP_RUNNING_MS;
-      if (best) return this.go(world, b, best, near < 190);
+      if (best) return this.go(world, b, best, near < 260);
       // cornered: straight away from it
       world.setInput(b.id, (b.x - threat.x) / near, (b.y - threat.y) / near, true, false);
       return;
@@ -170,8 +170,7 @@ export class Bots {
 
     if (world.mode === 'escape') {
       if (world.exitsOpen) {
-        const exit = nearest(map.exits);
-        if (exit) return this.go(world, b, exit, true);
+        return this.go(world, b, world.exit, true);
       }
       if (b.energy >= 40 || !world.pills.some((p) => p.on)) {
         const task = nearest(world.tasks.filter((t) => t.progress < 1));

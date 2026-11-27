@@ -236,6 +236,19 @@ describe('Last Cousin Standing', () => {
 });
 
 describe('Escape', () => {
+  it('has one way out a round, not always the same one', () => {
+    const { g, ids } = table(3);
+    g.configure(ids[0], 'escape');
+    const seen = new Set<number>();
+    for (let i = 0; i < 12; i++) {
+      g.start(ids[0]);
+      const no = g.viewFor(ids[0]).round!.exit;
+      expect(g.world!.exit).toBe(MAP.exits[no]);
+      seen.add(no);
+      g.abort(ids[0]);
+    }
+    expect(seen.size).toBe(2);
+  });
   it('lays out one chore more than there are Cousins', () => {
     const { g, ids, w } = started(4, 'escape');
     expect(w.tasks).toHaveLength(tasksFor(3));
@@ -248,7 +261,7 @@ describe('Escape', () => {
     w.exitsOpen = true;
     const [a, b, c] = w.cousins();
     for (const x of [a, b]) {
-      place(w, x.id, MAP.exits[0].x, MAP.exits[0].y);
+      place(w, x.id, w.exit.x, w.exit.y);
       g.input(x.id, 0, 0, false, true);
     }
     run(g, 2000);
@@ -267,7 +280,7 @@ describe('Escape', () => {
     for (const t of w.tasks) t.progress = 1;
     w.exitsOpen = true;
     for (const x of w.cousins()) {
-      place(w, x.id, MAP.exits[1].x, MAP.exits[1].y);
+      place(w, x.id, w.exit.x, w.exit.y);
       g.input(x.id, 0, 0, false, true);
     }
     run(g, 2000);
@@ -279,7 +292,7 @@ describe('Escape', () => {
     for (const t of w.tasks) t.progress = 1;
     w.exitsOpen = true;
     const [a, b, c] = w.cousins();
-    place(w, a.id, MAP.exits[0].x, MAP.exits[0].y);
+    place(w, a.id, w.exit.x, w.exit.y);
     g.input(a.id, 0, 0, false, true);
     run(g, 2000);
     // the Beast and the other two stand apart for the rest of the night

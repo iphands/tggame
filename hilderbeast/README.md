@@ -55,7 +55,8 @@ win too; with two players, that is how the Cousin wins.
   adds 60 %. Walk away whenever you like: the work done is kept.
 - **Working makes noise.** The Beasts hear a chore being worked on: at once, then every 3 seconds.
   They are shown roughly where, never exactly, and the workers are told they were heard.
-- When every chore is done the two exits open. Touch an open exit and you are out, at once. Whoever gets out is safe and watches the rest of the round.
+- There is one exit a round (each map has two spots it can be at, and one is picked by lot).
+  When every chore is done it opens. Touch it and you are out, at once. Whoever gets out is safe and watches the rest of the round.
 - The round goes on until nobody is left in the house: every Cousin has got out or been caught,
   or 6 minutes have passed. The Cousins win if at least one of them got out; the Beasts win if
   nobody did.

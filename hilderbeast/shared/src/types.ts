@@ -33,6 +33,8 @@ export type RoundView = {
   mode: Mode;
   /** Which of `MAPS` this round is played on. */
   map: number;
+  /** Which of that map's exit spots is the one way out this round (Escape). */
+  exit: number;
   /** The whole clock for this round. */
   clockMs: number;
   /** Which of the map's chore spots are in use this round (empty in Last Cousin Standing). */
@@ -90,7 +92,7 @@ export type SelfSnap = [number, number, number, number, number];
  * - `['l', id]` a Beast began a dash
  * - `['p', pill, id]` a Cousin took this pill
  * - `['t', id, from, to]` a Beast went through a Beast door
- * - `['n', x, y, strength]` Beasts only: a chore is being worked on somewhere near here
+ * - `['n', x, y, strength]` Beasts only: a chore is being worked on somewhere near here (`strength` is how many are at it; 0 is a creaky board)
  * - `['h']` Cousins at that chore only: you were heard
  * - `['d', task]` a chore is finished
  * - `['o']` the exits are open

@@ -8,7 +8,7 @@ import { MODE_NAMES, type Screen } from './index';
 
 const BLURB = {
   last: 'No chores, no way out. The last Cousin left uncaught wins.',
-  escape: 'One Beast all round. Do the chores together to open the exits, then get out. Working makes noise. Get caught and you are a ghost.',
+  escape: 'One Beast all round. Do the chores together to open the one exit, then get out. Working makes noise. Get caught and you are a ghost.',
 } as const;
 
 export function lobbyScreen(): Screen {

@@ -119,6 +119,8 @@ export class World {
   readonly bodies: Body[] = [];
   readonly pills: Pill[];
   readonly tasks: Task[];
+  /** The one way out (Escape). */
+  readonly exit: Spot;
   exitsOpen = false;
   /** Everything that happened since the last `drainFx()`. */
   fx: Fx[] = [];
@@ -138,6 +140,8 @@ export class World {
     readonly map: GameMap,
     /** Where the first Beast starts. */
     beastAt: Spot = map.den,
+    /** Which of the map's exit spots is the way out this round. There is only ever the one. */
+    exitNo = 0,
   ) {
     let seat = 0;
     for (const id of ids) {
@@ -175,6 +179,7 @@ export class World {
         ghost: false,
       });
     }
+    this.exit = map.exits[exitNo % Math.max(1, map.exits.length)] ?? map.den;
     this.pills = map.pills.map((p) => ({ ...p, on: true, backMs: 0 }));
     this.tasks = mode === 'escape' ? taskSpots.map((spot) => ({ ...map.tasks[spot], spot, progress: 0, workers: 0, noiseMs: 0 })) : [];
   }
@@ -401,7 +406,8 @@ export class World {
       } else if (kind === T_CREAK && b.creakMs <= 0 && (b.ix !== 0 || b.iy !== 0)) {
         // the Beasts hear a creak just as they hear a chore
         b.creakMs = CREAK_EVERY_MS;
-        this.fx.push(['n', Math.round(b.x), Math.round(b.y), 1]);
+        // strength 0: a creak, not a chore
+        this.fx.push(['n', Math.round(b.x), Math.round(b.y), 0]);
       }
     }
   }
@@ -463,7 +469,7 @@ export class World {
     if (!this.exitsOpen) return;
     for (const b of this.bodies) {
       if (b.role !== 'cousin' || b.out || b.ghost) continue;
-      if (!this.map.exits.some((e) => Math.hypot(e.x - b.x, e.y - b.y) <= EXIT_R)) continue;
+      if (Math.hypot(this.exit.x - b.x, this.exit.y - b.y) > EXIT_R) continue;
       b.out = true;
       b.working = false;
       b.boosting = false;

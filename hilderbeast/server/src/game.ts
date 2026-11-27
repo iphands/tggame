@@ -60,6 +60,7 @@ export class Game extends Roster<Player> {
   settings: Settings = { mode: DEFAULT_MODE, map: -1 };
   /** The map of the round being played, or of the last one. */
   private mapNo = -1;
+  private exitNo = 0;
   /** The round being played, or the last one played. */
   world: World | null = null;
   /** Fixed ticks run so far, and the time they add up to. Never reset, so snapshots stay in order. */
@@ -194,12 +195,14 @@ export class Game extends Roster<Player> {
     while (mapNo < 0 || (this.settings.map < 0 && mapNo === this.mapNo && MAPS.length > 1)) mapNo = Math.floor(this.rng() * MAPS.length);
     this.mapNo = mapNo;
     const map = MAPS[mapNo];
+    // one way out a round, by lot among the map's exit spots
+    this.exitNo = Math.floor(this.rng() * map.exits.length);
     const spots = shuffle(
       map.tasks.map((_, i) => i),
       this.rng,
     ).slice(0, tasksFor(this.cousinsAtStart));
     // seats in the hall are dealt by lot too
-    this.world = new World(mode, [beast, ...shuffle(ids.filter((id) => id !== beast), this.rng)], beast, spots.sort((a, b) => a - b), map, this.beastStart(map));
+    this.world = new World(mode, [beast, ...shuffle(ids.filter((id) => id !== beast), this.rng)], beast, spots.sort((a, b) => a - b), map, this.beastStart(map), this.exitNo);
     this.bots = new Bots();
     this.roundClockMs = this.clockMs = mode === 'escape' ? ESCAPE_CLOCK_MS : LAST_CLOCK_MS;
     this.phase = 'countdown';
@@ -263,7 +266,8 @@ export class Game extends Roster<Player> {
 
   /** Bots, and the bodies of humans who dropped off, play by themselves. */
   private autopilot(world: World): void {
-    for (const e of world.fx) if (e[0] === 'n') this.bots.hear(e[1], e[2]);
+    // bot Beasts go to the sound of a chore; a creak (strength 0) they let pass, or they would never be shaken off
+    for (const e of world.fx) if (e[0] === 'n' && e[3] > 0) this.bots.hear(e[1], e[2]);
     this.botThinkMs -= TICK_MS;
     if (this.botThinkMs > 0) return;
     this.botThinkMs = BOT_THINK_MS;
@@ -345,7 +349,7 @@ export class Game extends Roster<Player> {
       hostId: this.hostId(),
       players,
       settings: { ...this.settings },
-      round: world ? { seq: this.gameNo, mode: world.mode, map: this.mapNo, clockMs: this.roundClockMs, tasks: world.tasks.map((t) => t.spot), sides, firstBeast: world.firstBeast } : null,
+      round: world ? { seq: this.gameNo, mode: world.mode, map: this.mapNo, exit: this.exitNo, clockMs: this.roundClockMs, tasks: world.tasks.map((t) => t.spot), sides, firstBeast: world.firstBeast } : null,
       result: this.result,
     };
   }

@@ -263,7 +263,9 @@ describe('chores and exits', () => {
   });
   it('open the exits only when every chore is done; then a Cousin can get out', () => {
     const w = escapeWorld();
-    const exit = MAP.exits[0];
+    const exit = w.exit;
+    // the map's other exit spot is not a way out this round
+    const other = place(w, 'c', MAP.exits[1].x, MAP.exits[1].y);
     const a = place(w, 'a', exit.x, exit.y);
     steps(w, 500);
     expect(a.out).toBe(false);
@@ -277,6 +279,7 @@ describe('chores and exits', () => {
     expect(c.out).toBe(false);
     // a touch is enough: nothing to hold
     expect(a.out).toBe(true);
+    expect(other).toBe(c);
     expect(w.escaped).toEqual(['a']);
     expect(w.cousins().map((b) => b.id)).toEqual(['c']);
   });

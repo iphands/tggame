@@ -29,7 +29,7 @@ export function finaleScreen(): Screen {
         : r.why === 'clock'
           ? r.winner === 'cousins'
             ? ['Still free when the clock ran out: ', ...list(r.survivors)]
-            : ['The clock ran out with the exits still shut.']
+            : ['The clock ran out with the exit still shut.']
           : ['Not one Cousin was left.'];
   const secs = Math.round(r.tookMs / 1000);
 
