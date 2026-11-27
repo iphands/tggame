@@ -58,3 +58,42 @@ describe('who hosts', () => {
     expect(t.hostId()).toBe(mo);
   });
 });
+
+describe('changing your name', () => {
+  it('cleans the name and refuses an empty one', () => {
+    const t = new Table();
+    const mo = t.sit('Mo');
+    expect(t.rename(mo, '  <b>Momo</b>  ')).toBe(true);
+    expect(t.players.get(mo)!.name).toBe('bMomob');
+    expect(t.rename(mo, '!!!')).toBe(false);
+    expect(t.rename(mo, 7)).toBe(false);
+    expect(t.players.get(mo)!.name).toBe('bMomob');
+  });
+
+  it('keeps names unique, but lets you change only the capitals of your own', () => {
+    const t = new Table();
+    const mo = t.sit('Mo');
+    t.sit('Al');
+    expect(t.rename(mo, 'al')).toBe(true);
+    expect(t.players.get(mo)!.name).toBe('al 2');
+    expect(t.rename(mo, 'MO')).toBe(true);
+    expect(t.players.get(mo)!.name).toBe('MO');
+    expect(t.rename(mo, 'MO')).toBe(false);
+  });
+
+  it('leaves bots and strangers alone', () => {
+    const t = new Table();
+    const bot = t.sit('Bot', { bot: true });
+    expect(t.rename(bot, 'Human')).toBe(false);
+    expect(t.rename('nobody', 'Human')).toBe(false);
+  });
+
+  it('makes whoever takes the house name the host', () => {
+    const t = new Table();
+    const mo = t.sit('Mo');
+    const al = t.sit('Al');
+    expect(t.hostId()).toBe(mo);
+    t.rename(al, 'EasyE');
+    expect(t.hostId()).toBe(al);
+  });
+});

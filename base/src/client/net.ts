@@ -40,8 +40,17 @@ export class SocketClient<C extends { type: string }, S extends { type: string }
   private disposed = false;
   /** The client build the server was handing out when this page first connected. */
   private build: string | null = null;
+  /** The name a reconnect joins under. */
+  private name: string;
 
-  constructor(private readonly opts: SocketClientOptions<S>) {}
+  constructor(private readonly opts: SocketClientOptions<S>) {
+    this.name = opts.name;
+  }
+
+  /** The player changed their name: later reconnects join under the new one. */
+  setName(name: string): void {
+    this.name = name;
+  }
 
   get connected(): boolean {
     return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
@@ -64,7 +73,7 @@ export class SocketClient<C extends { type: string }, S extends { type: string }
       this.opened();
       this.opts.onStatus?.('connected');
       // an absent token is left out of the JSON, so games without tokens see a plain join
-      this.send({ type: 'join', name: this.opts.name, token: this.opts.token?.() } as unknown as C);
+      this.send({ type: 'join', name: this.name, token: this.opts.token?.() } as unknown as C);
     };
     ws.onmessage = (ev) => {
       let msg: S;

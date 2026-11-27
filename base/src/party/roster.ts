@@ -1,5 +1,7 @@
 /** Who is at the table. The part of a party game's server that every game does the same way. */
 
+import { sanitizeName } from '../shared/text.js';
+
 export type Rng = () => number;
 
 export type Seated = {
@@ -88,8 +90,23 @@ export abstract class Roster<P extends Seated> {
     return this.uniqueName(free.length ? free[Math.floor(this.rng() * free.length)] : fallback);
   }
 
-  protected uniqueName(base: string): string {
-    const taken = new Set([...this.players.values()].map((p) => p.name.toLowerCase()));
+  /**
+   * A player picks a new name, at any point in a game. It is cleaned and made unique like a
+   * name given on joining; an empty one is refused. True when the name changed.
+   */
+  rename(id: string, rawName: unknown): boolean {
+    const p = this.players.get(id);
+    const wanted = sanitizeName(rawName);
+    if (!p || p.bot || !wanted) return false;
+    const name = this.uniqueName(wanted, id);
+    if (name === p.name) return false;
+    p.name = name;
+    return true;
+  }
+
+  /** `base`, or `base 2`, `base 3`… when somebody other than `except` already has it. */
+  protected uniqueName(base: string, except?: string): string {
+    const taken = new Set([...this.players.values()].filter((p) => p.id !== except).map((p) => p.name.toLowerCase()));
     if (!taken.has(base.toLowerCase())) return base;
     for (let i = 2; ; i++) {
       const candidate = `${base.slice(0, 13)} ${i}`;
