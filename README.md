@@ -22,6 +22,9 @@ lists them all.
 Only port 8081 leaves the container. The landing page is at `/` and each game at
 `/play/<directory>/`, WebSockets included; the games' own ports stay inside.
 
+- `./build` caches per project: after a change to one game only that game is rebuilt. The
+  Dockerfile is generated from the directories that have a `package.json`; `./build --print`
+  shows it.
 - `PORT=9000 ./run` publishes another port.
 - `./run -d` runs in the background; stop it with `docker stop tggame` or `podman stop tggame`.
 - `./publish` pushes the built image to Docker Hub as `iphands/tggame`, tagged `latest` and with
