@@ -605,6 +605,7 @@ export function playScreen(): Screen {
     el,
     update() {
       watching.hidden = isSeated();
+      watching.textContent = player(store.state?.selfId)?.watcher ? 'Watching' : 'Watching. You get a hole on the next course.';
       teamAt = 0;
     },
     destroy() {

@@ -44,6 +44,8 @@ type Player = {
   token: string;
   connected: boolean;
   spectator: boolean;
+  /** Only ever watches: never seated, whatever the phase. */
+  watcher: boolean;
 };
 
 export type JoinResult = { id: string; token: string; resumed: boolean } | 'full';
@@ -88,21 +90,18 @@ export class Game extends Roster<Player> {
 
   // ---- joining and leaving
 
-  join(rawName: unknown, token: string | undefined): JoinResult {
+  join(rawName: unknown, token: string | undefined, watch = false): JoinResult {
     if (token) {
       for (const p of this.players.values()) {
         if (!p.bot && p.token === token) {
           p.connected = true;
+          this.watch(p.id, watch);
           return { id: p.id, token: p.token, resumed: true };
         }
       }
     }
     if (this.players.size >= MAX_PEOPLE) return 'full';
-    if (this.phase === 'lobby' && this.participants().length >= MAX_PLAYERS) {
-      // a human always beats a bot to a seat
-      const bot = [...this.players.values()].reverse().find((p) => p.bot);
-      if (bot) this.players.delete(bot.id);
-    }
+    this.bumpBot(watch);
     const player: Player = {
       id: `p${this.nextId++}`,
       name: this.uniqueName(sanitizeName(rawName) || 'Slurper'),
@@ -111,7 +110,8 @@ export class Game extends Roster<Player> {
       token: randomBytes(16).toString('hex'),
       connected: true,
       // mid-run arrivals watch until the next course is laid
-      spectator: this.phase !== 'lobby' || this.participants().length >= MAX_PLAYERS,
+      spectator: this.unseated(watch, this.phase === 'lobby'),
+      watcher: watch,
     };
     this.players.set(player.id, player);
     return { id: player.id, token: player.token, resumed: false };
@@ -141,6 +141,7 @@ export class Game extends Roster<Player> {
       token: '',
       connected: true,
       spectator: false,
+      watcher: false,
     });
   }
 
@@ -229,14 +230,7 @@ export class Game extends Roster<Player> {
 
   private layCourse(no: number): void {
     // whoever has been watching gets a hole now
-    let seated = this.participants().length;
-    for (const p of this.players.values()) {
-      if (seated >= MAX_PLAYERS) break;
-      if (p.spectator) {
-        p.spectator = false;
-        seated++;
-      }
-    }
+    this.promote();
     const ids = this.participants().map((p) => p.id);
     for (const id of ids) if (!this.stats.has(id)) this.stats.set(id, { id, eaten: 0, biggest: -1, spills: 0, herds: 0, lasts: 0 });
     this.eatenBefore = new Map(ids.map((id) => [id, this.stats.get(id)!.eaten]));
@@ -312,8 +306,7 @@ export class Game extends Roster<Player> {
     this.result = null;
     this.stars = [];
     for (const p of [...this.players.values()]) if (!p.connected) this.players.delete(p.id);
-    let n = 0;
-    for (const p of this.players.values()) p.spectator = ++n > MAX_PLAYERS;
+    this.reseat();
   }
 
   // ---- what goes over the wire
@@ -326,6 +319,7 @@ export class Game extends Roster<Player> {
       bot: p.bot,
       connected: p.connected,
       spectator: p.spectator,
+      watcher: p.watcher,
     }));
     return {
       game: this.gameNo,

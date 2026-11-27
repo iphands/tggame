@@ -41,7 +41,7 @@ function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
   if (msg.type === 'join') {
     if (peer.id) game.drop(peer.id); // one identity per socket
     peer.id = null;
-    const joined = game.join(msg.name, msg.token);
+    const joined = game.join(msg.name, msg.token, msg.watch);
     if (joined === 'full') {
       send(ws, { type: 'full' });
       return;
@@ -71,6 +71,9 @@ function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
       break;
     case 'rename':
       game.rename(id, msg.name);
+      break;
+    case 'watch':
+      game.watch(id, msg.on);
       break;
     case 'leave':
       game.leave(id);

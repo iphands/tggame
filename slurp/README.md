@@ -44,6 +44,12 @@ Phones on the same Wi-Fi join at `http://<your-ip>:5178`.
 - **Host.** The first player (or EasyE) picks the pace (chill, normal, spicy: the clock's length),
   chooses the whole banquet or the last course only, adds Slurpbots and starts.
 
+## Just watching
+
+A screen can watch without playing: press **Just watch** on the join screen, or in the lobby.
+For a TV, open the game with `?watch=1` on the end of the address: it goes straight in as "TV"
+and never takes a seat, in this game or the next. `?watch=0` undoes it. The watching screen sees the whole table, as anyone waiting for a hole does.
+
 ## How it works
 
 The server owns the simulation: 60 fixed ticks a second, snapshots 30 times a second. Clients

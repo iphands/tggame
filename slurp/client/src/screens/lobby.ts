@@ -1,7 +1,8 @@
 import { DIFFICULTIES, MAX_PLAYERS } from '../../../shared/src/constants';
 import { sfx } from '../audio';
 import { h, tilt } from '@tggame/base/client/dom';
-import { isHost, nameOf, send, store } from '../store';
+import { isHost, nameOf, send, store, watching } from '../store';
+import { watchRow } from '@tggame/base/party/watchRow';
 import type { Screen } from './index';
 
 const BLURB = { chill: 'plenty of time', normal: 'a fair clock', spicy: 'a tight clock' } as const;
@@ -28,10 +29,12 @@ export function lobbyScreen(): Screen {
   );
   const summary = h('p', { class: 'share' });
 
+  const tv = watchRow(watching, (on) => send({ type: 'watch', on }));
+
   const el = h(
     'section',
     { class: 'screen lobby' },
-    h('div', { class: 'sheet spiral' }, h('h2', null, "Who's hungry?"), notes, status, settings, summary, hostRow, start, share),
+    h('div', { class: 'sheet spiral' }, h('h2', null, "Who's hungry?"), notes, status, settings, summary, hostRow, start, tv.els, share),
     h(
       'ol',
       { class: 'howto' },
@@ -47,6 +50,7 @@ export function lobbyScreen(): Screen {
     el,
     update() {
       const s = store.state!;
+      tv.update(s.players, s.selfId);
       const seated = s.players.filter((p) => !p.spectator);
       notes.replaceChildren(
         ...seated.map((p) =>
@@ -73,7 +77,7 @@ export function lobbyScreen(): Screen {
       summary.textContent = `Pace: ${s.settings.difficulty} (${BLURB[s.settings.difficulty]})${s.settings.finale ? ' · last course only' : ''}`;
       startBtns.forEach((b, i) => b.classList.toggle('primary', (i === 1) === s.settings.finale));
       paceBtns.forEach((b, i) => b.classList.toggle('primary', DIFFICULTIES[i] === s.settings.difficulty));
-      start.disabled = !online;
+      start.disabled = !online || seated.length === 0;
       addBot.disabled = seated.length >= MAX_PLAYERS || !online;
       removeBot.disabled = !seated.some((p) => p.bot) || !online;
       status.textContent = host

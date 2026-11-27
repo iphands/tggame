@@ -18,6 +18,8 @@ export type PlayerView = {
   connected: boolean;
   /** No hole right now: they arrived mid-course (or the table is full) and get one at the next course. */
   spectator: boolean;
+  /** Here only to watch (a TV in the room): never given a seat. */
+  watcher: boolean;
 };
 
 export type CourseView = {

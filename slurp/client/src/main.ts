@@ -9,7 +9,7 @@ import { drawBlanket, drawFood, drawHole } from './art';
 import { clearLive, onCourse, onSnap } from './live';
 import { GameClient, type ConnectionStatus } from './net';
 import { makeScreen, screenKey, type Screen } from './screens/index';
-import { isHost, isSeated, me, saved, send, store, wire } from './store';
+import { isHost, isSeated, me, saved, send, store, watching, wire } from './store';
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -50,7 +50,7 @@ drawDemo();
 
 function connect(name: string): void {
   client?.disconnect();
-  client = new GameClient({ name, token: saved.token, onMessage, onStatus });
+  client = new GameClient({ name, token: saved.token, watch: watching.on, onMessage, onStatus });
   wire((msg) => client?.send(msg), render);
   client.connect();
 }
@@ -197,6 +197,7 @@ joinForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const name = sanitizeName(nameInput.value) || 'Slurper';
   saved.setName(name);
+  watching.set(false);
   joinError.textContent = '';
   unlockAudio();
   sfx.pop();
@@ -204,6 +205,19 @@ joinForm.addEventListener('submit', (e) => {
   render();
 });
 
+// a screen that only watches: a TV in the room
+$('watch').addEventListener('click', () => {
+  const name = sanitizeName(nameInput.value) || 'TV';
+  saved.setName(name);
+  watching.set(true);
+  joinError.textContent = '';
+  unlockAudio();
+  connect(name);
+  render();
+});
+
 // A saved seat means a reload mid-game: go straight back in.
 if (saved.token() && saved.name()) connect(saved.name());
+// a TV sent here with ?watch=1 needs nobody to press anything
+else if (watching.straightIn) connect(saved.name() || 'TV');
 render();
