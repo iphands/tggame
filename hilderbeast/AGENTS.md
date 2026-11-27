@@ -82,6 +82,9 @@ node scripts/smoke.mjs ws://localhost:8197 3 escape      # 3 socket players and 
 # or with hot reload: npx vite --port 5199, then open http://localhost:5199/?ws=ws://localhost:8197
 ```
 
+To look at a catch without waiting for one, start the private server with `DEBUG_CATCH=1` and
+send it `kill -USR2 <pid of the node process on the port>`: a Cousin is stood beside a loose Beast.
+
 `?lag=125&jitter=20` pretends the line is slow and `?net=1` shows the net graph, which includes
 how far the drawn body is from where the server will have it.
 

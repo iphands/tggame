@@ -4,7 +4,7 @@ import type { BodySnap, Fx, Mode, SelfSnap, StateView } from './types.js';
 // ---- client → server
 
 export type ClientMessage =
-  | { type: 'join'; name?: string; token?: string }
+  | { type: 'join'; name?: string; token?: string; watch?: boolean }
   | { type: 'leave' }
   | { type: 'rename'; name: string }
   | { type: 'addBot' }
@@ -63,7 +63,8 @@ export function isClientMessage(x: unknown): x is ClientMessage {
   if (NO_ARGS.has(m.type)) return true;
   switch (m.type) {
     case 'join':
-      return (m.name === undefined || typeof m.name === 'string') && (m.token === undefined || (typeof m.token === 'string' && m.token.length <= 64));
+      return (m.name === undefined || typeof m.name === 'string') && (m.token === undefined || (typeof m.token === 'string' && m.token.length <= 64)) &&
+        (m.watch === undefined || typeof m.watch === 'boolean');
     case 'rename':
       return typeof m.name === 'string' && m.name.length <= 64;
     case 'settings':

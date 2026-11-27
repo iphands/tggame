@@ -33,8 +33,9 @@ Phones on the same Wi-Fi join at `http://<your-ip>:5180`.
 - **Beast doors** (paired swirls in the floor that carried a Beast across the map) are switched
   off for now: they took away from the chase. `PORTALS_ON` in `shared/src/constants.ts` brings
   them back.
-- **Caught.** Every catch stops the round for everybody for 2.5 seconds, clock and all, while it
-  is shown: Hilder bites, the Cousin turns, and two of her sayings flash across the screen. When
+- **Caught.** Every catch stops the round for everybody for 3 seconds, clock and all, while it
+  is shown: Hilder bites, the Cousin turns, each with their name on a plate over their head, and two of
+  her sayings flash across the screen. When
   the round goes on, the new Beast stands frozen for a moment longer before it can hunt.
 - **The start.** The Cousins can run at once. The first Beast starts somewhere different each
   round, never in sight of a Cousin or near one, and is held there for 3 seconds: a big, faint

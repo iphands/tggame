@@ -95,21 +95,18 @@ export class Game extends Roster<Player> {
 
   // ---- joining and leaving
 
-  join(rawName: unknown, token: string | undefined): JoinResult {
+  join(rawName: unknown, token: string | undefined, watch = false): JoinResult {
     if (token) {
       for (const p of this.players.values()) {
         if (!p.bot && p.token === token) {
           p.connected = true;
+          this.watch(p.id, watch);
           return { id: p.id, token: p.token, resumed: true };
         }
       }
     }
     if (this.players.size >= MAX_PEOPLE) return 'full';
-    if (this.phase === 'lobby' && this.participants().length >= MAX_PLAYERS) {
-      // a human always beats a bot to a seat
-      const bot = [...this.players.values()].reverse().find((p) => p.bot);
-      if (bot) this.players.delete(bot.id);
-    }
+    this.bumpBot(watch);
     const player: Player = {
       id: `p${this.nextId++}`,
       name: this.uniqueName(sanitizeName(rawName) || 'Cousin'),
@@ -117,9 +114,9 @@ export class Game extends Roster<Player> {
       bot: false,
       token: randomBytes(16).toString('hex'),
       connected: true,
-      watcher: false,
       // arrivals during a round watch it, and are in the next one
-      spectator: this.phase !== 'lobby' || this.participants().length >= MAX_PLAYERS,
+      spectator: this.unseated(watch, this.phase === 'lobby'),
+      watcher: watch,
     };
     this.players.set(player.id, player);
     return { id: player.id, token: player.token, resumed: false };
@@ -139,21 +136,12 @@ export class Game extends Roster<Player> {
   }
 
   /**
-   * A player chooses to only watch (a TV in the room), or to play again. A watcher has no seat and
-   * no body, and so is sent the whole house. Giving up a body mid-round is the same as leaving it;
-   * asking for a seat back takes effect in the lobby.
+   * A watcher has no seat and no body, and so is sent the whole house. Giving up a body
+   * mid-round is the same as leaving the round.
    */
-  watch(id: string, on: boolean): void {
-    const p = this.players.get(id);
-    if (!p || p.bot || p.watcher === on) return;
-    p.watcher = on;
-    if (on) {
-      const playing = !p.spectator && this.phase !== 'lobby' && this.phase !== 'finale';
-      p.spectator = true;
-      if (playing) this.leaveRound(id);
-    } else if (this.phase === 'lobby') {
-      p.spectator = this.participants().length >= MAX_PLAYERS;
-    }
+  protected override unseat(p: Player): void {
+    p.spectator = true;
+    if (this.phase !== 'finale') this.leaveRound(p.id);
   }
 
   addBot(by: string): void {
@@ -221,6 +209,21 @@ export class Game extends Roster<Player> {
       map.cousinStarts.every((s) => Math.hypot(s.x - at.x, s.y - at.y) >= BEAST_START_CLEAR * TILE && !sees(map, at.x, at.y, s.x, s.y)),
     );
     return fair.length ? fair[Math.floor(this.rng() * fair.length)] : map.den;
+  }
+
+  /**
+   * For looking at a catch on a private server: stands a Cousin right beside a Beast that is
+   * loose, so the next tick catches them. Never called in play (see `DEBUG_CATCH` in `index.ts`).
+   */
+  debugCatch(): boolean {
+    const world = this.world;
+    const beast = world?.beasts().find((b) => b.heldMs <= 0 && b.convertMs <= 0);
+    const cousin = world?.cousins()[0];
+    if (this.phase !== 'play' || !world || !beast || !cousin) return false;
+    cousin.x = beast.x + 10;
+    cousin.y = beast.y;
+    beast.catchWaitMs = 0;
+    return true;
   }
 
   /** A player's controls. Whatever they claim, the stick is cut to length 1 and the server does the moving. */
@@ -331,8 +334,7 @@ export class Game extends Roster<Player> {
     this.world = null;
     this.result = null;
     for (const p of [...this.players.values()]) if (!p.connected) this.players.delete(p.id);
-    let n = 0;
-    for (const p of this.players.values()) p.spectator = p.watcher || ++n > MAX_PLAYERS;
+    this.reseat();
   }
 
   // ---- what goes over the wire

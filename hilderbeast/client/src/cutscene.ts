@@ -12,9 +12,9 @@ import { hilderSvg } from './hilder';
 /** What Hilder says. Two of these flash up with every catch. */
 export const SAYINGS = ["That's SOMETHING BAD", 'Now quit it!', 'Byyyeee', 'You nearly collapsed', 'You fell out!'];
 
-/** When, in the 2.5 seconds, she bites, and when the Cousin turns. */
-const BITE_AT_MS = [900, 1200];
-const TURN_AT_MS = 1550;
+/** When, in the 3 seconds, she bites, and when the Cousin turns. */
+const BITE_AT_MS = [1080, 1440];
+const TURN_AT_MS = 1860;
 
 export type Catch = {
   /** Who caught and who was caught, as they should be named on this screen. */
@@ -52,15 +52,21 @@ export function endCutscene(): void {
 export function playCutscene(host: HTMLElement, c: Catch): void {
   endCutscene();
   const [first, second] = sayingsFor(c.seed);
-  const beast = h('div', { class: 'cs-beast' });
+  const picture = h('div', { class: 'cs-pic' });
   // our own drawing, in a colour from the game's own list: safe to set as markup
-  beast.innerHTML = hilderSvg({ top: c.beastColor, angry: true }, 320);
+  picture.innerHTML = hilderSvg({ top: c.beastColor, angry: true }, 320);
+  // each of the two has their name over their head, in their own colour: who caught, who was caught
+  const tag = (name: string, color: string, what: string): HTMLElement => h('div', { class: 'cs-name', style: `--c:${color}` }, h('b', null, name), h('small', null, what));
+  const beast = h('div', { class: 'cs-beast' }, tag(c.beast, c.beastColor, 'caught'), picture);
   const victim = h('canvas', { class: 'cs-victim', width: 260, height: 260 });
+  // "is caught!" while Hilder bites, and what they have become once they turn
+  const is = c.victim === 'You' ? 'are' : 'is';
+  const plate = tag(c.victim, c.victimColor, `${is} caught!`);
+  const caught = h('div', { class: 'cs-caught' }, plate, victim);
   const el = h(
     'div',
     { class: `cutscene${reducedMotion() ? ' still' : ''}` },
-    h('div', { class: 'cs-title' }, `${c.beast} got ${c.victim}!`),
-    h('div', { class: 'cs-stage' }, beast, victim),
+    h('div', { class: 'cs-stage' }, beast, caught),
     h('div', { class: 'cs-say cs-a' }, first),
     h('div', { class: 'cs-say cs-b' }, second),
   );
@@ -104,7 +110,11 @@ export function playCutscene(host: HTMLElement, c: Catch): void {
     raf: requestAnimationFrame(draw),
     timers: [
       ...BITE_AT_MS.map((at) => window.setTimeout(() => sfx.chomp(), at)),
-      window.setTimeout(() => (c.ghost ? sfx.portal() : sfx.turned()), TURN_AT_MS),
+      window.setTimeout(() => {
+        plate.lastElementChild!.textContent = `${is} a ${c.ghost ? 'ghost' : 'Beast'} now`;
+        if (c.ghost) sfx.portal();
+        else sfx.turned();
+      }, TURN_AT_MS),
       window.setTimeout(endCutscene, CUTSCENE_MS),
     ],
   };

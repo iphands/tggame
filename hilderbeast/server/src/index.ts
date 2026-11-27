@@ -39,7 +39,7 @@ function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
   if (msg.type === 'join') {
     if (peer.id) game.drop(peer.id); // one identity per socket
     peer.id = null;
-    const joined = game.join(msg.name, msg.token);
+    const joined = game.join(msg.name, msg.token, msg.watch);
     if (joined === 'full') {
       send(ws, { type: 'full' });
       return;
@@ -155,6 +155,10 @@ setInterval(() => {
 }, 1000);
 
 listen();
+
+// A private test server only: with DEBUG_CATCH=1, `kill -USR2 <pid>` makes a catch happen now,
+// so the cutscene can be looked at without waiting for one. Never set where people play.
+if (process.env.DEBUG_CATCH === '1') process.on('SIGUSR2', () => console.log(`debug catch: ${game.debugCatch() ? 'done' : 'nobody to catch'}`));
 
 // -------------------------------------------------------------- game loop
 

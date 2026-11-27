@@ -88,7 +88,7 @@ export const DASH_SPEED = 2;
 /** From the moment the dash starts. */
 export const DASH_COOLDOWN_MS = 4000;
 /** Every catch stops the round, for everyone, while it is shown. */
-export const CUTSCENE_MS = 2500;
+export const CUTSCENE_MS = 3000;
 /** Once the round goes on, the Cousin just caught stands frozen and harmless for this long, then is a Beast. */
 export const CONVERT_MS = 1200;
 

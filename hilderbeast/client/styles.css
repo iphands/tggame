@@ -326,7 +326,7 @@ input[type='text'] {
   background: rgba(12, 10, 20, 0.55);
 }
 
-/* ---- a catch: the round stands still for 2.5 seconds and this plays over it */
+/* ---- a catch: the round stands still for 3 seconds and this plays over it */
 
 .cutscene {
   position: absolute;
@@ -339,39 +339,66 @@ input[type='text'] {
   animation: cs-in 0.18s ease-out;
   pointer-events: none;
 }
-.cs-title {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  translate: -50% 0;
-  padding: 2px 16px;
-  white-space: nowrap;
-  color: var(--ink);
-  background: var(--sun);
-  border: 2px solid var(--ink);
-  border-radius: var(--wobble);
-}
 .cs-stage {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  width: min(92vw, 660px);
+  gap: 2%;
+  width: min(96vw, 720px);
+}
+.cs-beast,
+.cs-caught {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 .cs-beast {
-  width: min(48vw, 46vh, 320px);
-  margin-right: -6%;
+  width: min(46vw, 44vh, 320px);
   z-index: 1;
   transform-origin: 60% 80%;
-  animation: cs-bite 2.5s ease-in-out both;
+  animation: cs-bite 3s ease-in-out both;
 }
-.cs-beast svg {
+.cs-pic,
+.cs-pic svg {
   display: block;
   width: 100%;
   height: auto;
 }
-.cs-victim {
+.cs-caught {
   width: min(38vw, 36vh, 260px);
+}
+.cs-victim {
+  width: 100%;
   height: auto;
+}
+/* a name over each head: a big plate in that player's own colour */
+.cs-name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
+  margin-bottom: 4px;
+  padding: 2px 14px 4px;
+  line-height: 1;
+  color: var(--ink);
+  background: var(--c, var(--paper));
+  border: var(--line);
+  border-radius: var(--wobble);
+  box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.5);
+  z-index: 3;
+}
+.cs-name b {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: min(8vw, 7vh, 46px);
+}
+.cs-name small {
+  font-size: min(4vw, 3.4vh, 20px);
+  white-space: nowrap;
 }
 /* what Hilder says: one after the other, slapped across the screen */
 .cs-say {
@@ -391,15 +418,15 @@ input[type='text'] {
   z-index: 2;
 }
 .cs-a {
-  top: 16%;
-  --tilt: -7deg;
-  animation: cs-say 1.15s 0.15s ease-out both;
+  top: 4%;
+  --tilt: -5deg;
+  animation: cs-say 1.35s 0.2s ease-out both;
 }
 .cs-b {
-  bottom: 12%;
-  --tilt: 5deg;
+  bottom: 3%;
+  --tilt: 4deg;
   color: #fff;
-  animation: cs-say 1.15s 1.3s ease-out both;
+  animation: cs-say 1.35s 1.6s ease-out both;
 }
 @keyframes cs-in {
   from {

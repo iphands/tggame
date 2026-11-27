@@ -344,6 +344,14 @@ describe('a catch', () => {
     expect(snap(g, ids[0]).hold).toBe(0);
     expect(b.x).toBeGreaterThan(at);
   });
+  it('can be forced on a test server', () => {
+    const { g, w } = started(3);
+    expect(g.debugCatch()).toBe(false);
+    run(g, HEAD_START_MS);
+    expect(g.debugCatch()).toBe(true);
+    run(g, TICK_MS);
+    expect(w.catches).toHaveLength(1);
+  });
   it('that ends the round is shown before the result', () => {
     const { g, w } = started(2);
     const beast = w.beasts()[0];

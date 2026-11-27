@@ -161,7 +161,7 @@ export function playScreen(): Screen {
         if (e[1]) {
           playCutscene(el, {
             beast: who(e[1]),
-            victim: who(e[2]).replace(/^You$/, 'you'),
+            victim: who(e[2]),
             beastColor: colorOf(e[1]),
             victimColor: colorOf(e[2]),
             ghost: escape(),
