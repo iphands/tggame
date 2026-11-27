@@ -1,0 +1,473 @@
+/* Slurp: a picnic on the grass, with the same paper and ink as the other games. */
+@import '@tggame/base/css/party.css';
+@import '@tggame/base/css/party-ranking.css';
+
+:root {
+  --desk: #4f9d4a;
+  --desk-deep: #2f6f33;
+  --paper: #fffaf0;
+  --ink: #1f2440;
+  --muted: #6b6f8d;
+  --sun: #ffd23f;
+  --coral: #ff5d73;
+  --mint: #3ddc97;
+  --line: 3px solid var(--ink);
+  --shadow: 5px 6px 0 rgba(12, 20, 60, 0.38);
+  --hand: 'Patrick Hand', 'Comic Sans MS', 'Segoe Print', 'Bradley Hand', cursive;
+  --display: 'Chewy', 'Patrick Hand', 'Comic Sans MS', cursive;
+  /* slightly uneven corners read as hand-cut */
+  --wobble: 20px 14px 22px 13px / 13px 22px 14px 20px;
+  --dots: radial-gradient(rgba(31, 36, 64, 0.14) 1.3px, transparent 1.5px);
+}
+
+body {
+  font-family: var(--hand);
+  font-size: 20px;
+  line-height: 1.25;
+  color: var(--ink);
+  background-color: var(--desk);
+  /* faint doodles scattered over the desk */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' fill='none' stroke='%23ffffff' stroke-opacity='.09' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 40c8-12 16 12 24 0s16 12 24 0'/%3E%3Cpath d='M150 30l5 12 13 1-10 9 3 13-11-7-11 7 3-13-10-9 13-1z'/%3E%3Ccircle cx='60' cy='140' r='16'/%3E%3Cpath d='M130 120l14 14 14-14 14 14 14-14'/%3E%3Cpath d='M110 190c0-10 14-10 14 0s14 10 14 0'/%3E%3Cpath d='M24 196l12-12m0 12l-12-12'/%3E%3Cpath d='M188 78c6 0 10 4 10 10s-4 10-10 10'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 50% 0%, #74c069 0%, var(--desk) 55%, var(--desk-deep) 100%);
+  background-attachment: fixed;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input {
+  user-select: text;
+  -webkit-user-select: text;
+}
+.tagline {
+  text-align: center;
+  font-size: 1.5em;
+  color: var(--paper);
+  transform: rotate(-1deg);
+}
+.fineprint {
+  color: #e6f6da;
+  font-size: 0.95em;
+  text-align: center;
+}
+.note {
+  background: var(--c, var(--sun));
+  border: var(--line);
+  box-shadow: 3px 4px 0 rgba(12, 20, 60, 0.35);
+  rotate: var(--tilt, 0deg);
+}
+input[type='text'] {
+  font: inherit;
+  font-size: 1.4em;
+  color: var(--ink);
+  width: 100%;
+  text-align: center;
+  padding: 0.25em 0.5em;
+  background: #fff;
+  border: var(--line);
+  border-radius: 12px 9px 13px 8px / 8px 13px 9px 12px;
+  box-shadow: inset 2px 3px 0 rgba(31, 36, 64, 0.1);
+}
+.pencil-spin {
+  font-size: 3em;
+  animation: bob 0.9s ease-in-out infinite;
+}
+#top {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  color: var(--paper);
+  background: rgba(20, 60, 24, 0.55);
+  border-bottom: 2px solid rgba(14, 44, 18, 0.5);
+}
+
+/* ---- lobby */
+
+.lobby h2,
+.wait h2 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.9em;
+}
+.note {
+  position: relative;
+  width: 112px;
+  min-height: 84px;
+  padding: 16px 6px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 2px 2px 16px 2px;
+  animation: note-in 0.3s cubic-bezier(0.2, 1.6, 0.5, 1) backwards;
+}
+/* a strip of tape holding the note down */
+.note::before {
+  content: '';
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  width: 46px;
+  height: 17px;
+  translate: -50% 0;
+  rotate: -3deg;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(31, 36, 64, 0.15);
+}
+.howto b {
+  color: var(--sun);
+  font-weight: 400;
+}
+/* ---- join */
+
+.demo {
+  height: 96px;
+}
+.demo canvas {
+  width: 320px;
+  height: 96px;
+}
+
+/* ---- lobby */
+
+.setting .btn {
+  text-transform: capitalize;
+}
+
+/* ---- play: the canvas fills the screen and the HUD floats over it */
+
+#game[data-screen='play'] #screen {
+  position: relative;
+  overflow: hidden;
+}
+.screen.play {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  animation: none;
+  touch-action: none;
+  cursor: crosshair;
+}
+.screen.play canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--ink);
+}
+.clock {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  translate: -50% 0;
+  min-width: 3.4em;
+  padding: 0 14px;
+  text-align: center;
+  font-family: var(--display);
+  font-size: 2em;
+  line-height: 1.25;
+  background: var(--paper);
+  border: var(--line);
+  border-radius: var(--wobble);
+  box-shadow: 3px 4px 0 rgba(12, 20, 60, 0.35);
+}
+.clock.low {
+  color: #fff;
+  background: var(--coral);
+  animation: throb 0.5s ease-in-out infinite alternate;
+}
+.clock.hit {
+  animation: shake 0.35s;
+}
+.left {
+  position: absolute;
+  top: 62px;
+  left: 50%;
+  translate: -50% 0;
+  padding: 0 10px;
+  font-size: 0.9em;
+  color: var(--paper);
+  background: rgba(20, 30, 60, 0.55);
+  border-radius: 99px;
+  white-space: nowrap;
+}
+.team {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.85em;
+}
+.team span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px 0 4px;
+  color: var(--paper);
+  background: rgba(20, 30, 60, 0.55);
+  border-radius: 99px;
+  white-space: nowrap;
+}
+.team i {
+  width: 0.8em;
+  height: 0.8em;
+  border-radius: 50%;
+  background: var(--c);
+  border: 2px solid var(--ink);
+}
+.team .away {
+  opacity: 0.55;
+}
+.team b {
+  font-family: var(--display);
+  font-weight: 400;
+  margin-left: auto;
+  padding-left: 6px;
+}
+.grow {
+  position: absolute;
+  left: 50%;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 12px 3px 8px;
+  background: var(--paper);
+  border: var(--line);
+  border-radius: var(--wobble);
+  box-shadow: 3px 4px 0 rgba(12, 20, 60, 0.35);
+  white-space: nowrap;
+  font-size: 0.9em;
+}
+.grow canvas {
+  position: static;
+  width: 30px;
+  height: 30px;
+}
+.grow .bar {
+  width: 110px;
+  height: 12px;
+  border: 2px solid var(--ink);
+  border-radius: 99px;
+  overflow: hidden;
+  background: #fff;
+}
+.grow .bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--mint);
+  transition: width 0.2s;
+}
+.grow.bump {
+  animation: bump 0.4s;
+}
+.banner {
+  position: absolute;
+  top: 26%;
+  left: 50%;
+  translate: -50% 0;
+  padding: 2px 18px;
+  font-family: var(--display);
+  font-size: 1.6em;
+  text-align: center;
+  color: var(--ink);
+  background: var(--sun);
+  border: var(--line);
+  border-radius: var(--wobble);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transition: opacity 0.3s;
+  max-width: calc(100% - 24px);
+}
+.banner.show {
+  opacity: 1;
+  animation: bump 0.4s;
+}
+.count {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--display);
+  font-size: min(34vw, 34vh);
+  color: var(--paper);
+  -webkit-text-stroke: 4px var(--ink);
+  text-shadow: 6px 8px 0 rgba(12, 20, 60, 0.4);
+}
+.count span {
+  animation: count-in 0.9s ease-out both;
+}
+.watching {
+  position: absolute;
+  left: 50%;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  translate: -50% 0;
+  padding: 2px 14px;
+  color: var(--paper);
+  background: rgba(20, 30, 60, 0.7);
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+@keyframes throb {
+  to {
+    scale: 1.08;
+  }
+}
+@keyframes shake {
+  25% {
+    translate: calc(-50% - 7px) 0;
+  }
+  75% {
+    translate: calc(-50% + 7px) 0;
+  }
+}
+@keyframes bump {
+  40% {
+    scale: 1.15;
+  }
+}
+@keyframes count-in {
+  from {
+    scale: 1.8;
+    opacity: 0;
+  }
+  30% {
+    scale: 1;
+    opacity: 1;
+  }
+  to {
+    scale: 0.9;
+    opacity: 0.2;
+  }
+}
+
+/* ---- between courses, and the end */
+
+.stars {
+  font-size: 3em;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  color: var(--sun);
+  -webkit-text-stroke: 2px var(--ink);
+  text-align: center;
+}
+.stars .off {
+  color: rgba(255, 255, 255, 0.5);
+}
+.stars span {
+  display: inline-block;
+  animation: note-in 0.45s cubic-bezier(0.2, 1.6, 0.5, 1) backwards;
+}
+.stars.small {
+  font-size: 1.5em;
+  -webkit-text-stroke: 1.5px var(--ink);
+}
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 22px;
+  font-size: 1.15em;
+}
+.facts b {
+  font-family: var(--display);
+  font-weight: 400;
+}
+.cleared .sheet,
+.finale .sheet {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.crew {
+  width: 100%;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+.crew li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 8px;
+  border-radius: 10px;
+}
+.crew li.me {
+  outline: 2px dashed var(--coral);
+}
+.crew .who {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.crew .ate {
+  font-family: var(--display);
+  white-space: nowrap;
+}
+.crew .medals {
+  font-size: 0.8em;
+  color: var(--muted);
+  display: block;
+}
+.award {
+  color: var(--paper);
+  font-size: 1.2em;
+  text-align: center;
+}
+
+/* ---- overlays */
+
+.confetti {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 60;
+  pointer-events: none;
+}
+
+@media (max-width: 520px) {
+  .team {
+    font-size: 0.75em;
+  }
+  .clock {
+    font-size: 1.6em;
+  }
+  .left {
+    top: 52px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

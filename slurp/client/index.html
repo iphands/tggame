@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+    <meta name="theme-color" content="#4f9d4a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Slurp" />
+    <title>Slurp</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-phase="join">
+    <!-- ---- join -->
+    <main id="join">
+      <h1 class="logo" aria-label="Slurp">
+        <span class="logo-a">Slurp</span>
+      </h1>
+      <p class="tagline">Eat small. Grow big. Clear the picnic!</p>
+
+      <div id="demo" class="demo" aria-hidden="true"></div>
+
+      <form id="join-form" class="sheet spiral join-card" autocomplete="off">
+        <label for="name">What do they call you?</label>
+        <input id="name" type="text" placeholder="Your name" autocapitalize="words" spellcheck="false" enterkeyhint="go" />
+        <button class="btn primary big" type="submit">Dig in</button>
+        <p id="join-error" class="error" role="alert"></p>
+      </form>
+      <p class="fineprint">1 to 8 players · one screen each · everybody on the same team</p>
+    </main>
+
+    <div id="connecting" hidden>
+      <div class="pencil-spin">●</div>
+      <p>Finding the table…</p>
+    </div>
+
+    <!-- ---- game shell -->
+    <div id="game" hidden>
+      <header id="top">
+        <span class="logo mini" aria-hidden="true"><span class="logo-a">Slurp</span></span>
+        <span id="progress"></span>
+        <span class="spacer"></span>
+        <span id="conn" class="conn" hidden></span>
+        <button id="mute" class="icon-btn" type="button" aria-label="Sound"></button>
+        <button id="menu" class="icon-btn" type="button" aria-label="Menu">☰</button>
+        <div id="menu-pop" hidden>
+          <button id="end-game" type="button">End game for everyone</button>
+          <button id="leave" type="button">Leave</button>
+        </div>
+      </header>
+      <div id="screen"></div>
+    </div>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
