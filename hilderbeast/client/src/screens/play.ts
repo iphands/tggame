@@ -54,6 +54,8 @@ const RAYS = 360;
 /** How far light spills into a wall, so its face is lit. */
 const WALL_GLOW = 18;
 const FOG = 'rgba(8,6,16,0.74)';
+/** How much larger everybody is drawn for a screen that shows the whole house. */
+const WATCH_SCALE = 2.2;
 /** Minimap pixels per square. */
 const MINI = 4;
 
@@ -406,10 +408,19 @@ export function playScreen(): Screen {
     const sorted = bodies.filter((b) => !(b.flags & (F_PORTAL | F_OUT))).sort((a, b) => a.y - b.y);
     // our own side is always sent, wall or no wall: those out of sight are drawn over the dark, as markers
     const unseen = lit ? sorted.filter((b) => b.id !== s.selfId && !sees(MAP, self.x, self.y, b.x, b.y, SIGHT_R * 0.9)) : [];
+    // with the whole house on screen (a TV, or anyone only watching) everybody is drawn larger, to be seen across a room
+    const big = self.ready ? 1 : WATCH_SCALE;
     for (const b of sorted) {
       if (unseen.includes(b)) continue;
-      drawBody(ctx, b.x, b.y, colorOf(b.id), b.facing, b.flags, now);
-      if (b.id !== s.selfId) label(nameOf(b.id), b.x, b.y - 26, '#f4ecd8');
+      if (big === 1) drawBody(ctx, b.x, b.y, colorOf(b.id), b.facing, b.flags, now);
+      else {
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.scale(big, big);
+        drawBody(ctx, 0, 0, colorOf(b.id), b.facing, b.flags, now);
+        ctx.restore();
+      }
+      if (b.id !== s.selfId) label(nameOf(b.id), b.x, b.y - 26 * big - (b.flags & F_BEAST ? 14 * big : 0), '#f4ecd8');
     }
 
     // the dark: everything our own eyes cannot reach
