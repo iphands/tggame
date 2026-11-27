@@ -1,6 +1,7 @@
 /** Everything on the floor of the house, drawn in code. */
 import { BODY_R, F_BEAST, F_BOOST, F_CONVERT, F_DASH, F_HELD, F_MISS, F_WINDUP, F_WORK, TILE } from '../../shared/src/constants';
 import { wallAt, type GameMap } from '../../shared/src/map';
+import { HILDER_BOX, hilderSprite } from './hilder';
 
 export const INK = '#120f1c';
 export const NIGHT = '#0c0a14';
@@ -137,12 +138,19 @@ export function drawCousin(c: Ctx, x: number, y: number, color: string, facing: 
   c.restore();
 }
 
-/** A Hilder Beast: shaggy, horned, and wearing its player's colour on its horns. */
+/** How tall Hilder is drawn, in world units: her head is about as wide as a Cousin and a half. */
+const HILDER_H = 74;
+const HILDER_W = (HILDER_H * HILDER_BOX.w) / HILDER_BOX.h;
+/** Where the middle of her head is in the drawing, as a share of its width and height. */
+const HEAD_X = (HILDER_BOX.cx - HILDER_BOX.x) / HILDER_BOX.w;
+const HEAD_Y = (HILDER_BOX.cy - HILDER_BOX.y) / HILDER_BOX.h;
+
+/** A Hilder Beast: Hilder herself (`hilder.ts`), wearing her player's colour as her top. */
 export function drawBeast(c: Ctx, x: number, y: number, color: string, facing: number, flags: number, t: number): void {
   const r = BODY_R * 1.45;
   const lx = Math.cos(facing);
   const ly = Math.sin(facing);
-  shadow(c, x, y, r);
+  shadow(c, x, y + 8, r);
   if (flags & (F_BOOST | F_DASH)) {
     c.strokeStyle = flags & F_DASH ? 'rgba(255,93,115,0.75)' : 'rgba(179,136,255,0.6)';
     c.lineWidth = 3;
@@ -155,56 +163,25 @@ export function drawBeast(c: Ctx, x: number, y: number, color: string, facing: n
   }
   c.save();
   c.translate(x, y);
-  // rearing back before a lunge, slumped after a miss
+  // rearing back before a lunge, reeling after a miss; otherwise leaning the way she is going
   if (flags & F_WINDUP) {
     c.translate(-lx * 5, -ly * 5);
-    c.scale(1.18, 1.18);
-  } else if (flags & F_MISS) c.rotate(Math.sin(t / 50) * 0.18);
+    c.scale(1.2, 1.2);
+  } else if (flags & F_MISS) c.rotate(Math.sin(t / 50) * 0.2);
+  else c.rotate(lx * 0.1 + Math.sin(t / 160) * 0.03);
   if (flags & (F_HELD | F_CONVERT)) c.globalAlpha = 0.75;
-  // horns
-  c.fillStyle = color;
-  c.strokeStyle = INK;
-  c.lineWidth = 2;
-  for (const side of [-1, 1]) {
+  const img = hilderSprite(color, (flags & (F_WINDUP | F_DASH)) !== 0);
+  if (img) c.drawImage(img, -HILDER_W * HEAD_X, -4 - HILDER_H * HEAD_Y, HILDER_W, HILDER_H);
+  else {
+    // the frame or two before her picture is ready
+    c.fillStyle = '#b9a3c9';
+    c.strokeStyle = INK;
+    c.lineWidth = 2.5;
     c.beginPath();
-    c.moveTo(side * r * 0.35, -r * 0.7);
-    c.lineTo(side * r * 1.05, -r * 1.55);
-    c.lineTo(side * r * 0.85, -r * 0.45);
-    c.closePath();
+    c.arc(0, 0, r, 0, Math.PI * 2);
     c.fill();
     c.stroke();
   }
-  // shaggy fur: a ragged circle
-  c.fillStyle = '#4b3577';
-  c.lineWidth = 2.5;
-  c.beginPath();
-  const spikes = 14;
-  for (let i = 0; i <= spikes * 2; i++) {
-    const a = (i / (spikes * 2)) * Math.PI * 2;
-    const wob = Math.sin(t / 130 + i * 1.7) * 0.05;
-    const rr = r * (i % 2 ? 0.86 + wob : 1.08 - wob);
-    const px = Math.cos(a) * rr;
-    const py = Math.sin(a) * rr;
-    if (i === 0) c.moveTo(px, py);
-    else c.lineTo(px, py);
-  }
-  c.closePath();
-  c.fill();
-  c.stroke();
-  eyes(c, r, lx, ly, flags & F_WINDUP ? '#ff5d73' : '#ffd23f', INK, true);
-  // a mouth full of teeth
-  c.fillStyle = INK;
-  c.beginPath();
-  c.ellipse(lx * r * 0.1, r * 0.42 + ly * r * 0.08, r * 0.46, r * (flags & (F_WINDUP | F_DASH) ? 0.3 : 0.16), 0, 0, Math.PI * 2);
-  c.fill();
-  c.strokeStyle = PAPER;
-  c.lineWidth = 1.5;
-  c.beginPath();
-  for (let i = -2; i <= 2; i++) {
-    c.moveTo(i * r * 0.17 + lx * r * 0.1, r * 0.34 + ly * r * 0.08);
-    c.lineTo(i * r * 0.17 + lx * r * 0.1, r * 0.44 + ly * r * 0.08);
-  }
-  c.stroke();
   c.restore();
 }
 

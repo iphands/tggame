@@ -6,6 +6,7 @@ import { sanitizeName } from '@tggame/base/shared/text';
 import type { ServerMessage } from '../../shared/src/protocol';
 import { isMuted, setMuted, sfx, unlockAudio } from './audio';
 import { drawBeast, drawCousin, drawPill } from './art';
+import { onHilderReady } from './hilder';
 import { clearLive, onSnap } from './live';
 import { GameClient, type ConnectionStatus } from './net';
 import { MODE_NAMES, makeScreen, screenKey, type Screen } from './screens/index';
@@ -37,11 +38,13 @@ function drawDemo(): void {
   const c = demo.getContext('2d')!;
   c.setTransform(4, 0, 0, 4, 0, 0);
   c.clearRect(0, 0, 160, 48);
-  drawPill(c, 138, 30, 0, true);
-  drawCousin(c, 104, 28, '#3ddc97', 0, 2, 0);
-  drawBeast(c, 44, 26, '#ff5d73', 0, 0, 0);
+  drawPill(c, 142, 32, 0, true);
+  drawCousin(c, 110, 30, '#3ddc97', 0, 2, 0);
+  drawBeast(c, 46, 32, '#5b3f8f', 0, 0, 0);
 }
 drawDemo();
+// her picture loads a moment after it is first asked for
+onHilderReady(drawDemo);
 
 // ---- connection
 
