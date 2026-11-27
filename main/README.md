@@ -33,6 +33,8 @@ Environment: `PORT` (8081), `GAMES_DIR` (`..`, the directory that holds the game
 | 8092 | `tele`: Doodle Telephone |
 | 8093 | `drawlink`: Drawlink |
 | 8094 | `spoons`: Spoons |
+| 8095 | `slurp`: Slurp |
+| 8096 | `lightbike`: Lightbikes |
 
 A card links to `/play/<game>/` on the landing page's own port, and the landing page passes
 that address (pages and WebSockets alike) on to the game's server. So visitors only ever need
