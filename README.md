@@ -31,6 +31,8 @@ Only port 8081 leaves the container. The landing page is at `/` and each game at
   shows it.
 - `PORT=9000 ./run` publishes another port.
 - `./run -d` runs in the background; stop it with `docker stop tggame` or `podman stop tggame`.
+- `./create` makes a lasting container named `tggame` on port 8082 without starting it
+  (`PORT=…`, `NAME=…` to change); start it with `docker start tggame` or `podman start tggame`.
 - `./publish` pushes the built image to Docker Hub as `iphands/tggame`. Tags name the kind of
   machine it was built on: `latest-arm64` or `latest-x64`, plus the commit (`<commit>-arm64`).
   `latest` is whichever was pushed last. Log in first.

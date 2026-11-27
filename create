@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Creates (but does not start) a lasting container from the image ./build made.
+# Unlike ./run, it stays around when stopped and comes back after a reboot once started.
+#   ./create               container "tggame", serving on port 8082
+#   PORT=9000 ./create     another port
+#   NAME=games ./create    another name; extra arguments go to the create command
+# Then: docker start tggame   (or podman start tggame)
+set -euo pipefail
+
+ENGINE=${ENGINE:-$(command -v docker || command -v podman || true)}
+[ -n "$ENGINE" ] || { echo "Neither docker nor podman is installed." >&2; exit 1; }
+
+NAME=${NAME:-tggame}
+PORT=${PORT:-8082}
+IMAGE=${IMAGE:-tggame}
+
+"$ENGINE" image inspect "$IMAGE" >/dev/null 2>&1 || { echo "No image \"$IMAGE\" yet. Run ./build first." >&2; exit 1; }
+if "$ENGINE" container inspect "$NAME" >/dev/null 2>&1; then
+  echo "A container named \"$NAME\" already exists. Remove it first:" >&2
+  echo "  $(basename "$ENGINE") rm -f $NAME" >&2
+  exit 1
+fi
+
+"$ENGINE" create --init --restart unless-stopped --name "$NAME" -p "$PORT:8081" "$@" "$IMAGE" >/dev/null
+echo "Created \"$NAME\". Start it with: $(basename "$ENGINE") start $NAME"
+echo "It will serve Game Night on http://localhost:$PORT"
