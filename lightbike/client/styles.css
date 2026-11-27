@@ -1,0 +1,671 @@
+/* Lightbikes: the party games' shell with the lights off. Dark floor, glowing edges, same bones. */
+@import '@tggame/base/css/party.css';
+@import '@tggame/base/css/party-ranking.css';
+
+:root {
+  --desk: #07041a;
+  --desk-deep: #030210;
+  /* "paper" is a dark panel here and "ink" is light: the shared styles only ever use them as a pair */
+  --paper: #150d33;
+  --ink: #f1ecff;
+  --muted: #a99bc9;
+  --sun: #ffd166;
+  --coral: #ff6bcb;
+  --mint: #3ddc84;
+  --neon: #3de0e0;
+  --edge: #7c6cff;
+  --dark: #07041a;
+  --line: 2px solid var(--edge);
+  --shadow: 0 0 0 1px rgba(124, 108, 255, 0.25), 0 0 26px rgba(124, 108, 255, 0.28);
+  --hand: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+  --display: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+  --wobble: 14px;
+  --dots: linear-gradient(rgba(124, 108, 255, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(124, 108, 255, 0.07) 1px, transparent 1px);
+}
+
+body {
+  font-family: var(--hand);
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--ink);
+  background-color: var(--desk);
+  /* a floor grid running off into the dark */
+  background-image:
+    linear-gradient(rgba(124, 108, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(124, 108, 255, 0.1) 1px, transparent 1px),
+    radial-gradient(ellipse at 50% 0%, #241560 0%, var(--desk) 55%, var(--desk-deep) 100%);
+  background-size:
+    44px 44px,
+    44px 44px,
+    100% 100%;
+  background-attachment: fixed;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ---- the shared pieces, relit */
+
+.btn {
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border-radius: 10px;
+  box-shadow: 0 0 12px rgba(124, 108, 255, 0.35);
+}
+.btn:hover:not(:disabled) {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(124, 108, 255, 0.6);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 0 6px rgba(124, 108, 255, 0.4);
+}
+.btn.primary {
+  color: var(--dark);
+  background: var(--neon);
+  border-color: #c9ffff;
+  box-shadow: 0 0 16px rgba(61, 224, 224, 0.6);
+}
+.btn.primary:hover:not(:disabled) {
+  box-shadow: 0 0 26px rgba(61, 224, 224, 0.85);
+}
+.btn.big {
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.btn.small {
+  box-shadow: none;
+}
+.sheet {
+  background-size: 22px 22px;
+  padding: 24px 20px 20px;
+}
+.sheet h2,
+.sheet h3 {
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.logo {
+  font-weight: 800;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: var(--ink);
+  -webkit-text-stroke: 0;
+  text-shadow:
+    0 0 12px var(--neon),
+    0 0 38px rgba(61, 224, 224, 0.6),
+    0.06em 0.06em 0 var(--coral);
+}
+.logo-a {
+  font-size: clamp(40px, 12.5vw, 104px);
+  color: var(--ink);
+  transform: skewX(-6deg);
+}
+.logo.mini {
+  text-shadow: 0 0 8px var(--neon);
+}
+.logo.mini span {
+  font-size: 18px;
+}
+.tagline {
+  text-align: center;
+  font-size: 1.3em;
+  color: var(--neon);
+  letter-spacing: 0.04em;
+}
+.fineprint {
+  color: var(--muted);
+  font-size: 0.9em;
+  text-align: center;
+}
+input {
+  user-select: text;
+  -webkit-user-select: text;
+}
+input[type='text'] {
+  font: inherit;
+  font-size: 1.3em;
+  color: var(--ink);
+  width: 100%;
+  text-align: center;
+  padding: 0.3em 0.5em;
+  background: var(--dark);
+  border: var(--line);
+  border-radius: 10px;
+}
+input[type='text']:focus-visible {
+  outline: 2px solid var(--neon);
+  box-shadow: 0 0 16px rgba(61, 224, 224, 0.5);
+}
+input[type='text']::placeholder {
+  color: #6f6592;
+}
+.error {
+  color: var(--coral);
+}
+#connecting,
+.icon-btn {
+  color: var(--ink);
+}
+.pencil-spin {
+  font-size: 3em;
+  color: var(--neon);
+  text-shadow: 0 0 16px var(--neon);
+  animation: bob 0.9s ease-in-out infinite;
+}
+#top {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: rgba(16, 9, 38, 0.84);
+  border-bottom: 1px solid rgba(124, 108, 255, 0.45);
+}
+#progress {
+  font-size: 0.85em;
+  color: var(--muted);
+}
+.conn {
+  color: var(--dark);
+  border: 0;
+}
+#menu-pop button:hover {
+  color: var(--dark);
+  background: var(--neon);
+}
+.avatar {
+  color: var(--dark);
+  font-weight: 700;
+  border-color: var(--dark);
+  box-shadow: 0 0 10px var(--c);
+}
+.tag {
+  font-weight: 700;
+}
+.tag.you {
+  color: var(--dark);
+}
+.screen > .headline,
+.screen > .sub,
+.screen > .section-title {
+  color: var(--ink);
+}
+.headline.big {
+  font-size: clamp(34px, 9vw, 68px);
+  font-weight: 800;
+  font-style: italic;
+  text-transform: uppercase;
+  color: var(--ink);
+  -webkit-text-stroke: 0;
+  text-shadow:
+    0 0 14px var(--neon),
+    0 0 44px rgba(61, 224, 224, 0.55),
+    0.05em 0.05em 0 var(--coral);
+  rotate: -2deg;
+}
+
+/* ---- join */
+
+.demo {
+  height: 96px;
+  margin: 0;
+}
+.demo canvas {
+  width: 320px;
+  height: 96px;
+  border: var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+/* ---- lobby */
+
+.lobby h2 {
+  font-size: 1.6em;
+}
+/* a rider's plate: dark, with their colour along the edge */
+.note {
+  position: relative;
+  width: 132px;
+  min-height: 70px;
+  padding: 10px 6px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: var(--dark);
+  border: 2px solid var(--c, var(--neon));
+  border-radius: 8px;
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--c, var(--neon)) 55%, transparent),
+    inset 0 -4px 0 var(--c, var(--neon));
+  rotate: var(--tilt, 0deg);
+  animation: note-in 0.3s cubic-bezier(0.2, 1.6, 0.5, 1) backwards;
+}
+.note-name {
+  font-size: 1em;
+  font-weight: 700;
+  color: var(--c, var(--ink));
+}
+.setting .btn {
+  text-transform: capitalize;
+}
+.setting > span {
+  color: var(--muted);
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.setting {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.howto {
+  color: var(--muted);
+}
+.howto b {
+  color: var(--neon);
+}
+.howto li::before {
+  color: var(--dark);
+  background: var(--neon);
+  border: 0;
+  font-weight: 700;
+}
+
+/* ---- play: the canvas fills the screen and the HUD floats over it */
+
+#game[data-screen='play'] #screen {
+  position: relative;
+  overflow: hidden;
+}
+.screen.play {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  animation: none;
+  touch-action: none;
+}
+.screen.play > canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.corner {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 62%;
+}
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.8em;
+}
+.board span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 0 5px;
+  background: rgba(16, 9, 38, 0.78);
+  border-left: 3px solid var(--c);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.board i {
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 8px var(--c);
+}
+.board .out {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.board .out i {
+  background: none;
+  box-shadow: inset 0 0 0 2px var(--muted);
+}
+.board .away {
+  opacity: 0.55;
+}
+.board b {
+  margin-left: auto;
+  padding-left: 8px;
+  text-decoration: none;
+  display: inline-block;
+  color: var(--ink);
+}
+.board small {
+  color: var(--muted);
+  font-size: 0.85em;
+  padding-left: 8px;
+}
+.feed {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.8em;
+}
+.feed p {
+  padding: 1px 8px;
+  background: rgba(16, 9, 38, 0.78);
+  border-radius: 3px;
+  animation: feed-in 5s linear both;
+}
+@keyframes feed-in {
+  from {
+    opacity: 0;
+    translate: -12px 0;
+  }
+  4%,
+  82% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.count {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-style: italic;
+  font-size: min(30vw, 30vh);
+  line-height: 1;
+  color: var(--ink);
+  text-shadow:
+    0 0 20px var(--neon),
+    0 0 70px rgba(61, 224, 224, 0.7),
+    0.04em 0.04em 0 var(--coral);
+}
+.count span {
+  animation: count-in 0.9s ease-out both;
+}
+.count small {
+  font-size: 0.13em;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--neon);
+  text-shadow: 0 0 10px rgba(7, 4, 26, 0.9);
+}
+@keyframes count-in {
+  from {
+    scale: 1.8;
+    opacity: 0;
+  }
+  30% {
+    scale: 1;
+    opacity: 1;
+  }
+  to {
+    scale: 0.9;
+    opacity: 0.25;
+  }
+}
+.alarm {
+  position: absolute;
+  top: 14%;
+  left: 50%;
+  translate: -50% 0;
+  padding: 2px 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.85em;
+  white-space: nowrap;
+  color: #ffd6e0;
+  background: rgba(60, 6, 26, 0.8);
+  border: 1px solid #ff3d6e;
+  border-radius: 99px;
+}
+.alarm.on {
+  animation: pulse 0.6s ease-in-out infinite alternate;
+}
+@keyframes pulse {
+  to {
+    opacity: 0.55;
+  }
+}
+.watching {
+  position: absolute;
+  left: 50%;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  translate: -50% 0;
+  max-width: 92%;
+  padding: 3px 14px;
+  text-align: center;
+  background: rgba(16, 9, 38, 0.85);
+  border: 1px solid rgba(124, 108, 255, 0.6);
+  border-radius: 99px;
+}
+/* the bar boost and buster both drink from; the notch is what a buster costs */
+.energy {
+  position: absolute;
+  left: 50%;
+  bottom: calc(22px + env(safe-area-inset-bottom));
+  translate: -50% 0;
+  width: min(42%, 240px);
+  height: 14px;
+  background: rgba(16, 9, 38, 0.85);
+  border: 2px solid var(--neon);
+  border-radius: 99px;
+  overflow: hidden;
+  box-shadow: 0 0 12px rgba(61, 224, 224, 0.45);
+}
+.energy i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #7c6cff, var(--neon));
+}
+.energy.low {
+  border-color: var(--edge);
+  box-shadow: none;
+}
+.energy b {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--ink);
+  opacity: 0.8;
+}
+.energy.half b {
+  display: block;
+}
+.pad {
+  position: absolute;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  width: 92px;
+  height: 92px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  touch-action: none;
+  font: inherit;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  background: rgba(16, 9, 38, 0.72);
+  border: 2px solid var(--neon);
+  border-radius: 50%;
+  box-shadow: 0 0 16px rgba(61, 224, 224, 0.45);
+  cursor: pointer;
+}
+.pad small {
+  font-size: 0.6em;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.pad.boost {
+  left: calc(14px + env(safe-area-inset-left));
+}
+.pad.bust {
+  right: calc(14px + env(safe-area-inset-right));
+  border-color: var(--coral);
+  box-shadow: 0 0 16px rgba(255, 107, 203, 0.45);
+}
+.pad.held {
+  color: var(--dark);
+  background: var(--neon);
+  scale: 0.94;
+}
+.pad.bust.held {
+  background: var(--coral);
+}
+.pad.held small {
+  color: var(--dark);
+}
+.pad.spent {
+  opacity: 0.4;
+  box-shadow: none;
+}
+
+/* ---- between rounds, and the end */
+
+.cleared .sheet,
+.finale .sheet {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.crew {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+.crew li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+.crew li.me {
+  outline: 1px dashed var(--neon);
+}
+.crew li.best {
+  background: rgba(61, 224, 224, 0.12);
+}
+.crew .who {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.crew .ate {
+  min-width: 1.6em;
+  text-align: right;
+  font-weight: 800;
+  font-size: 1.15em;
+  white-space: nowrap;
+}
+.crew .gain {
+  color: var(--mint);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.crew .medals {
+  font-size: 0.8em;
+  color: var(--muted);
+  display: block;
+}
+.course-no {
+  flex: none;
+  width: 1.6em;
+  text-align: center;
+  font-weight: 800;
+  font-style: italic;
+  color: var(--muted);
+}
+.award {
+  color: var(--neon);
+  font-size: 1.15em;
+  text-align: center;
+}
+
+/* ---- overlays */
+
+.confetti {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 60;
+  pointer-events: none;
+}
+
+@media (max-width: 520px) {
+  body {
+    font-size: 16px;
+  }
+  .pad {
+    width: 78px;
+    height: 78px;
+  }
+}
+
+/* a mouse and keyboard need no thumb pads the size of a coaster */
+@media (hover: hover) and (pointer: fine) {
+  .pad {
+    width: 70px;
+    height: 70px;
+    font-size: 0.8em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
