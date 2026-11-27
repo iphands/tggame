@@ -24,12 +24,21 @@ export const store = {
   localFx: [] as Fx[],
   /** Our own fighter, carried ahead of the snapshots (`predict.ts`). */
   predictor: new Predictor((fx) => localFx(fx)),
+  /** When each of our own shots was shown ahead of the server's word (local clock, ms). */
+  ownShots: [] as number[],
   /** Has the predictor's lead been set from the measured line yet? */
   leadSeeded: false,
   touchMode: false,
   /** Graphics tier (set up in main.ts from the saved setting). */
   quality: new QualityManager('auto'),
 };
+
+/** Was this shot of ours already shown? (One shown and never confirmed is forgotten after a while.) */
+function takeOwnShot(): boolean {
+  const now = performance.now();
+  while (store.ownShots.length && now - store.ownShots[0] > 1500) store.ownShots.shift();
+  return store.ownShots.shift() !== undefined;
+}
 
 function localFx(fx: Fx): void {
   store.localFx.push(fx);
@@ -63,6 +72,8 @@ export function onSnapshot(snap: SnapshotMessage): void {
   for (const fx of snap.fx) {
     // our own jumps and landings were already played, from the prediction
     if (pred.active && isMoveFx(fx) && 'id' in fx && fx.id === snap.selfId) continue;
+    // …and so was the flash and bang of a shot we showed the moment the trigger was pulled
+    if (fx.k === 'shot' && fx.id === snap.selfId && takeOwnShot()) continue;
     store.fxQueue.push({ t: snap.simTimeMs, fx });
   }
   if (store.fxQueue.length > 400) store.fxQueue.splice(0, store.fxQueue.length - 400);

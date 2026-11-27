@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PHYS } from '../../../shared/src/constants';
+import { COMBAT, PHYS } from '../../../shared/src/constants';
 import type { Fx, PlatformState, PlayerState } from '../../../shared/src/types';
 import { store } from '../store';
 import { lerp, lerpPlayer } from '@tggame/base/platformer/interp';
@@ -42,6 +42,14 @@ const ITEM_LABEL: Record<string, [string, string]> = {
   railgun: ['☢ RAILGUN ☢', '#ff4fd8'],
 };
 
+/** Guns that fire the instant the trigger is pulled, and how long each takes to fire again (ms). */
+const QUICK_GUNS: Partial<Record<PlayerState['weapon'], number>> = {
+  pistol: COMBAT.pistol.cooldownMs,
+  boomstick: COMBAT.boomstick.cooldownMs,
+  smg: COMBAT.smg.cooldownMs,
+  rockets: COMBAT.rocket.cooldownMs,
+};
+
 export class ArenaScene extends Phaser.Scene {
   private level: LevelView | null = null;
   private levelIndex = -1;
@@ -59,6 +67,10 @@ export class ArenaScene extends Phaser.Scene {
   /** How much of our own fighter's place is taken from the platform it rides, as drawn (0 to 1). */
   private ride = 0;
   private rideIdx = -1;
+  /** Our own fighter as drawn this frame (predicted), or null. */
+  private selfDrawn: PlayerState | null = null;
+  /** Sim time of the last shot of ours shown ahead of the server. */
+  private ownShotAt = -1e9;
   private prevDown = false;
   private lastFireSent = 0;
   private prevFiring = false;
@@ -263,6 +275,7 @@ export class ArenaScene extends Phaser.Scene {
     const i = pred ? players.findIndex((p) => p.id === store.selfId) : -1;
     if (!pred || i < 0) {
       this.ride = 0;
+      this.selfDrawn = null;
       return;
     }
     // The platforms on screen are a moment behind the one the prediction stands on. While we
@@ -278,7 +291,7 @@ export class ArenaScene extends Phaser.Scene {
     const ahead = store.predictor.platAt(this.rideIdx);
     const rx = drawn && ahead ? (drawn.x - ahead.x) * this.ride : 0;
     const ry = drawn && ahead ? (drawn.y - ahead.y) * this.ride : 0;
-    players[i] = {
+    this.selfDrawn = players[i] = {
       ...players[i],
       x: pred.x + pred.errX + rx,
       y: pred.y + pred.errY + ry,
@@ -313,10 +326,33 @@ export class ArenaScene extends Phaser.Scene {
     if (firing && t - this.lastFireSent >= 70) {
       this.lastFireSent = t;
       client.send({ type: 'shoot' });
+      this.showOwnShot(edge);
     }
     // letting go throws a bomb early (short); the server ignores it otherwise
     if (this.prevFiring && !firing) client.send({ type: 'release' });
     this.prevFiring = firing;
+  }
+
+  /**
+   * The flash and bang of our own gun, the moment the trigger is pulled: the server will fire it
+   * a trip from now and tell us a trip after that. Only what a shot looks and sounds like is
+   * shown early; the bullet, and what it hits, are the server's to say. Weapons that wind up
+   * (bombs, the railgun) already cover the wait with their own wind-up.
+   */
+  private showOwnShot(edge: number | null): void {
+    const snap = store.snapshot;
+    const me = this.selfDrawn;
+    if (edge === null || !snap || snap.phase !== 'playing' || !me || me.life !== 'alive' || !store.predictor.active) return;
+    const cooldown = QUICK_GUNS[me.weapon];
+    if (cooldown === undefined) return;
+    // shots shown and not yet confirmed have used ammo the snapshot does not know of
+    if (me.ammo >= 0 && me.ammo - store.ownShots.length <= 0) return;
+    const at = edge + store.predictor.leadMs; // the sim time the server will fire it at
+    if (at - Math.max(me.shotAt, this.ownShotAt) < cooldown) return;
+    this.ownShotAt = at;
+    store.ownShots.push(performance.now());
+    const x = me.x + PHYS.playerW / 2 + me.face * (PHYS.playerW / 2 + 6);
+    this.handleFx({ k: 'shot', x, y: me.y + PHYS.playerH * 0.45, id: me.id, weapon: me.weapon, face: me.face });
   }
 
   // ------------------------------------------------------------ world
