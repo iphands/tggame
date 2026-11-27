@@ -10,12 +10,22 @@ export const SNAP_EVERY_TICKS = 2;
 // ---- the table
 
 export const MIN_PLAYERS = 2;
-export const MAX_PLAYERS = 10;
+export const MAX_PLAYERS = 24;
+/**
+ * Places for Cousins to start that every map marks. With more Cousins than places they double
+ * up, a step apart (`World`). Not tied to `MAX_PLAYERS`: changing this changes every generated map.
+ */
+export const START_SPOTS = 10;
 export const MAX_PAYLOAD_BYTES = 2048;
 /** A table nobody is connected to is cleared after this long. */
 export const ABANDON_MS = 90_000;
 
-export const PLAYER_COLORS = ['#ff5d73', '#ffd23f', '#3ddc97', '#4cc9f0', '#b388ff', '#ff9f43', '#f78fb3', '#9be564', '#e0e0e0', '#c98b5b'] as const;
+/** One for every seat, each told apart from the rest at a glance. */
+export const PLAYER_COLORS = [
+  '#ff5d73', '#ffd23f', '#3ddc97', '#4cc9f0', '#b388ff', '#ff9f43', '#f78fb3', '#9be564', '#e0e0e0', '#c98b5b',
+  '#2ec4b6', '#e63946', '#f4d35e', '#5e60ce', '#80ed99', '#ff70a6', '#48bfe3', '#e9c46a', '#a44a3f', '#bdb2ff',
+  '#70e000', '#ff7b00', '#8ecae6', '#d4a373',
+] as const;
 
 export const MODES = ['last', 'escape'] as const;
 export const DEFAULT_MODE = 'last';

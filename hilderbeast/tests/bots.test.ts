@@ -38,6 +38,13 @@ describe('bot rounds', () => {
     const wins = [1, 2, 3, 4].map((seed) => botRound('escape', 8, seed)).filter((r) => r.result.why === 'escaped');
     expect(wins.length).toBeGreaterThan(0);
   });
+  it('end with a full house of 24', { timeout: 240_000 }, () => {
+    for (const mode of ['last', 'escape'] as const) {
+      const { result, tookMs, world } = botRound(mode, 24, 5, 1);
+      expect(world.bodies.length).toBeGreaterThan(1);
+      console.log(`24 players, ${mode}: ${result.winner} (${result.why}) after ${(tookMs / 1000).toFixed(0)} s, ${result.catches.length} caught, ${result.escaped.length} out`);
+    }
+  });
   it('end on every map, in both modes', { timeout: 240_000 }, () => {
     const lines: string[] = [];
     MAPS.forEach((m, i) => {

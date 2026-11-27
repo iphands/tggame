@@ -2,7 +2,7 @@
   "title": "Hilder Beast",
   "tagline": "One Hilder Beast hunts the Cousins through the old house. Get caught and you join the hunt.",
   "port": 8097,
-  "players": "2–10 players, bots welcome",
+  "players": "2–24 players, bots welcome",
   "accent": "#b388ff",
   "order": 8,
   "phases": { "lobby": "Lobby open", "countdown": "Lights out", "play": "Hunting", "finale": "Round over" }

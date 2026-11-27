@@ -162,7 +162,17 @@ export class World {
     let seat = 0;
     for (const id of ids) {
       const beast = id === firstBeast;
-      const at = beast || !map.cousinStarts.length ? beastAt : map.cousinStarts[seat++ % map.cousinStarts.length];
+      let at = beast || !map.cousinStarts.length ? beastAt : map.cousinStarts[seat % map.cousinStarts.length];
+      if (!beast && map.cousinStarts.length) {
+        // more Cousins than places to start: the later ones stand a step or two off, each a different way
+        const lap = Math.floor(seat / map.cousinStarts.length);
+        if (lap > 0) {
+          const spot = { x: at.x, y: at.y };
+          moveBody(spot, Math.cos(seat * 2.4) * 20 * lap, Math.sin(seat * 2.4) * 20 * lap, map);
+          at = spot;
+        }
+        seat++;
+      }
       this.bodies.push({
         id,
         role: beast ? 'beast' : 'cousin',

@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   BASE_SPEED, BEAST_BOOST_COOLDOWN_MS, BEAST_BOOST_MS, CATCH_COOLDOWN_MS, CONVERT_MS, ENERGY_MAX, ENERGY_START,
   DASH_COOLDOWN_MS, DASH_MS, PORTALS_ON, DASH_SPEED, F_BOOST, F_CONVERT, F_DASH, F_HURT, F_SLOW, GOO_SPEED, HURT_SPEED, SPIKE_CYCLE_MS, SPIKE_ENERGY, SPIKE_UP_AT_MS, SPIKE_WARN_AT_MS, NOISE_EVERY_MS, PILL_BACK_MS, PILL_ENERGY, PORTAL_COOLDOWN_MS, PORTAL_TRANSIT_MS, ROLE,
-  TASK_WORK_MS, TICK_MS, TILE, tasksNeeded,
+  MAX_PLAYERS, TASK_WORK_MS, TICK_MS, TILE, tasksNeeded,
 } from '../shared/src/constants';
-import { parseMap, spikesAt } from '../shared/src/map';
+import { T_WALL, kindAt, parseMap, spikesAt } from '../shared/src/map';
 import { MAP } from '../shared/src/maps';
-import { speedOf } from '../shared/src/sim';
+import { sees, speedOf } from '../shared/src/sim';
+import { World } from '../server/src/world';
 import { place, seeded, steps, world, YARD } from './helpers';
 
 const at = (c: number, r: number) => [(c + 0.5) * TILE, (r + 0.5) * TILE] as const;
@@ -396,6 +397,21 @@ describe('Beast doors, while they are off', () => {
     steps(w, 500);
     expect([b.x, b.y]).toEqual([from.x, from.y]);
     expect(w.fx.filter((e) => e[0] === 't')).toHaveLength(0);
+  });
+});
+
+describe('a full house', () => {
+  it('starts every Cousin on the floor, no two on the very same spot, none in sight of the Beast', () => {
+    const ids = ['beast', ...Array.from({ length: MAX_PLAYERS - 1 }, (_, i) => `c${i}`)];
+    const w = new World('last', ids, 'beast', [], MAP);
+    const cousins = w.cousins();
+    expect(cousins).toHaveLength(MAX_PLAYERS - 1);
+    const seen = new Set(cousins.map((c) => `${Math.round(c.x)},${Math.round(c.y)}`));
+    expect(seen.size).toBe(MAX_PLAYERS - 1);
+    for (const c of cousins) {
+      expect(kindAt(MAP, c.x, c.y)).not.toBe(T_WALL);
+      expect(sees(MAP, MAP.den.x, MAP.den.y, c.x, c.y)).toBe(false);
+    }
   });
 });
 

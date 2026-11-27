@@ -1,6 +1,6 @@
 # Hilder Beast
 
-A chase game for 2 to 10 players, one screen each. The round starts with one **Hilder Beast** and
+A chase game for 2 to 24 players, one screen each. The round starts with one **Hilder Beast** and
 a house full of **Cousins**. Every Cousin the Beast catches becomes a Beast and joins the hunt.
 
 ```sh

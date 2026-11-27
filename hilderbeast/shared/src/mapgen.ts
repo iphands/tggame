@@ -5,7 +5,7 @@
  * travel. A layout that breaks a rule (a Cousin starting in sight of the den, a room with one
  * way out, spikes with no way round) is thrown away and the next seed tried.
  */
-import { MAX_PLAYERS, TASKS_MAX, TILE } from './constants.js';
+import { START_SPOTS, TASKS_MAX, TILE } from './constants.js';
 import { parseMap, type GameMap, type Look, type Room } from './map.js';
 import { sees } from './sim.js';
 
@@ -212,11 +212,11 @@ function layOut(plan: Plan, seed: number): GameMap | null {
   const denAt = taken[0];
 
   const starts: Cell[] = [];
-  for (let i = 0; i < MAX_PLAYERS; i++) {
+  for (let i = 0; i < START_SPOTS; i++) {
     const c = spot(rects[plan.halls[i % plan.halls.length]], 2);
     if (c && put('c', c)) starts.push(c);
   }
-  if (starts.length < MAX_PLAYERS - 1) return null;
+  if (starts.length < START_SPOTS - 1) return null;
 
   // Beast doors: three pairs, each joining two rooms far apart, spread over as many rooms as there are
   const used = rects.map(() => 0);

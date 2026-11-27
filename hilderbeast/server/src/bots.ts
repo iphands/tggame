@@ -9,7 +9,10 @@ import { sees } from '../../shared/src/sim.js';
 import { FAR, stepsAt, stepsFrom, towards } from './path.js';
 import { type Body, type Rng, type World } from './world.js';
 
-export const BOT_NAMES = ['Agnes', 'Barnaby', 'Clementine', 'Dudley', 'Edith', 'Fergus', 'Gertie', 'Horace', 'Ida', 'Jasper', 'Mabel', 'Ned', 'Olive', 'Percy'];
+export const BOT_NAMES = [
+  'Agnes', 'Barnaby', 'Clementine', 'Dudley', 'Edith', 'Fergus', 'Gertie', 'Horace', 'Ida', 'Jasper', 'Mabel', 'Ned', 'Olive', 'Percy',
+  'Queenie', 'Rupert', 'Sybil', 'Thaddeus', 'Ursula', 'Vernon', 'Winnie', 'Xavier', 'Yvette', 'Zebedee', 'Beryl', 'Cecil',
+];
 
 /** A Beast bot dashes when a Cousin is this near. */
 const DASH_AT = 130;

@@ -32,7 +32,7 @@ import { BOT_NAMES, Bots } from './bots.js';
 import { World, type Body, type Rng } from './world.js';
 
 /** Players plus spectators a server will hold on to. */
-const MAX_PEOPLE = 30;
+const MAX_PEOPLE = 48;
 /** After a stall (a sleeping laptop) the simulation catches up by at most this much. */
 const MAX_CATCH_UP_MS = 250;
 

@@ -76,7 +76,7 @@ describe('the lobby', () => {
   });
   it('seats bots up to the limit and gives a human a bot\'s seat', () => {
     const { g, ids } = table(1);
-    for (let i = 0; i < 20; i++) g.addBot(ids[0]);
+    for (let i = 0; i < MAX_PLAYERS + 6; i++) g.addBot(ids[0]);
     expect(g.players.size).toBe(MAX_PLAYERS);
     const j = join(g, 'Late');
     expect(g.players.size).toBe(MAX_PLAYERS);
@@ -538,7 +538,7 @@ describe('only watching', () => {
     g.watch(tv.id, true);
     g.start(ids[0]);
     expect(g.phase).toBe('lobby');
-    for (let i = 0; i < 20; i++) g.addBot(ids[0]);
+    for (let i = 0; i < MAX_PLAYERS + 6; i++) g.addBot(ids[0]);
     expect(g.viewFor(ids[0]).players.filter((p) => !p.spectator)).toHaveLength(MAX_PLAYERS);
   });
   it('chosen mid-round takes the body out of the round', () => {

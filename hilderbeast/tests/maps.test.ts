@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_PLAYERS, TASKS_MAX, TILE } from '../shared/src/constants';
+import { START_SPOTS, TASKS_MAX, TILE } from '../shared/src/constants';
 import { T_FLOOR, T_GOO, T_SPIKE, T_WALL, kindAt, wallAt } from '../shared/src/map';
 import { MAPS } from '../shared/src/maps';
 import { sees } from '../shared/src/sim';
@@ -24,7 +24,7 @@ describe('the maps', () => {
         for (let r = 0; r < m.lines; r++) expect(wallAt(m, 0, r) && wallAt(m, m.cols - 1, r)).toBe(true);
       });
       it('has what a round needs', () => {
-        expect(m.cousinStarts.length).toBeGreaterThanOrEqual(MAX_PLAYERS - 1);
+        expect(m.cousinStarts.length).toBeGreaterThanOrEqual(START_SPOTS - 1);
         expect(m.pills.length).toBeGreaterThanOrEqual(6);
         expect(m.pills.length).toBeLessThanOrEqual(30);
         expect(m.tasks.length).toBeGreaterThanOrEqual(TASKS_MAX);
