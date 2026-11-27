@@ -1,5 +1,7 @@
 /** A course being played: one canvas for the table, a few floating labels over it, one frame loop. */
+import { clock as netClock } from '@tggame/base/client/clock';
 import { h } from '@tggame/base/client/dom';
+import { netMeterShown, setNetExtra } from '@tggame/base/client/netMeter';
 import { lerp } from '@tggame/base/platformer/interp';
 import {
   EXTRAS,
@@ -19,6 +21,7 @@ import { GRASS, POWER_NAMES, TIER_NAMES, drawBlanket, drawFood, drawHole, foodSp
 import { buzz, sfx } from '../audio';
 import { createInput, type View } from '../input';
 import { clockLeft, live, type FoodView, type LiveEvent } from '../live';
+import { noteAim, predictHole, type SentAim } from '../predict';
 import { isSeated, player, send, store } from '../store';
 import type { Screen } from './index';
 
@@ -27,6 +30,8 @@ type Spark = { x: number; y: number; vx: number; vy: number; at: number; color: 
 type Float = { x: number; y: number; at: number; text: string };
 
 const INK = '#1f2440';
+/** The drawn hole jumps to the forecast when it is this far from it (a shove, a new table). */
+const SNAP_UNITS = 160;
 /** Aim is sent at most this often. */
 const AIM_EVERY_MS = 33;
 /** How much grass the camera shows beyond the table's edge, in world units. */
@@ -80,6 +85,10 @@ export function playScreen(): Screen {
   let raf = 0;
   let last = performance.now();
   let lastAimAt = 0;
+  /** The aims sent lately: the hole is carried forward through them from each snapshot. */
+  const sentAims: SentAim[] = [];
+  /** How far the drawn hole was from the forecast, smoothed, for the net graph. */
+  let offBy = 0;
   let sentX = Infinity;
   let sentY = Infinity;
   let edible = 0;
@@ -167,30 +176,44 @@ export function playScreen(): Screen {
       self.ready = false;
       return;
     }
-    if (!self.ready || Math.hypot(latest[1] - self.x, latest[2] - self.y) > 160) {
-      self.x = self.ax = latest[1];
-      self.y = self.ay = latest[2];
+    // where the server will have the hole once all we have sent has reached it
+    const speed = speedFactor(latest[4]);
+    const ahead = predictHole({ x: latest[1], y: latest[2] }, live.stampedAt, netClock.rtt, sentAims, now, live.w, live.h, speed);
+    const off = Math.hypot(ahead.x - self.x, ahead.y - self.y);
+    if (!self.ready || off > SNAP_UNITS) {
+      self.x = ahead.x;
+      self.y = ahead.y;
+      if (!self.ready) {
+        self.ax = self.x;
+        self.ay = self.y;
+        sentAims.length = 0;
+        input.reset();
+      }
       self.ready = true;
-      input.reset();
     }
     self.r = shown.r;
     const aim = input.aim(self, view);
     self.ax = Math.min(live.w, Math.max(0, aim.x));
     self.ay = Math.min(live.h, Math.max(0, aim.y));
     // slowed or boosted exactly as the server moves it, so the prediction stays true
-    moveHole(self, live.w, live.h, dt, speedFactor(latest[4]));
-    // the server has the last word; lean toward it gently so a lost message cannot leave us adrift
-    const pull = Math.min(1, dt * 1.5);
-    self.x += (latest[1] - self.x) * pull;
-    self.y += (latest[2] - self.y) * pull;
+    moveHole(self, live.w, live.h, dt, speed);
+    // the server has the last word: close on the forecast, which is its word carried forward
+    const pull = Math.min(1, dt * 8);
+    self.x += (ahead.x - self.x) * pull;
+    self.y += (ahead.y - self.y) * pull;
     shown.x = self.x;
     shown.y = self.y;
+    offBy += (off - offBy) * 0.05;
+    if (netMeterShown()) setNetExtra('hole', `off by ${offBy.toFixed(1)}`);
 
     if (now - lastAimAt >= AIM_EVERY_MS && (Math.abs(self.ax - sentX) > 0.5 || Math.abs(self.ay - sentY) > 0.5)) {
       lastAimAt = now;
       sentX = self.ax;
       sentY = self.ay;
-      send({ type: 'aim', x: Math.round(sentX * 10) / 10, y: Math.round(sentY * 10) / 10 });
+      const x = Math.round(sentX * 10) / 10;
+      const y = Math.round(sentY * 10) / 10;
+      send({ type: 'aim', x, y });
+      noteAim(sentAims, { at: now, x, y });
     }
   }
 

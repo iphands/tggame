@@ -18,6 +18,7 @@ Read `README.md` for the rules.
 | `server/src/index.ts` | sockets, `sync()` for state, the tick loop and `broadcast()` for snapshots |
 | `client/src/live.ts` | the table as the client knows it, fed by `course` and `snap`; not in the store |
 | `client/src/screens/play.ts` | canvas, camera, own-hole prediction, HUD, the frame loop |
+| `client/src/predict.ts` | our hole carried forward from a snapshot through the aims sent since (a slow line) |
 | `client/src/input.ts` | mouse, finger drag and keys to an aim point |
 | `client/src/art.ts` | food sprites, holes, blanket: all drawn in code |
 
