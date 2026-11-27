@@ -27,18 +27,7 @@ export const sfx = {
     tone('sine', 2637, 2637, 0.25, 0.3, 0.05);
   },
   /** The table is on somebody's case: a nudge, a honk, an air horn. */
-  heckle: (level: number) => {
-    if (level <= 1) return tone('sine', 700, 520, 0.12, 0.3);
-    if (level === 2) {
-      tone('sawtooth', 311, 300, 0.16, 0.3);
-      tone('sawtooth', 311, 300, 0.22, 0.3, 0.2);
-      return;
-    }
-    for (let i = 0; i < 3; i++) {
-      tone('sawtooth', 392, 370, 0.2, 0.32, i * 0.22);
-      tone('square', 494, 466, 0.2, 0.16, i * 0.22);
-    }
-  },
+  heckle: audio.heckle,
   tada: () => [523, 659, 784, 1047].forEach((f, i) => tone('triangle', f, f, i === 3 ? 0.5 : 0.14, 0.4, i * 0.11)),
   /** Sad trombone, short. */
   lose: () => [392, 370, 349, 311].forEach((f, i) => tone('sawtooth', f, f * 0.97, i === 3 ? 0.55 : 0.2, 0.25, i * 0.2)),

@@ -36,6 +36,17 @@ export type RevealView = {
   ownerId: string;
 };
 
+/** A finished player shouting at a slow one. Everyone at the table sees it. */
+export type Heckle = {
+  /** Goes up with every heckle, so clients can tell a new one from the one they have shown. */
+  seq: number;
+  targetId: string;
+  byId: string;
+  text: string;
+  /** 1 (nudge) to 3 (the whole table yelling). */
+  level: number;
+};
+
 /** Public, per-player game state. Never contains pages; those arrive separately once revealed. */
 export type StateView = {
   /** Increments every time a game starts; clients drop cached pages when it changes. */
@@ -56,6 +67,8 @@ export type StateView = {
   hearts: Record<string, number>;
   /** Keys this player has hearted. */
   myHearts: string[];
+  /** The latest heckle of this turn, if any. */
+  heckle: Heckle | null;
 };
 
 /** A page that has become visible to a player. */

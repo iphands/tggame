@@ -35,6 +35,13 @@ export const PLAYER_COLORS = [
 ] as const;
 
 /** Bot think time (ms) is drawn uniformly from this range by the server. */
+/** A finished player may heckle this often; faster taps are dropped. */
+export const HECKLE_COOLDOWN_MS = 300;
+/** A slow player's heckles get louder every this many, within one turn. */
+export const HECKLES_PER_LEVEL = 3;
+/** How long a heckle stays on everyone's screen. */
+export const HECKLE_SHOW_MS = 2600;
+
 export const BOT_DELAY_MS = { min: 900, max: 2600 };
 
 /** Largest WebSocket frame a client may send (a full drawing fits comfortably). */

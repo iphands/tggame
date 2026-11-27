@@ -13,6 +13,7 @@ export type ClientMessage =
   | { type: 'draw'; strokes: unknown }
   | { type: 'guess'; text: string }
   | { type: 'skip'; playerId: string }
+  | { type: 'heckle'; playerId: string }
   | { type: 'next' }
   | { type: 'heart'; book: number; page: number }
   | { type: 'again' }
@@ -51,6 +52,7 @@ export function isClientMessage(x: unknown): x is ClientMessage {
     case 'guess':
       return typeof m.text === 'string' && m.text.length <= 400;
     case 'skip':
+    case 'heckle':
       return typeof m.playerId === 'string' && m.playerId.length <= 16;
     case 'heart':
       return isIndex(m.book) && isIndex(m.page);

@@ -23,6 +23,8 @@ export const sfx = {
   /** Reveal page flip. */
   flip: () => noise(0.25, 0.4, 600, 4200),
   heart: () => tone('sine', 880, 1320, 0.12, 0.35),
+  /** Somebody is being told to hurry up: a nudge, a honk, an air horn. */
+  heckle: audio.heckle,
   tada: () => [523, 659, 784, 1047].forEach((f, i) => tone('triangle', f, f, i === 3 ? 0.5 : 0.14, 0.4, i * 0.11)),
   nope: () => tone('square', 180, 120, 0.16, 0.2),
 };

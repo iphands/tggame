@@ -6,6 +6,7 @@ import type { ServerMessage } from '../../shared/src/protocol';
 import { isMuted, setMuted, sfx, unlockAudio } from './audio';
 import { h } from '@tggame/base/client/dom';
 import { GameClient, type ConnectionStatus } from './net';
+import { heckleCatchUp, heckleSeen } from './heckle';
 import { makeScreen, screenKey, type Screen } from './screens/index';
 import { isHost, isSeated, saved, send, store, wire } from './store';
 
@@ -50,6 +51,7 @@ function onMessage(msg: ServerMessage): void {
   switch (msg.type) {
     case 'welcome':
       saved.setToken(msg.token);
+      heckleCatchUp();
       break;
     case 'task':
       store.task = msg.task;
@@ -76,6 +78,7 @@ function onMessage(msg: ServerMessage): void {
         if (document.hidden) document.title = '✏️ Your turn! · ' + TITLE;
       }
       render();
+      heckleSeen(s.heckle);
       break;
     }
   }

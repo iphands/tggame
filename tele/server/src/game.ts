@@ -3,12 +3,13 @@
  * feeds it player actions and asks it what each player is allowed to see.
  */
 import { randomBytes } from 'node:crypto';
-import { CARD_SIZE, MAX_PLAYERS, MIN_PLAYERS, PLAYER_COLORS } from '../../shared/src/constants.js';
+import { CARD_SIZE, HECKLE_COOLDOWN_MS, HECKLES_PER_LEVEL, MAX_PLAYERS, MIN_PLAYERS, PLAYER_COLORS } from '../../shared/src/constants.js';
+import { HECKLE_MAX_LEVEL, pickHeckle } from '../../shared/src/heckles.js';
 import { hasInk, sanitizeDrawing, sanitizeGuess, sanitizeName } from '../../shared/src/drawing.js';
 import { bookHeldBy, turnCount, turnKind } from '../../shared/src/rotation.js';
 import { heartKey } from '../../shared/src/awards.js';
 import { WORDS } from '../../shared/src/words.js';
-import type { Page, PageRef, Phase, PlayerView, StateView, Task } from '../../shared/src/types.js';
+import type { Heckle, Page, PageRef, Phase, PlayerView, StateView, Task } from '../../shared/src/types.js';
 import { Roster, shuffle } from '@tggame/base/party/roster';
 import { BOT_NAMES, botDoodle, botGuess, type Rng } from './bots.js';
 
@@ -41,6 +42,12 @@ export class Game extends Roster<Player> {
   private cards: string[][] = [];
   /** This turn's handed-in pages per seat; applied to the books when everyone is done. */
   private pending: (Page | null)[] = [];
+  private lastHeckle: Heckle | null = null;
+  private heckleSeq = 0;
+  /** Heckles each player has taken this turn. */
+  private heckleCounts = new Map<string, number>();
+  /** When each player last heckled, for the cooldown. */
+  private lastHeckleAt = new Map<string, number>();
   private reveal = { book: 0, shown: 0 };
   private hearts = new Map<string, Set<string>>();
 
@@ -119,6 +126,7 @@ export class Game extends Roster<Player> {
     const deck = shuffle([...WORDS], this.rng);
     this.cards = this.seats.map((_, i) => deck.slice(i * CARD_SIZE, (i + 1) * CARD_SIZE));
     this.pending = this.seats.map(() => null);
+    this.quietDown();
     this.hearts.clear();
     this.turn = 0;
     this.turns = turnCount(this.seats.length);
@@ -171,6 +179,31 @@ export class Game extends Roster<Player> {
     } else if (this.phase === 'guess') {
       this.submit(seat, { kind: 'word', text: '???', by: targetId, skipped: true });
     }
+  }
+
+  /**
+   * A player who has handed in their page shouts at one who has not. Spamming is the point, so
+   * the only brake is a short cooldown; the more one player is heckled in a turn, the louder it gets.
+   */
+  heckle(by: string, targetId: string, now: number): void {
+    if (!this.isTurnPhase()) return;
+    const seat = this.seatOf(by);
+    const targetSeat = this.seatOf(targetId);
+    if (seat < 0 || targetSeat < 0 || by === targetId) return;
+    if (!this.pending[seat] || this.pending[targetSeat]) return;
+    if (now - (this.lastHeckleAt.get(by) ?? -Infinity) < HECKLE_COOLDOWN_MS) return;
+    this.lastHeckleAt.set(by, now);
+    const count = (this.heckleCounts.get(targetId) ?? 0) + 1;
+    this.heckleCounts.set(targetId, count);
+    const level = Math.min(HECKLE_MAX_LEVEL, 1 + Math.floor((count - 1) / HECKLES_PER_LEVEL));
+    const name = this.players.get(targetId)?.name ?? 'you';
+    this.lastHeckle = {
+      seq: ++this.heckleSeq,
+      targetId,
+      byId: by,
+      text: pickHeckle(level, name, this.rng, this.lastHeckle?.text),
+      level,
+    };
   }
 
   /** Turn the next page of the reveal. Allowed for the book's owner and the host. */
@@ -263,6 +296,7 @@ export class Game extends Roster<Player> {
           : null,
       hearts,
       myHearts,
+      heckle: inTurn ? this.lastHeckle : null,
     };
   }
 
@@ -315,12 +349,20 @@ export class Game extends Roster<Player> {
   }
 
   /** Record a seat's page (resubmitting replaces it); when the last one lands, every book passes on. */
+  /** A new turn starts with a clean slate: nobody has been heckled yet. */
+  private quietDown(): void {
+    this.lastHeckle = null;
+    this.heckleCounts.clear();
+    this.lastHeckleAt.clear();
+  }
+
   private submit(seat: number, page: Page): void {
     this.pending[seat] = page;
     if (this.pending.some((p) => p === null)) return;
     const n = this.seats.length;
     this.pending.forEach((p, s) => this.books[bookHeldBy(s, this.turn, n)].push(p!));
     this.pending = this.seats.map(() => null);
+    this.quietDown();
     this.turn++;
     if (this.turn > this.turns) {
       this.phase = 'reveal';
@@ -338,6 +380,7 @@ export class Game extends Roster<Player> {
     this.books = [];
     this.cards = [];
     this.pending = [];
+    this.quietDown();
     this.hearts.clear();
     for (const p of [...this.players.values()]) if (!p.connected) this.players.delete(p.id);
     let n = 0;

@@ -93,6 +93,9 @@ function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
     case 'skip':
       game.skip(id, msg.playerId);
       break;
+    case 'heckle':
+      game.heckle(id, msg.playerId, Date.now());
+      break;
     case 'next':
       game.next(id);
       break;

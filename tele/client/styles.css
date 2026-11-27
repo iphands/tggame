@@ -791,3 +791,88 @@
     stroke-dashoffset: 0;
   }
 }
+
+/* ---- heckling: finished players shouting at slow ones */
+
+.heckle-banner {
+  position: fixed;
+  left: 50%;
+  top: max(56px, calc(env(safe-area-inset-top) + 50px));
+  z-index: 40;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  translate: -50% 0;
+  padding: 6px 16px 8px;
+  font-family: var(--display);
+  font-size: clamp(20px, 5.6vw, 34px);
+  line-height: 1.05;
+  text-align: center;
+  color: var(--ink);
+  background: var(--sun);
+  border: var(--line);
+  border-radius: var(--wobble);
+  box-shadow: var(--shadow);
+  rotate: -2deg;
+  /* never in the way of the pad underneath */
+  pointer-events: none;
+  animation: heckle-in 0.25s cubic-bezier(0.2, 1.8, 0.5, 1);
+}
+.heckle-banner small {
+  display: block;
+  font-family: var(--hand);
+  font-size: 0.55em;
+  opacity: 0.8;
+}
+.heckle-banner.l2 {
+  background: #ffb26b;
+  font-size: clamp(23px, 6.4vw, 40px);
+}
+.heckle-banner.l3 {
+  color: var(--paper);
+  background: var(--coral);
+  font-size: clamp(26px, 7.2vw, 46px);
+  animation:
+    heckle-in 0.25s cubic-bezier(0.2, 1.8, 0.5, 1),
+    heckle-nag 0.25s ease-in-out 0.25s infinite;
+}
+.heckle-banner.me {
+  outline: 4px solid var(--coral);
+  outline-offset: 3px;
+}
+@keyframes heckle-in {
+  from {
+    scale: 0.3;
+    opacity: 0;
+  }
+}
+@keyframes heckle-nag {
+  50% {
+    rotate: 2deg;
+  }
+}
+/* the slow player's own screen rattles */
+body.heckled #screen {
+  animation: heckle-shake 0.5s linear;
+}
+@keyframes heckle-shake {
+  10%,
+  50%,
+  90% {
+    translate: -7px 2px;
+  }
+  30%,
+  70% {
+    translate: 7px -2px;
+  }
+}
+.wait-row.heckled {
+  background: #ffe1c2;
+  border-color: var(--coral);
+}
+.heckle-one {
+  flex: none;
+  padding-inline: 10px;
+}
+.heckle-all {
+  font-size: 1.15em;
+}

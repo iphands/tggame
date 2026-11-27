@@ -68,5 +68,19 @@ export function createAudio(saved: MuteStore) {
     src.start(t);
   }
 
-  return { isMuted, setMuted, unlockAudio, tone, noise };
+  /** Somebody is being told to hurry up: a nudge (1), a honk (2), an air horn (3). */
+  function heckle(level: number): void {
+    if (level <= 1) return tone('sine', 700, 520, 0.12, 0.3);
+    if (level === 2) {
+      tone('sawtooth', 311, 300, 0.16, 0.3);
+      tone('sawtooth', 311, 300, 0.22, 0.3, 0.2);
+      return;
+    }
+    for (let i = 0; i < 3; i++) {
+      tone('sawtooth', 392, 370, 0.2, 0.32, i * 0.22);
+      tone('square', 494, 466, 0.2, 0.16, i * 0.22);
+    }
+  }
+
+  return { isMuted, setMuted, unlockAudio, tone, noise, heckle };
 }

@@ -288,6 +288,30 @@ export function waitScreen(): Screen {
     },
     s0.phase === 'draw' ? 'Keep drawing' : 'Change my answer',
   );
+  /** Who the big button shouts at next: it works its way round everyone still busy. */
+  let nextTarget = 0;
+  const slowpokes = (): string[] => {
+    const s = store.state!;
+    return s.seats.filter((id) => id !== s.selfId && s.players.some((p) => p.id === id && !p.done));
+  };
+  // This button is never rebuilt, so it survives being mashed while heckles change the list above it.
+  const heckleAll = h(
+    'button',
+    {
+      class: 'btn primary heckle-all',
+      type: 'button',
+      onclick: () => {
+        const ids = slowpokes();
+        if (ids.length) send({ type: 'heckle', playerId: ids[nextTarget++ % ids.length] });
+      },
+    },
+    '📣 Heckle the slowpokes!',
+  );
+  // The rows are rebuilt on every update, so a row's button reacts on press, not on release.
+  list.addEventListener('pointerdown', (ev) => {
+    const btn = (ev.target as HTMLElement).closest<HTMLElement>('[data-heckle]');
+    if (btn) send({ type: 'heckle', playerId: btn.dataset.heckle! });
+  });
   const el = h(
     'section',
     { class: 'screen wait' },
@@ -297,7 +321,7 @@ export function waitScreen(): Screen {
       title,
       h('p', { class: 'sub' }, QUIPS[(s0.turn + s0.game) % QUIPS.length]),
       list,
-      seated && h('div', { class: 'row' }, change),
+      seated && h('div', { class: 'row' }, heckleAll, change),
     ),
   );
   return {
@@ -309,14 +333,21 @@ export function waitScreen(): Screen {
       const what = s.phase === 'pick' ? 'picking' : s.phase === 'draw' ? 'drawing' : 'guessing';
       title.textContent = seated ? `Page handed in! ${left} still ${what}…` : `You're watching. ${left} still ${what}…`;
       const host = isHost();
+      // only those who have handed in may heckle, and only those who have not can be heckled
+      const mayHeckle = seated && s.submitted;
+      heckleAll.hidden = !mayHeckle || left === 0;
       list.replaceChildren(
         ...players.map((p) =>
           h(
             'div',
-            { class: `wait-row${p.done ? ' done' : ''}${p.connected ? '' : ' away'}` },
+            { class: `wait-row${p.done ? ' done' : ''}${p.connected ? '' : ' away'}${s.heckle?.targetId === p.id && !p.done ? ' heckled' : ''}` },
             h('span', { class: 'avatar', style: `--c:${p.color}` }, p.name.slice(0, 1).toUpperCase()),
             h('span', { class: 'wait-name' }, p.name, p.id === s.selfId && h('i', { class: 'tag you' }, 'you')),
             h('span', { class: 'wait-state' }, p.done ? '✓ done' : p.connected ? h('span', { class: 'scribbling' }, '✎') : 'away'),
+            mayHeckle &&
+              !p.done &&
+              p.id !== s.selfId &&
+              h('button', { class: 'btn small heckle-one', type: 'button', title: `Heckle ${p.name}`, 'data-heckle': p.id, 'aria-label': `Heckle ${p.name}` }, '📣'),
             host &&
               !p.done &&
               p.id !== s.selfId &&

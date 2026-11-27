@@ -40,6 +40,8 @@ origin; `?ws=ws://host:port` overrides it.
    - You always draw the word you picked, then pass the book on. Every book ends on a guess, so
      with an odd number of players each book stops one player short of a full lap.
    - Someone stuck or gone? The host can **Skip** them (they hand in a blank page).
+   - Done and bored? **Heckle** whoever is still busy, as often as you like. Everyone sees it, and
+     the more one player gets, the louder it becomes (their phone buzzes and their screen shakes).
 4. **Reveal.** One book at a time; its owner (or the host) flips the pages. Drawings replay stroke by
    stroke. Tap ♥ on pages you love. Each book ends with a verdict: *It survived!* or *Lost in translation*.
 5. **Finale.** Awards from the hearts (Best Doodle, Best Guess, Crowd Favourite), every book to
@@ -80,6 +82,7 @@ tests/        vitest unit tests        scripts/  icon generator, smoke test
 | `addBot` `removeBot` `start` | host, in the lobby |
 | `pick {index}` `write {text}` `draw {strokes}` `guess {text}` | hand in this turn's page (`write`: your own starting word) |
 | `skip {playerId}` | host: blank page for a stalled player |
+| `heckle {playerId}` | a player who has handed in shouts at one who has not; arrives as `state.heckle` |
 | `next` | reveal: flip (book owner or host) |
 | `heart {book, page}` | toggle a heart on a revealed page |
 | `again` `abort` | host: back to the lobby (after the finale / any time) |
