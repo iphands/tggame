@@ -1,11 +1,14 @@
 /** A round being ridden: one canvas for the floor, a few floating labels over it, one frame loop. */
+import { clock } from '@tggame/base/client/clock';
 import { h, reducedMotion } from '@tggame/base/client/dom';
+import { netMeterShown, setNetExtra } from '@tggame/base/client/netMeter';
 import { BUST_COST, ERASE_FADE_MS, FLAG_BOOST, FLAG_BUST, FLAG_SLIP } from '../../../shared/src/constants';
 import { DX, DY, arriveAndTurn, queueTurn, relative } from '../../../shared/src/sim';
 import type { How } from '../../../shared/src/types';
 import { VOID, drawBike, drawFloor, drawLine } from '../art';
 import { buzz, sfx } from '../audio';
 import { createInput } from '../input';
+import { leadFor, patienceFor } from '../lead';
 import { drawnX, drawnY, live, type BikeView, type LiveEvent } from '../live';
 import { isSeated, player, send, store } from '../store';
 import type { Screen } from './index';
@@ -16,14 +19,8 @@ type Spark = { x: number; y: number; vx: number; vy: number; at: number; life: n
 const MIN_CELL_PX = 9;
 /** With no word from the server, bikes ride on by at most this many cells. */
 const COAST_CELLS = 4;
-/** Our own bike may disagree with the server about a turn for this long before it gives in. */
-const DISAGREE_MS = 350;
-/**
- * Our bike is drawn this far ahead of the last snapshot, in seconds. It has to cover the trip to
- * the server and a tick of waiting there, so that a turn we book for a cell arrives before the
- * server's bike reaches that cell.
- */
-const LEAD_S = 0.045;
+/** Our own bike is put back where the server has it when it is this many cells off its place. */
+const ADOPT_CELLS = 2.5;
 
 const pick = <T>(list: readonly T[]): T => list[Math.floor(Math.random() * list.length)];
 
@@ -56,6 +53,8 @@ export function playScreen(): Screen {
   let last = performance.now();
   let seenSnap = -1;
   let agreedAt = 0;
+  /** How far ahead of the snapshots our bike rides, in seconds (`lead.ts`); follows the line slowly. */
+  let lead = leadFor(clock.rtt, clock.jitter);
   let shakeUntil = 0;
   let shakeBy = 0;
   let flashUntil = 0;
@@ -213,17 +212,22 @@ export function playScreen(): Screen {
       agreedAt = now;
       live.adopted++;
     };
+    lead += (leadFor(clock.rtt, clock.jitter) - lead) * 0.05;
+    if (netMeterShown()) setNetExtra('lead', `${(lead * 1000).toFixed(0)} ms · put back ${live.adopted}×`);
     if (b.pts === b.spts || b.snapNo <= 1) return adopt();
     const n = b.pts.length;
     const sn = b.spts.length;
     if (b.sturns === b.turns) {
       // same turns made: we should be on the same stretch, a little ahead
       if (b.sdir !== b.dir || b.pts[n - 2] !== b.spts[sn - 2] || b.pts[n - 1] !== b.spts[sn - 1]) return adopt();
-      const gap = b.sodo + b.sp - (b.odo + b.p) + b.speed * LEAD_S;
-      if (Math.abs(gap) > 2.5) return adopt();
+      // where we should be (the server's bike, plus the lead) less where we are
+      const ahead = b.speed * lead;
+      const gap = b.sodo + b.sp - (b.odo + b.p) + ahead;
+      // too far ahead, or behind the server itself: start again from what it says
+      if (gap < -ADOPT_CELLS || gap > ADOPT_CELLS + ahead) return adopt();
       b.p = Math.max(0, b.p + gap * 0.2);
       agreedAt = now;
-    } else if (b.sturns > b.turns ? b.queue.length === 0 : now - agreedAt > DISAGREE_MS) {
+    } else if (b.sturns > b.turns ? b.queue.length === 0 : now - agreedAt > patienceFor(clock.rtt, clock.jitter)) {
       // the server turned where we did not, or never made a turn we did
       adopt();
     }

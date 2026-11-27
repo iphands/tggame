@@ -28,9 +28,10 @@ rules.
 - **The server owns the simulation.** A client sends `turn`, `boost` and `bust` and nothing else
   during play. Never trust a position from a client.
 - **A turn names its cell.** `turn` carries `at`, the count of the cell (the bike's `odo`) it is
-  for. The client rides `LEAD_S` ahead of the server, so the cell is still ahead of the server's
-  bike when the message lands, and both turn in the same place. `queueTurn` keeps `at` to the
-  next few cells. Without this roughly every other turn lands a cell off and has to be corrected.
+  for. The client rides a round trip and a tick ahead of the last snapshot (`client/src/lead.ts`,
+  from the socket's measured ping), so the cell is still ahead of the server's bike when the
+  message lands, and both turn in the same place. `queueTurn` keeps `at` to the next few cells.
+  Without this roughly every other turn lands a cell off and has to be corrected.
 - **Collisions are cells.** `World.occ` holds 0, `WALL`, or 1 + the bike's index. A bike claims a
   cell on arriving in it. Keep it that way: no line segments, no widths.
 - **Two channels.** `state` is per player and sent only when its JSON changes: keep anything that
