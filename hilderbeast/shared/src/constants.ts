@@ -64,12 +64,12 @@ export const PILL_BACK_MS = 20_000;
 
 export const BEAST_BOOST_MS = 1200;
 /** From the moment the burst starts. */
-export const BEAST_BOOST_COOLDOWN_MS = 8000;
+export const BEAST_BOOST_COOLDOWN_MS = 9000;
 
 // ---- the lunge
 
 /** The Beast rears back and cannot move: this is the warning a Cousin gets. */
-export const LUNGE_WINDUP_MS = 120;
+export const LUNGE_WINDUP_MS = 180;
 export const LUNGE_DASH_MS = 180;
 export const LUNGE_SPEED = 2.6;
 /** A Cousin this near a dashing Beast, with no wall between, is caught. */
@@ -78,7 +78,7 @@ export const CATCH_R = 30;
 export const LUNGE_MISS_MS = 700;
 export const LUNGE_MISS_SPEED = 0.55;
 /** After a catch the Beast cannot lunge again for this long, so a crowd is not swept in one go. */
-export const CATCH_COOLDOWN_MS = 1500;
+export const CATCH_COOLDOWN_MS = 2000;
 /** A caught Cousin stands frozen and harmless for this long, then is a Beast. */
 export const CONVERT_MS = 2500;
 
@@ -94,7 +94,7 @@ export const PORTAL_COOLDOWN_MS = 4000;
 
 export const COUNTDOWN_MS = 3000;
 /** The first Beast stays in its den this long after the countdown. */
-export const HEAD_START_MS = 5000;
+export const HEAD_START_MS = 6000;
 /** Last Cousin Standing: Cousins still free when this runs out have won. */
 export const LAST_CLOCK_MS = 240_000;
 /** Escape: the Beasts win when this runs out. */

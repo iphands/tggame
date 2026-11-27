@@ -14,7 +14,7 @@ export const BOT_NAMES = ['Agnes', 'Barnaby', 'Clementine', 'Dudley', 'Edith', '
 /** A Beast bot lunges when a Cousin is this near. */
 const LUNGE_AT = CATCH_R + 38;
 /** A Cousin bot runs from a Beast it can see within this distance. */
-const DANGER = 300;
+const DANGER = 360;
 /** How long a Beast bot heads for the place it last saw a Cousin. */
 const REMEMBER_MS = 2500;
 

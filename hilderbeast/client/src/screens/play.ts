@@ -48,7 +48,7 @@ const RESEND_MS = 1000;
 const RAYS = 360;
 /** How far light spills into a wall, so its face is lit. */
 const WALL_GLOW = 18;
-const FOG = 'rgba(8,6,16,0.88)';
+const FOG = 'rgba(8,6,16,0.74)';
 /** Minimap pixels per square. */
 const MINI = 4;
 
@@ -68,7 +68,7 @@ export function playScreen(): Screen {
   const actFill = h('i');
   const actText = h('span', null, 'CATCH');
   const actPad = h('button', { class: 'pad act', type: 'button' }, actFill, actText, h('small', null, 'E'));
-  const mini = h('canvas', { class: 'mini', width: MAP.cols * MINI, height: MAP.lines * MINI });
+  const mini = h('canvas', { class: 'minimap', width: MAP.cols * MINI, height: MAP.lines * MINI });
   const hud = h('div', { class: 'hud' }, sides, clock, role, chores, line, count, banner, watching, mini, boostPad, actPad);
   const el = h('section', { class: 'screen play' }, canvas, hud);
 
@@ -366,15 +366,17 @@ export function playScreen(): Screen {
     MAP.pills.forEach((p, i) => drawPill(ctx, p.x, p.y, now, ((live.pills >> i) & 1) === 1));
 
     const me = bodies.find((b) => b.id === s.selfId);
-    const sorted = [...bodies].sort((a, b) => a.y - b.y);
+    const lit = self.ready && !!me;
+    const sorted = bodies.filter((b) => !(b.flags & (F_PORTAL | F_OUT))).sort((a, b) => a.y - b.y);
+    // our own side is always sent, wall or no wall: those out of sight are drawn over the dark, as markers
+    const unseen = lit ? sorted.filter((b) => b.id !== s.selfId && !sees(MAP, self.x, self.y, b.x, b.y, SIGHT_R * 0.9)) : [];
     for (const b of sorted) {
-      if (b.flags & (F_PORTAL | F_OUT)) continue;
+      if (unseen.includes(b)) continue;
       drawBody(ctx, b.x, b.y, colorOf(b.id), b.facing, b.flags, now);
       if (b.id !== s.selfId) label(nameOf(b.id), b.x, b.y - 26, '#f4ecd8');
     }
 
     // the dark: everything our own eyes cannot reach
-    const lit = self.ready && me;
     if (lit) {
       ctx.fillStyle = FOG;
       ctx.beginPath();
@@ -386,24 +388,28 @@ export function playScreen(): Screen {
       ctx.beginPath();
       sightPath(self.x, self.y);
       ctx.clip();
-      const g = ctx.createRadialGradient(self.x, self.y, SIGHT_R * 0.55, self.x, self.y, SIGHT_R);
+      const g = ctx.createRadialGradient(self.x, self.y, SIGHT_R * 0.6, self.x, self.y, SIGHT_R);
       g.addColorStop(0, 'rgba(8,6,16,0)');
       g.addColorStop(1, FOG);
       ctx.fillStyle = g;
       ctx.fillRect(self.x - SIGHT_R, self.y - SIGHT_R, SIGHT_R * 2, SIGHT_R * 2);
       ctx.restore();
-      // our own side is always known, wall or no wall
-      for (const b of sorted) {
-        if (b.id === s.selfId || b.flags & (F_PORTAL | F_OUT) || sees(MAP, self.x, self.y, b.x, b.y, SIGHT_R * 0.8)) continue;
-        ctx.globalAlpha = 0.75;
+      for (const b of unseen) {
+        ctx.globalAlpha = 0.8;
         ctx.fillStyle = colorOf(b.id);
         ctx.strokeStyle = INK;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(b.x, b.y, 7, 0, Math.PI * 2);
+        if (b.flags & F_BEAST) {
+          ctx.moveTo(b.x, b.y - 9);
+          ctx.lineTo(b.x + 9, b.y);
+          ctx.lineTo(b.x, b.y + 9);
+          ctx.lineTo(b.x - 9, b.y);
+          ctx.closePath();
+        } else ctx.arc(b.x, b.y, 7, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
-        label(nameOf(b.id), b.x, b.y - 12, '#f4ecd8');
+        label(nameOf(b.id), b.x, b.y - 13, '#f4ecd8');
         ctx.globalAlpha = 1;
       }
     }
