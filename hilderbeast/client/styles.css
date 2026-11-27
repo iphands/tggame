@@ -1,0 +1,538 @@
+/* Hilder Beast: an old house at night, with the same paper and ink as the other games. */
+@import '@tggame/base/css/party.css';
+@import '@tggame/base/css/party-ranking.css';
+
+:root {
+  --desk: #2a2440;
+  --desk-deep: #0c0a14;
+  --paper: #f4ecd8;
+  --ink: #1f1a2e;
+  --muted: #6b6480;
+  --sun: #ffd23f;
+  --coral: #ff5d73;
+  --mint: #3ddc97;
+  --beast: #b388ff;
+  --line: 3px solid var(--ink);
+  --shadow: 5px 6px 0 rgba(0, 0, 0, 0.45);
+  --hand: 'Patrick Hand', 'Comic Sans MS', 'Segoe Print', 'Bradley Hand', cursive;
+  --display: 'Chewy', 'Patrick Hand', 'Comic Sans MS', cursive;
+  /* slightly uneven corners read as hand-cut */
+  --wobble: 20px 14px 22px 13px / 13px 22px 14px 20px;
+  --dots: radial-gradient(rgba(31, 26, 46, 0.14) 1.3px, transparent 1.5px);
+}
+
+body {
+  font-family: var(--hand);
+  font-size: 20px;
+  line-height: 1.25;
+  color: var(--ink);
+  background-color: var(--desk);
+  background-image: radial-gradient(ellipse at 50% 0%, #4a3f6b 0%, var(--desk) 50%, var(--desk-deep) 100%);
+  background-attachment: fixed;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input {
+  user-select: text;
+  -webkit-user-select: text;
+}
+.logo-b {
+  color: var(--beast);
+}
+.tagline {
+  text-align: center;
+  font-size: 1.5em;
+  color: var(--paper);
+  transform: rotate(-1deg);
+}
+.fineprint {
+  color: #cfc6e6;
+  font-size: 0.95em;
+  text-align: center;
+}
+.note {
+  position: relative;
+  width: 112px;
+  min-height: 84px;
+  padding: 16px 6px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: var(--c, var(--sun));
+  border: var(--line);
+  border-radius: 2px 2px 16px 2px;
+  box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.4);
+  rotate: var(--tilt, 0deg);
+}
+/* a strip of tape holding the note down */
+.note::before {
+  content: '';
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  width: 46px;
+  height: 17px;
+  translate: -50% 0;
+  rotate: -3deg;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(31, 26, 46, 0.15);
+}
+input[type='text'] {
+  font: inherit;
+  font-size: 1.4em;
+  color: var(--ink);
+  width: 100%;
+  text-align: center;
+  padding: 0.25em 0.5em;
+  background: #fff;
+  border: var(--line);
+  border-radius: 12px 9px 13px 8px / 8px 13px 9px 12px;
+  box-shadow: inset 2px 3px 0 rgba(31, 26, 46, 0.1);
+}
+.pencil-spin {
+  font-size: 3em;
+  color: var(--beast);
+  animation: throb 0.5s ease-in-out infinite alternate;
+}
+#top {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  color: var(--paper);
+  background: rgba(12, 10, 20, 0.6);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.5);
+}
+.lobby h2,
+.finale h2 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.9em;
+  text-align: center;
+}
+.howto b {
+  color: var(--sun);
+  font-weight: 400;
+}
+.demo {
+  height: 96px;
+}
+.demo canvas {
+  width: 320px;
+  height: 96px;
+}
+
+/* ---- play: the canvas fills the screen and the HUD floats over it */
+
+#game[data-screen='play'] #screen {
+  position: relative;
+  overflow: hidden;
+}
+.screen.play {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  animation: none;
+  touch-action: none;
+  background: var(--desk-deep);
+}
+.screen.play > canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--ink);
+}
+.clock {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  translate: -50% 0;
+  min-width: 3.4em;
+  padding: 0 14px;
+  text-align: center;
+  font-family: var(--display);
+  font-size: 1.8em;
+  line-height: 1.25;
+  background: var(--paper);
+  border: var(--line);
+  border-radius: var(--wobble);
+  box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.4);
+}
+.clock.low {
+  color: #fff;
+  background: var(--coral);
+  animation: throb 0.5s ease-in-out infinite alternate;
+}
+.sides,
+.chores,
+.role {
+  position: absolute;
+  padding: 1px 12px;
+  color: var(--paper);
+  background: rgba(12, 10, 20, 0.72);
+  border-radius: 99px;
+  white-space: nowrap;
+}
+.sides {
+  top: 10px;
+  left: calc(10px + env(safe-area-inset-left));
+}
+.chores {
+  top: 10px;
+  right: calc(10px + env(safe-area-inset-right));
+  color: var(--sun);
+}
+.role {
+  top: 58px;
+  left: 50%;
+  translate: -50% 0;
+  font-size: 0.95em;
+}
+.role.beast {
+  color: var(--beast);
+}
+.role.cousin {
+  color: var(--mint);
+}
+.role:empty {
+  display: none;
+}
+/* one line of news, under the role */
+.line {
+  position: absolute;
+  top: 92px;
+  left: 50%;
+  translate: -50% 0;
+  max-width: 92%;
+  padding: 2px 14px;
+  text-align: center;
+  color: var(--ink);
+  background: var(--sun);
+  border: 2px solid var(--ink);
+  border-radius: var(--wobble);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.line.in {
+  opacity: 1;
+}
+.banner {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  translate: -50% -50%;
+  width: max-content;
+  max-width: 92%;
+  padding: 6px 22px;
+  text-align: center;
+  font-family: var(--display);
+  font-size: min(2.2em, 7vw);
+  color: var(--ink);
+  background: var(--paper);
+  border: var(--line);
+  border-radius: var(--wobble);
+  box-shadow: var(--shadow);
+  animation: bump 0.4s;
+}
+.banner.beast {
+  color: #fff;
+  background: #5b3f8f;
+}
+.banner.cousin,
+.banner.open {
+  background: var(--mint);
+}
+.count {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding-top: 18vh;
+  font-family: var(--display);
+  font-size: min(26vw, 26vh);
+  color: var(--paper);
+  -webkit-text-stroke: 4px var(--ink);
+  text-shadow: 6px 8px 0 rgba(0, 0, 0, 0.4);
+}
+.count span {
+  animation: count-in 0.9s ease-out both;
+}
+.watching {
+  position: absolute;
+  left: 50%;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  translate: -50% 0;
+  padding: 2px 14px;
+  color: var(--paper);
+  background: rgba(12, 10, 20, 0.75);
+  border-radius: 99px;
+  white-space: nowrap;
+}
+.mini {
+  position: absolute;
+  left: calc(10px + env(safe-area-inset-left));
+  top: 46px;
+  width: 160px;
+  height: 104px;
+  border: 2px solid rgba(244, 236, 216, 0.5);
+  border-radius: 6px;
+  background: rgba(12, 10, 20, 0.55);
+}
+
+/* ---- the two pads, and the thumb stick */
+
+.pad {
+  position: absolute;
+  bottom: calc(22px + env(safe-area-inset-bottom));
+  width: 92px;
+  height: 92px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font: inherit;
+  font-family: var(--display);
+  font-size: 1.05em;
+  line-height: 1.05;
+  color: var(--ink);
+  background: rgba(244, 236, 216, 0.55);
+  border: var(--line);
+  border-radius: 50%;
+  box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+  touch-action: none;
+  cursor: pointer;
+}
+.pad.boost {
+  right: calc(22px + env(safe-area-inset-right));
+}
+.pad.act {
+  right: calc(128px + env(safe-area-inset-right));
+  bottom: calc(46px + env(safe-area-inset-bottom));
+}
+/* how much there is to spend: fills from the bottom */
+.pad i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--sun);
+  transition: height 0.12s linear;
+}
+.pad.act i {
+  background: var(--coral);
+}
+.pad span,
+.pad small {
+  position: relative;
+}
+.pad small {
+  font-family: var(--hand);
+  font-size: 0.7em;
+  opacity: 0.7;
+}
+.pad.off {
+  filter: grayscale(0.8) brightness(0.8);
+}
+.pad:active {
+  scale: 0.94;
+}
+.stick {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  margin: -55px 0 0 -55px;
+  border: 3px solid rgba(244, 236, 216, 0.5);
+  border-radius: 50%;
+  background: rgba(12, 10, 20, 0.3);
+  pointer-events: none;
+}
+.stick i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border-radius: 50%;
+  background: rgba(244, 236, 216, 0.85);
+  border: 2px solid var(--ink);
+}
+
+@keyframes throb {
+  to {
+    scale: 1.08;
+  }
+}
+@keyframes bump {
+  from {
+    scale: 0.6;
+    opacity: 0;
+  }
+  60% {
+    scale: 1.08;
+    opacity: 1;
+  }
+}
+@keyframes count-in {
+  from {
+    scale: 1.8;
+    opacity: 0;
+  }
+  30% {
+    scale: 1;
+    opacity: 1;
+  }
+  to {
+    scale: 0.9;
+    opacity: 0.2;
+  }
+}
+
+/* ---- the end */
+
+.finale .sheet {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.verdict {
+  font-family: var(--display);
+  font-size: 1.3em;
+  padding: 0 14px;
+  background: var(--sun);
+  border: 2px solid var(--ink);
+  border-radius: var(--wobble);
+  rotate: -2deg;
+}
+.finale.beasts h2 {
+  color: #5b3f8f;
+}
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 10px;
+  font-size: 1.1em;
+  text-align: center;
+}
+.facts b {
+  font-family: var(--display);
+  font-weight: 400;
+}
+.finale h3 {
+  font-family: var(--display);
+  font-weight: 400;
+}
+.crew {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+.crew li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 8px;
+  border-radius: 10px;
+}
+.crew li.me {
+  outline: 2px dashed var(--coral);
+}
+.who {
+  white-space: nowrap;
+}
+.crew .who {
+  flex: 1;
+  min-width: 0;
+}
+.crew .ate {
+  color: var(--muted);
+  text-align: right;
+}
+.avatar.mini {
+  width: 1.5em;
+  height: 1.5em;
+  font-size: 0.8em;
+  display: inline-grid;
+  vertical-align: middle;
+}
+
+.confetti {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 60;
+  pointer-events: none;
+}
+
+@media (max-width: 620px) {
+  .mini {
+    width: 120px;
+    height: 78px;
+    top: 44px;
+  }
+  .clock {
+    font-size: 1.5em;
+  }
+  .sides,
+  .chores {
+    font-size: 0.85em;
+  }
+  .role {
+    top: 128px;
+  }
+  .line {
+    top: 160px;
+  }
+}
+/* a mouse and keys need no pads in the way: shrink them to meters */
+@media (hover: hover) and (pointer: fine) {
+  .pad {
+    width: 74px;
+    height: 74px;
+    font-size: 0.85em;
+  }
+  .pad.act {
+    right: calc(106px + env(safe-area-inset-right));
+    bottom: calc(22px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
