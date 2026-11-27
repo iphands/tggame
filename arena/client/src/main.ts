@@ -1,7 +1,7 @@
 import './prefs';
 import Phaser from 'phaser';
 import { GameClient } from './net';
-import { store, onSnapshot } from './store';
+import { store, onSnapshot, resetPrediction } from './store';
 import { initTouchControls, isTouchDevice, setTouchControlsVisible } from '@tggame/base/platformer/controls';
 import { initLobbyDom, renderLobby, showScreen } from './lobby';
 import { unlockAudio } from '@tggame/base/platformer/audio';
@@ -39,6 +39,9 @@ try {
   /* unsupported */
 }
 
+// `?debug` puts what this page knows on `window.arena`, for poking at from the console
+if (new URLSearchParams(location.search).has('debug')) (window as unknown as { arena: typeof store }).arena = store;
+
 function join(name: string): void {
   store.name = name;
   store.joined = true;
@@ -53,6 +56,7 @@ function join(name: string): void {
   const client = new GameClient({
     name,
     onWelcome: (id) => (store.selfId = id),
+    onOpen: resetPrediction,
     onSnapshot,
     onRenamed: (id, newName) => {
       // the newest snapshot predates the change: correct it, then tell whatever has the name drawn

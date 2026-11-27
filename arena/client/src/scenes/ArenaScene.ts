@@ -56,6 +56,9 @@ export class ArenaScene extends Phaser.Scene {
   private vignette: Phaser.GameObjects.Image | null = null;
   private zoomKick = 0;
   private keys = {} as Record<KeyName, Phaser.Input.Keyboard.Key[]>;
+  /** How much of our own fighter's place is taken from the platform it rides, as drawn (0 to 1). */
+  private ride = 0;
+  private rideIdx = -1;
   private prevDown = false;
   private lastFireSent = 0;
   private prevFiring = false;
@@ -182,11 +185,14 @@ export class ArenaScene extends Phaser.Scene {
         : b.platforms;
     const simNow = lerp(a.simTimeMs, b.simTimeMs, alpha);
 
+    this.predictSelf(players, plats, now, delta);
+
     this.level!.update(simNow, delta, plats.length ? plats : undefined);
     this.renderFighters(players, simNow, delta, plats);
     this.renderProjectiles(a, b, alpha, delta);
     this.renderCrates(b, simNow);
 
+    while (store.localFx.length) this.handleFx(store.localFx.shift()!);
     while (store.fxQueue.length && store.fxQueue[0].t <= renderT + 20) {
       this.handleFx(store.fxQueue.shift()!.fx);
     }
@@ -245,16 +251,59 @@ export class ArenaScene extends Phaser.Scene {
     camView.y = Phaser.Math.Clamp(this.camY - h / 2, 0, 720 - h);
   }
 
+  // ------------------------------------------------------------ prediction
+
+  /**
+   * Our own fighter is not drawn from the snapshots like everyone else: it is carried ahead of
+   * them through what we have pressed since (`predict.ts`), so it answers at once.
+   */
+  private predictSelf(players: PlayerState[], plats: PlatformState[], now: number, delta: number): void {
+    const edge = store.buffer.simTime(now);
+    const pred = edge === null ? null : store.predictor.advance(edge, now);
+    const i = pred ? players.findIndex((p) => p.id === store.selfId) : -1;
+    if (!pred || i < 0) {
+      this.ride = 0;
+      return;
+    }
+    // The platforms on screen are a moment behind the one the prediction stands on. While we
+    // ride one, draw ourselves by where it is drawn, and ease out of that when we leave it.
+    const s = Math.min(delta, 50) / 1000;
+    if (pred.platIdx >= 0) {
+      this.rideIdx = pred.platIdx;
+      this.ride += (1 - this.ride) * (1 - Math.exp(-14 * s));
+    } else {
+      this.ride *= Math.exp(-6 * s);
+    }
+    const drawn = plats[this.rideIdx];
+    const ahead = store.predictor.platAt(this.rideIdx);
+    const rx = drawn && ahead ? (drawn.x - ahead.x) * this.ride : 0;
+    const ry = drawn && ahead ? (drawn.y - ahead.y) * this.ride : 0;
+    players[i] = {
+      ...players[i],
+      x: pred.x + pred.errX + rx,
+      y: pred.y + pred.errY + ry,
+      vx: pred.vx,
+      vy: pred.vy,
+      face: pred.face,
+      grounded: pred.grounded,
+      airJumps: pred.airJumps,
+    };
+  }
+
   // ------------------------------------------------------------ input
 
   private handleInput(): void {
     const client = store.client;
     if (!client) return;
     const input = mergeInput({ left: this.down('left'), right: this.down('right'), jump: this.down('jump') }, touchInput);
-    client.sendInput(input);
+    // a command is stamped with the tick it is for, so the server does it where our prediction did
+    const edge = store.buffer.simTime(performance.now());
+    client.sendInput(input, edge === null ? undefined : () => store.predictor.command(input, edge));
 
     const downNow = this.down('down');
-    if ((downNow && !this.prevDown) || requests.drop) client.send({ type: 'drop' });
+    if ((downNow && !this.prevDown) || requests.drop) {
+      client.send({ type: 'drop', ...(edge === null ? {} : store.predictor.command(null, edge)) });
+    }
     this.prevDown = downNow;
     requests.drop = false;
 

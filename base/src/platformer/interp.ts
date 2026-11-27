@@ -40,6 +40,14 @@ export class SnapshotBuffer<S extends Timed> {
     if (this.snaps.length > MAX_SNAPS) this.snaps.shift();
   }
 
+  /**
+   * The sim time of a snapshot that would be arriving right at `localNow`: the server's clock as
+   * seen from here, one trip old. null before the first snapshot.
+   */
+  simTime(localNow: number): number | null {
+    return this.offset === null ? null : localNow - this.offset;
+  }
+
   /** Server sim time we should be drawing at `localNow`. */
   renderTime(localNow: number): number {
     if (this.offset === null) return 0;

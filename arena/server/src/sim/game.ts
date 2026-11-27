@@ -7,7 +7,7 @@
  */
 import { ARENA, BOT_NAMES, COLORS, COMBAT, ITEMS, MATCH, PHYS, TICK_MS } from '../../../shared/src/constants.js';
 import { LEVELS, levelAt } from '../../../shared/src/levels.js';
-import type { SnapshotBody } from '../../../shared/src/protocol.js';
+import type { SelfState, SnapshotBody, Stamp } from '../../../shared/src/protocol.js';
 import type { HitHow, Phase, ResultRow } from '../../../shared/src/types.js';
 import { makeBrain, thinkBot } from './bots.js';
 import { fire, pressFire, releaseFire, updateCharges, updateProjectiles, updateStomps } from './combat.js';
@@ -22,7 +22,18 @@ export type GameOptions = { seed?: number };
 
 const FEED_MAX = 6;
 
+/** A stamped command may ask for a tick at most this far ahead (a third of a second). */
+const MAX_LEAD_TICKS = 20;
+/** Stamped commands waiting for their tick, per player; beyond this the line is flooding. */
+const MAX_QUEUED = 32;
+
+type Queued = Stamp & { input: Input | null };
+/** What the server keeps about a human's stamped commands. */
+type Line = { queue: Queued[]; ack: number; slack: number | null };
+
 export class Game {
+  private readonly lines = new Map<string, Line>();
+
   readonly w: World;
   tick = 0;
   countdownMs: number | null = null;
@@ -158,6 +169,7 @@ export class Game {
       for (const q of this.w.players.values()) if (q.place > 0) q.place--;
     }
     this.w.players.delete(id);
+    this.lines.delete(id);
     if (this.humanCount() === 0) {
       // nobody left to play with: clear the bots and idle in the lobby
       for (const q of [...this.w.players.values()]) this.w.players.delete(q.id);
@@ -170,10 +182,74 @@ export class Game {
 
   // ------------------------------------------------------------ commands
 
-  setInput(id: string, input: Input): void {
+  /**
+   * Held buttons. A stamped one waits for its tick, so it is done exactly where the client's
+   * prediction did it; one that is already late is done on the next tick.
+   */
+  setInput(id: string, input: Input, stamp?: Stamp): void {
     const p = this.w.players.get(id);
     if (!p || p.bot) return;
-    applyInput(p, input);
+    if (stamp) this.enqueue(id, stamp, { left: !!input.left, right: !!input.right, jump: !!input.jump });
+    else applyInput(p, input);
+  }
+
+  private enqueue(id: string, stamp: Stamp, input: Input | null): void {
+    let line = this.lines.get(id);
+    if (!line) this.lines.set(id, (line = { queue: [], ack: 0, slack: null }));
+    const next = this.tick + 1;
+    const slack = stamp.tick - next;
+    line.slack = line.slack === null ? slack : Math.min(line.slack, slack);
+    const last = line.queue[line.queue.length - 1];
+    // never before the one ahead of it, never in the past, never far in the future
+    const tick = Math.max(last ? last.tick : 0, Math.min(Math.max(stamp.tick, next), next + MAX_LEAD_TICKS));
+    line.queue.push({ seq: stamp.seq, tick, input });
+    if (line.queue.length > MAX_QUEUED) for (const q of line.queue) q.tick = next;
+  }
+
+  /** Do the stamped commands whose tick has come. */
+  private applyDue(): void {
+    for (const [id, line] of this.lines) {
+      const p = this.w.players.get(id);
+      while (line.queue.length && line.queue[0].tick <= this.tick) {
+        const q = line.queue.shift()!;
+        line.ack = q.seq;
+        if (!p) continue;
+        if (q.input) applyInput(p, q.input);
+        else if (this.w.phase === 'playing' || this.w.phase === 'ended') tryDrop(this.w, p);
+      }
+    }
+  }
+
+  /** What only this player is sent about their own fighter (see `SelfState`). */
+  selfState(id: string | null): SelfState | null {
+    const p = id ? this.w.players.get(id) : undefined;
+    if (!p) return null;
+    const line = this.lines.get(p.id);
+    const slack = line?.slack ?? null;
+    if (line) line.slack = null;
+    return {
+      ack: line?.ack ?? 0,
+      slack,
+      t: this.w.t,
+      x: p.x,
+      y: p.y,
+      vx: p.vx,
+      vy: p.vy,
+      face: p.face,
+      grounded: p.grounded,
+      platIdx: p.platIdx,
+      coyoteMs: p.coyoteMs,
+      jumpBufferMs: p.jumpBufferMs,
+      prevJump: p.prevJump,
+      cuttable: p.cuttable,
+      airJumpsLeft: p.airJumpsLeft,
+      dropFrom: p.dropFrom,
+      dropUntil: p.dropUntil,
+      prevBottom: p.prevBottom,
+      launchUntil: p.launchUntil,
+      boostUntil: p.boostUntil,
+      input: p.input,
+    };
   }
 
   shoot(id: string): void {
@@ -187,9 +263,11 @@ export class Game {
     if (p && this.w.phase === 'playing') releaseFire(this.w, p);
   }
 
-  drop(id: string): void {
+  drop(id: string, stamp?: Stamp): void {
     const p = this.w.players.get(id);
-    if (p && (this.w.phase === 'playing' || this.w.phase === 'ended')) tryDrop(this.w, p);
+    if (!p) return;
+    if (stamp && !p.bot) this.enqueue(id, stamp, null);
+    else if (this.w.phase === 'playing' || this.w.phase === 'ended') tryDrop(this.w, p);
   }
 
   /** Change the arena for the next round (lobby / results screen only). */
@@ -226,6 +304,7 @@ export class Game {
     const w = this.w;
     w.t += TICK_MS;
     this.tick++;
+    this.applyDue();
     switch (w.phase) {
       case 'lobby':
         this.tickLobby();

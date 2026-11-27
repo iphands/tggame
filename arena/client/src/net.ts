@@ -1,4 +1,4 @@
-import type { ClientMessage, ServerMessage, SnapshotMessage } from '../../shared/src/protocol';
+import type { ClientMessage, ServerMessage, SnapshotMessage, Stamp } from '../../shared/src/protocol';
 import { SocketClient, wsUrl, type ConnectionStatus } from '@tggame/base/client/net';
 
 export type { ConnectionStatus };
@@ -13,12 +13,16 @@ export type GameClientOptions = {
   onSnapshot?: (snap: SnapshotMessage) => void;
   onRenamed?: (id: string, name: string) => void;
   onStatus?: (status: ConnectionStatus) => void;
+  /** The socket opened (again): whatever was known about the old connection is void. */
+  onOpen?: () => void;
 };
 
 /** This game's socket: auto-reconnects and re-joins under the same name. */
 export class GameClient extends SocketClient<ClientMessage, ServerMessage> {
   private lastInput = '';
   private lastInputAt = 0;
+
+  private readonly onOpen?: () => void;
 
   constructor(opts: GameClientOptions) {
     super({
@@ -31,22 +35,26 @@ export class GameClient extends SocketClient<ClientMessage, ServerMessage> {
         else if (msg.type === 'renamed') opts.onRenamed?.(msg.id, msg.name);
       },
     });
+    this.onOpen = opts.onOpen;
   }
 
   protected override opened(): void {
     this.lastInput = '';
+    this.onOpen?.();
   }
 
   /**
    * Send held-button state when it changes, plus a heartbeat every 400 ms so
    * a held key survives server-side resets (new round) and dropped messages.
+   * `stamp` is asked for only when something is really sent.
    */
-  sendInput(input: { left: boolean; right: boolean; jump: boolean }): void {
+  sendInput(input: { left: boolean; right: boolean; jump: boolean }, stamp?: () => Stamp): void {
     const key = `${+input.left}${+input.right}${+input.jump}`;
     const now = performance.now();
     if (key === this.lastInput && now - this.lastInputAt < 400) return;
     this.lastInput = key;
     this.lastInputAt = now;
-    this.send({ type: 'input', ...input });
+    // stamped with the tick it is for, when the prediction is running (see `predict.ts`)
+    this.send({ type: 'input', ...input, ...stamp?.() });
   }
 }

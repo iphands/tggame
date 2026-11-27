@@ -12,11 +12,15 @@ import type {
 
 export type ClientMessage =
   | { type: 'join'; name?: string }
-  | { type: 'input'; left: boolean; right: boolean; jump: boolean }
+  /**
+   * Held buttons. With `seq` and `tick` the server does it on that very tick (the client has
+   * already done it there in its prediction); without them it is done as it arrives.
+   */
+  | { type: 'input'; left: boolean; right: boolean; jump: boolean; seq?: number; tick?: number }
   | { type: 'shoot' }
   /** Fire button let go: throws a bomb that is still winding up. */
   | { type: 'release' }
-  | { type: 'drop' }
+  | { type: 'drop'; seq?: number; tick?: number }
   | { type: 'restart' }
   | { type: 'leave' }
   | { type: 'rename'; name: string }
@@ -52,7 +56,44 @@ export type SnapshotBody = {
   results: ResultRow[] | null;
 };
 
-export type SnapshotMessage = { type: 'snapshot'; selfId: string } & SnapshotBody;
+/** When a stamped command is for: its number, and the server tick it should be done on. */
+export type Stamp = { seq: number; tick: number };
+
+/**
+ * The part of your own fighter nobody else is sent: everything `stepPlayer` reads, unrounded, so
+ * the client can carry it forward from this snapshot through the commands it has sent since.
+ */
+export type SelfState = {
+  /** Number of the last stamped command done (0 = none yet). */
+  ack: number;
+  /**
+   * Ticks to spare when the stamped commands since the last snapshot arrived (the least of them;
+   * negative = late, done at once). null if none arrived. The client leads by more or less on it.
+   */
+  slack: number | null;
+  /** The sim clock, exactly. */
+  t: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  face: 1 | -1;
+  grounded: boolean;
+  platIdx: number;
+  coyoteMs: number;
+  jumpBufferMs: number;
+  prevJump: boolean;
+  cuttable: boolean;
+  airJumpsLeft: number;
+  dropFrom: number;
+  dropUntil: number;
+  prevBottom: number;
+  launchUntil: number;
+  boostUntil: number;
+  input: { left: boolean; right: boolean; jump: boolean };
+};
+
+export type SnapshotMessage = { type: 'snapshot'; selfId: string; you: SelfState | null } & SnapshotBody;
 
 export type ServerMessage =
   | { type: 'welcome'; selfId: string; capacity: number; serverTimeMs: number }
@@ -63,9 +104,17 @@ export type ServerMessage =
 
 const NO_ARGS = new Set(['shoot', 'release', 'drop', 'restart', 'leave', 'addBot', 'removeBot']);
 
+const isCount = (n: unknown): boolean => n === undefined || (typeof n === 'number' && Number.isInteger(n) && n >= 0 && n < 2 ** 31);
+
+/** The stamp on a command, if it carries a whole one. */
+export function stampOf(m: { seq?: number; tick?: number }): Stamp | undefined {
+  return typeof m.seq === 'number' && typeof m.tick === 'number' ? { seq: m.seq, tick: m.tick } : undefined;
+}
+
 export function isClientMessage(v: unknown): v is ClientMessage {
   if (!v || typeof v !== 'object') return false;
   const m = v as Record<string, unknown>;
+  if (!isCount(m.seq) || !isCount(m.tick)) return false;
   switch (m.type) {
     case 'join':
       return m.name === undefined || typeof m.name === 'string';

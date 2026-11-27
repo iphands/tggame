@@ -34,6 +34,7 @@ shared/src/types.ts      snapshot entity types (PlayerState, PlatformState, Fx, 
 shared/src/protocol.ts   ClientMessage / ServerMessage / SnapshotBody + isClientMessage()
 server/src/index.ts      HTTP static + /health, WebSocket dispatch, message budget, 60 Hz loop, 30 Hz broadcast
 server/src/sim/game.ts   Game: roster/bots, phases, stocks/KOs/respawn, results, snapshot()
+client/src/predict.ts    our own fighter carried ahead of the snapshots (prediction, corrections, lead)
 shared/src/sim/model.ts  internal Player/Plat/Projectile/Crate/World types + reset helpers
 shared/src/sim/physics.ts   applyInput, stepPlayer (gravity, jumps, ice, bounce, landing), tryDrop, separateBodies
 server/src/sim/combat.ts    applyHit/knockback, stomp, fire (pistol/boomstick/bombs), projectiles, explode
@@ -61,9 +62,27 @@ tests/*.test.ts          levels, interp, protocol, controls
 ## Architecture rules
 
 - **The server owns the sim.** Physics, damage, items, bots and phase
-  transitions all live in `server/src/sim/`. The client never simulates. It
+  transitions all live in `server/src/sim/` and `shared/src/sim/`. The client
   sends input + one-shot actions, interpolates snapshots (`INTERP_DELAY_MS` in
   `interp.ts`), and plays `fx` events. Keep gameplay logic out of the client.
+- **The one thing the client simulates is your own fighter's movement**
+  (`client/src/predict.ts`), so it answers at once on a slow line. It runs the
+  very `stepPlayer` the server runs (that is why the physics lives in
+  `shared/src/sim/`), starting from each snapshot's private `you` block and
+  replaying the commands the server has not done yet. Rules that keep it exact:
+  - `input` and `drop` are **stamped** with `seq` and the server `tick` they
+    are for; the server holds them until that tick (`Game.enqueue`,
+    `applyDue`). Anything else that moves a fighter by the player's hand must
+    be stamped and replayed the same way, or it will be corrected every time.
+  - `SelfState` (`shared/src/protocol.ts`) must carry every field of `Player`
+    that `stepPlayer`, `applyInput` or `tryDrop` reads. Add a field to one,
+    add it to the other, and to `Predictor.load`.
+  - Platforms are a pure function of sim time; the predictor works them out
+    for the ticks ahead. Keep them that way.
+  - Hits, shoves, stomps and respawns are not predicted: they arrive as a
+    correction, which only the drawing eases across. Never smooth the sim.
+  - `tests/predict.test.ts` runs a real `Game` a line away from a `Predictor`
+    and demands they agree to a hundredth of a pixel. It must stay green.
 - **One global `Game` per server process.** No rooms. Capacity is 16 (humans
   bump bots when full).
 - **Phases:** `lobby → starting → playing → ended → lobby`. Players are placed
