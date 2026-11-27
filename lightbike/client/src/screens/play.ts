@@ -53,6 +53,8 @@ export function playScreen(): Screen {
   let last = performance.now();
   let seenSnap = -1;
   let agreedAt = 0;
+  /** The server's turn count when it last agreed with us, or last caught up by a turn. */
+  let agreedTurns = 0;
   /** How far ahead of the snapshots our bike rides, in seconds (`lead.ts`); follows the line slowly. */
   let lead = leadFor(clock.rtt, clock.jitter);
   let shakeUntil = 0;
@@ -210,6 +212,7 @@ export function playScreen(): Screen {
       b.pts = [...b.spts];
       b.queue.length = 0;
       agreedAt = now;
+      agreedTurns = b.sturns;
       live.adopted++;
     };
     lead += (leadFor(clock.rtt, clock.jitter) - lead) * 0.05;
@@ -217,20 +220,31 @@ export function playScreen(): Screen {
     if (b.pts === b.spts || b.snapNo <= 1) return adopt();
     const n = b.pts.length;
     const sn = b.spts.length;
-    if (b.sturns === b.turns) {
-      // same turns made: we should be on the same stretch, a little ahead
-      if (b.sdir !== b.dir || b.pts[n - 2] !== b.spts[sn - 2] || b.pts[n - 1] !== b.spts[sn - 1]) return adopt();
-      // where we should be (the server's bike, plus the lead) less where we are
-      const ahead = b.speed * lead;
-      const gap = b.sodo + b.sp - (b.odo + b.p) + ahead;
-      // too far ahead, or behind the server itself: start again from what it says
-      if (gap < -ADOPT_CELLS || gap > ADOPT_CELLS + ahead) return adopt();
-      b.p = Math.max(0, b.p + gap * 0.2);
-      agreedAt = now;
-    } else if (b.sturns > b.turns ? b.queue.length === 0 : now - agreedAt > patienceFor(clock.rtt, clock.jitter)) {
-      // the server turned where we did not, or never made a turn we did
-      adopt();
+    // turns we have made that the server has not got to yet: on a slow line there is nearly
+    // always one, and a quick pair of turns makes it two
+    const pending = b.turns - b.sturns;
+    if (pending < 0) {
+      // the server turned where we did not
+      if (b.queue.length === 0) adopt();
+      return;
     }
+    // the last corner the server made must be the corner we made for that same turn
+    const at = n - 2 - 2 * pending;
+    if (at < 0 || b.pts[at] !== b.spts[sn - 2] || b.pts[at + 1] !== b.spts[sn - 1]) return adopt();
+    if (pending === 0 && b.sdir !== b.dir) return adopt();
+    if (pending === 0 || b.sturns !== agreedTurns) {
+      // level with us, or one turn nearer to it
+      agreedAt = now;
+      agreedTurns = b.sturns;
+    } else if (now - agreedAt > patienceFor(clock.rtt, clock.jitter)) {
+      return adopt(); // it never made a turn we did
+    }
+    // where we should be (the server's bike, plus the lead) less where we are, along the line ridden
+    const ahead = b.speed * lead;
+    const gap = b.sodo + b.sp - (b.odo + b.p) + ahead;
+    // too far ahead, or behind the server itself: start again from what it says
+    if (gap < -ADOPT_CELLS || gap > ADOPT_CELLS + ahead) return adopt();
+    b.p = Math.max(0, b.p + gap * 0.2);
   }
 
   function ride(now: number, dt: number): void {
