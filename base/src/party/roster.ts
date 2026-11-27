@@ -14,6 +14,11 @@ export type Seated = {
   connected: boolean;
   /** Joined mid-game or beyond the last seat: watching until the next game. */
   spectator: boolean;
+  /**
+   * Here only to watch (a TV in the room): never given a seat, in this game or the next, until
+   * they ask for one. A watcher is always a `spectator` too, except in the one case `watch` names.
+   */
+  watcher: boolean;
 };
 
 /** This player (name compared without regard to case) hosts every game they are in. Names are unique per table. */
@@ -72,6 +77,62 @@ export abstract class Roster<P extends Seated> {
     let n = 0;
     for (const p of this.players.values()) if (p.bot) n++;
     return n;
+  }
+
+  /**
+   * A screen chooses to only watch (`on`), or asks for a seat again. In the lobby either happens
+   * at once. While a game is on, asking for a seat waits for the game's next deal (`promote`),
+   * and giving one up is `unseat`'s business.
+   */
+  watch(id: string, on: boolean): void {
+    const p = this.players.get(id);
+    if (!p || p.bot || p.watcher === on) return;
+    p.watcher = on;
+    if (!on) {
+      if (this.phase === 'lobby') p.spectator = this.participants().length >= this.maxSeats;
+    } else if (!p.spectator) {
+      if (this.phase === 'lobby') {
+        p.spectator = true;
+        this.promote();
+      } else this.unseat(p);
+    }
+  }
+
+  /**
+   * A seated player turns watcher while a game is on. Left alone, they play this game out and
+   * lose the seat at the next lobby (`reseat`). A game that can take a player out mid-game
+   * sets `spectator` here and does so.
+   */
+  protected unseat(_p: P): void {}
+
+  /** Is somebody who joins now (to play, or with `watch` to only watch) left without a seat? `open`: the game is taking players. */
+  protected unseated(watch: boolean, open: boolean): boolean {
+    return watch || !open || this.participants().length >= this.maxSeats;
+  }
+
+  /** In a full lobby a human who came to play beats a bot to a seat. */
+  protected bumpBot(watch: boolean): void {
+    if (watch || this.phase !== 'lobby' || this.participants().length < this.maxSeats) return;
+    const bot = [...this.players.values()].reverse().find((p) => p.bot);
+    if (bot) this.players.delete(bot.id);
+  }
+
+  /** Free seats go to whoever has waited longest for one. Watchers are not waiting. */
+  protected promote(): void {
+    let n = this.participants().length;
+    for (const p of this.players.values()) {
+      if (n >= this.maxSeats) break;
+      if (p.spectator && !p.watcher) {
+        p.spectator = false;
+        n++;
+      }
+    }
+  }
+
+  /** A new lobby: seats in arrival order, none for a watcher. */
+  protected reseat(): void {
+    let n = 0;
+    for (const p of this.players.values()) p.spectator = p.watcher || ++n > this.maxSeats;
   }
 
   protected participants(): P[] {

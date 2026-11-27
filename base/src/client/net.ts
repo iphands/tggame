@@ -36,6 +36,8 @@ export type SocketClientOptions<S> = {
   name: string;
   /** Seat token from an earlier welcome, for games that hand them out. */
   token?: () => string | undefined;
+  /** True for a screen that only watches (`client/watch.ts`). Asked afresh at every join. */
+  watch?: () => boolean;
   onMessage: (msg: S) => void;
   onStatus?: (status: ConnectionStatus) => void;
 };
@@ -144,7 +146,7 @@ export class SocketClient<C extends { type: string }, S extends { type: string }
       this.opened();
       this.opts.onStatus?.('connected');
       // an absent token is left out of the JSON, so games without tokens see a plain join
-      this.send({ type: 'join', name: this.name, token: this.opts.token?.() } as unknown as C);
+      this.send({ type: 'join', name: this.name, token: this.opts.token?.(), watch: this.opts.watch?.() || undefined } as unknown as C);
       clock.reset();
       this.startPings();
     };
