@@ -117,6 +117,47 @@ describe('passing', () => {
 });
 
 describe('grabbing', () => {
+  it('in the scramble the quicker hand wins, not the quicker line', () => {
+    const { g, ids, now } = started(3);
+    const q = playToQuad(g, ids, now);
+    const [near, far] = ids.filter((id) => id !== q.id);
+    g.notePing(near, 4);
+    g.notePing(far, 250);
+    g.grab(q.id, q.now);
+    // `near` reaches after 300 ms. `far` reached after 200, but word of it takes 250 ms longer.
+    g.grab(near, q.now + 304);
+    expect(view(g, ids[0]).round!.spoonsLeft).toBe(1); // held: `far` may yet have been quicker
+    g.grab(far, q.now + 450);
+    expect(g.phase).toBe('reveal');
+    const r = view(g, ids[0]).result!;
+    expect(r.loserIds).toEqual([near]);
+    expect(r.grabs[1]).toEqual({ id: far, ms: 200 });
+  });
+  it('a held grab gets its spoon once nobody slower could still beat it', () => {
+    const { g, ids, now } = started(3);
+    const q = playToQuad(g, ids, now);
+    const [near, far] = ids.filter((id) => id !== q.id);
+    g.notePing(near, 4);
+    g.notePing(far, 250);
+    g.grab(q.id, q.now);
+    g.grab(near, q.now + 304);
+    g.tick(q.now + 500);
+    expect(g.phase).toBe('play');
+    g.tick(q.now + 560); // 300 + the slow line's 250 have passed with no word from `far`
+    expect(g.phase).toBe('reveal');
+    expect(view(g, ids[0]).result!.loserIds).toEqual([far]);
+  });
+  it('a line cannot claim more than the cap, and a grab is never before the first one', () => {
+    const { g, ids, now } = started(3);
+    const q = playToQuad(g, ids, now);
+    const [a, b] = ids.filter((id) => id !== q.id);
+    g.notePing(a, 60_000);
+    g.grab(q.id, q.now);
+    g.grab(a, q.now + 100);
+    g.tick(q.now + 500);
+    expect(view(g, ids[0]).result!.grabs[1]).toEqual({ id: a, ms: 0 });
+    expect(view(g, ids[0]).result!.loserIds).toEqual([b]);
+  });
   it('a grab at nothing is a loss on the spot and a short lockout', () => {
     const { g, ids, now } = started(4);
     expect(g.taskFor(ids[2])!.quad).toBe(false);

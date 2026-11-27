@@ -12,6 +12,12 @@ export const HAND_SIZE = 4;
 export const DEAL_MS = 3_000;
 /** Once the first spoon is gone, the round ends this long after at the latest. */
 export const GRAB_CAP_MS = 10_000;
+/**
+ * A grab is judged by when the hand moved, not by when word of it arrived: each player's round
+ * trip is taken off, up to this much. A grab then waits at most this long before it is given its
+ * spoon, in case one from a slower line turns out to have been quicker.
+ */
+export const GRAB_FAIR_CAP_MS = 300;
 /** A false grab keeps your hand off the spoons for this long. */
 export const FALSE_GRAB_LOCK_MS = 3_000;
 /** How long the round's result stays up before the next deal. */

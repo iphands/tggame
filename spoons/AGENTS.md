@@ -47,6 +47,14 @@ node scripts/smoke.mjs ws://localhost:8194    # needs an empty lobby, takes ~30 
 - **Hidden information.** While a round runs a card may leave `Game` only through `taskFor(its
   holder)`. `viewFor` carries cards only as `result.cards`, after the round. Nothing public may
   say who holds four of a kind. If you add a field to `StateView`, extend `tests/views.test.ts`.
+- **A grab is judged by when the hand moved, not by when word of it arrived.** In the scramble
+  each player's round trip (measured by their page, told to `Game.notePing`, capped at
+  `GRAB_FAIR_CAP_MS`) is taken off their grab, and a grab waits in `settleGrabs` until nobody
+  still empty-handed on a slower line could turn out to have been quicker. Never hand out a
+  contested spoon by arrival order. The first grab (four of a kind) is still taken as it arrives.
+- **Your own pass shows at once.** `guessTask` (client `store.ts`) shows the hand as the server
+  will have it; the server's next `task` replaces the guess, and a guess nothing confirms is
+  taken back. Anything else the player does to their own cards should go the same way.
 - **`Game` is pure.** No sockets, timers, `Date.now()` or bare `Math.random()` in `game.ts`; time
   comes in as `now` on every action and on `tick`, randomness from the injected RNG.
 - **Never trust a client.** A `pass` names a card and `Game` checks the sender holds it; `grab`

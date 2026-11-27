@@ -14,6 +14,7 @@ import {
   DEFAULT_ROUNDS,
   FALSE_GRAB_LOCK_MS,
   GRAB_CAP_MS,
+  GRAB_FAIR_CAP_MS,
   HAND_SIZE,
   HECKLE_BUTTON_MIN_MS,
   HECKLE_COOLDOWN_MS,
@@ -58,6 +59,8 @@ type Seat = {
   /** Cards passed to this player and not picked up yet, oldest first. */
   inbox: Card[];
   spoonAt: number | null;
+  /** A grab made in the scramble and not yet given its spoon: when the hand moved (see `settleGrabs`). */
+  claimAt: number | null;
   lockedUntil: number;
   /** Time spent holding the table up this round. */
   stallMs: number;
@@ -80,6 +83,8 @@ export class Game extends Roster<Player> {
   round = 0;
 
   private seats = new Map<string, Seat>();
+  /** Each human's round trip to the server in ms, as their page measures it, capped. */
+  private lag = new Map<string, number>();
   /** Seated players in passing order for this round. */
   private order: string[] = [];
   private dealerId = '';
@@ -226,9 +231,16 @@ export class Game extends Roster<Player> {
     }
     if (this.phase !== 'play' || now < this.startsAt) return;
     this.settle(now);
+    this.settleGrabs(now);
+    if (this.phase !== 'play') return;
     if (this.firstGrabAt !== null && now - this.firstGrabAt >= GRAB_CAP_MS) return this.endRound(now);
     this.autoplay(now);
     if (this.phase === 'play') this.pester(now);
+  }
+
+  /** A player's round trip to the server, so their grabs can be judged by when the hand moved. */
+  notePing(id: string, rttMs: number): void {
+    if (Number.isFinite(rttMs) && rttMs >= 0) this.lag.set(id, Math.min(GRAB_FAIR_CAP_MS, rttMs));
   }
 
   // ---- a player's moves
@@ -331,6 +343,7 @@ export class Game extends Roster<Player> {
         heldSince: 0,
         inbox: [],
         spoonAt: null,
+        claimAt: null,
         lockedUntil: 0,
         stallMs: 0,
         heckled: 0,
@@ -402,11 +415,49 @@ export class Game extends Roster<Player> {
       // the scramble is on: nobody is "slow" any more
       for (const s of this.seats.values()) if (s.drawn) s.stallMs += stallOf(now - s.heldSince);
       this.shout = null;
+      return this.take(id, now, now);
     }
-    seat.spoonAt = now;
+    // The scramble. Word of a grab took this player's round trip to see the first one and say
+    // so; take that off, and the grab is when the hand moved. It waits its turn in `settleGrabs`.
+    if (seat.claimAt !== null) return;
+    seat.claimAt = Math.max(this.firstGrabAt, now - (p.bot ? 0 : (this.lag.get(id) ?? 0)));
+    this.settleGrabs(now);
+  }
+
+  private take(id: string, at: number, now: number): void {
+    const seat = this.seats.get(id)!;
+    seat.claimAt = null;
+    seat.spoonAt = at;
     this.spoonsLeft--;
-    this.grabs.push({ id, ms: now - this.firstGrabAt });
+    this.grabs.push({ id, ms: at - this.firstGrabAt! });
     if (this.spoonsLeft <= 0) this.endRound(now);
+  }
+
+  /**
+   * Hand spoons to the grabs of the scramble, quickest hand first. A grab is settled once nobody
+   * still empty-handed could yet turn out to have been quicker: word from the slowest line among
+   * them would have arrived by then. With `all`, whatever is waiting is settled now.
+   */
+  private settleGrabs(now: number, all = false): void {
+    for (;;) {
+      if (this.phase !== 'play' || this.spoonsLeft <= 0) return;
+      let first: string | null = null;
+      let wait = 0;
+      for (const id of this.order) {
+        const seat = this.seats.get(id)!;
+        if (seat.spoonAt !== null) continue;
+        if (seat.claimAt !== null) {
+          if (first === null || seat.claimAt < this.seats.get(first)!.claimAt!) first = id;
+        } else {
+          const p = this.players.get(id);
+          if (p && !p.bot && p.connected) wait = Math.max(wait, this.lag.get(id) ?? 0);
+        }
+      }
+      if (first === null) return;
+      const at = this.seats.get(first)!.claimAt!;
+      if (!all && at + wait > now) return;
+      this.take(first, at, now);
+    }
   }
 
   /** A grab at nothing: a loss on the spot, and a moment with your hand slapped away. */
@@ -477,6 +528,16 @@ export class Game extends Roster<Player> {
   }
 
   private endRound(now: number): void {
+    // a hand already moving when the clock ran out still gets its spoon
+    if (this.spoonsLeft > 0) {
+      const waiting = this.order.filter((id) => this.seats.get(id)!.claimAt !== null).sort((a, b) => this.seats.get(a)!.claimAt! - this.seats.get(b)!.claimAt!);
+      for (const id of waiting.slice(0, this.spoonsLeft)) {
+        const seat = this.seats.get(id)!;
+        seat.spoonAt = seat.claimAt;
+        this.spoonsLeft--;
+        this.grabs.push({ id, ms: seat.claimAt! - this.firstGrabAt! });
+      }
+    }
     const loserIds = this.order.filter((id) => this.seats.get(id)!.spoonAt === null);
     let slowpokeId: string | null = null;
     let slowpokeMs = 0;

@@ -1,7 +1,7 @@
 /** WebSocket entrypoint (the HTTP side is shared). Sends each player only what they may see. */
 import path from 'node:path';
 import { WebSocket } from 'ws';
-import { createGameServer } from '@tggame/base/server/http';
+import { createGameServer, pingOf } from '@tggame/base/server/http';
 import { Game } from './game.js';
 import { isClientMessage, type ClientMessage, type ServerMessage } from '../../shared/src/protocol.js';
 import { ABANDON_MS, MAX_PLAYERS, MAX_PAYLOAD_BYTES, TICK_MS } from '../../shared/src/constants.js';
@@ -34,6 +34,11 @@ const { wss, listen } = createGameServer({
 
 function send(ws: WebSocket, msg: ServerMessage): void {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
+}
+
+/** Tell the game each seat's round trip, so a grab is judged by when the hand moved. */
+function notePings(): void {
+  for (const [ws, peer] of peers) if (peer.id) game.notePing(peer.id, pingOf(ws));
 }
 
 function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
@@ -85,6 +90,7 @@ function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
       game.pass(id, msg.card, now);
       break;
     case 'grab':
+      notePings();
       game.grab(id, now);
       break;
     case 'heckle':
@@ -138,6 +144,7 @@ function watchAbandoned(): void {
 // The game has no clock of its own: deals, heckles and bots all happen here.
 setInterval(() => {
   if (game.phase === 'lobby' || game.phase === 'finale') return;
+  notePings();
   game.tick(Date.now());
   sync();
 }, TICK_MS);

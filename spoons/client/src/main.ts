@@ -10,7 +10,7 @@ import { h } from '@tggame/base/client/dom';
 import { askName } from '@tggame/base/client/rename';
 import { GameClient, type ConnectionStatus } from './net';
 import { makeScreen, screenKey, type Screen } from './screens/index';
-import { isHost, isSeated, me, saved, send, store, wire } from './store';
+import { isHost, isSeated, me, saved, send, store, wire, setTask } from './store';
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -63,7 +63,7 @@ function onMessage(msg: ServerMessage): void {
       clock.seed(msg.now, Date.now());
       break;
     case 'task':
-      store.task = msg.task;
+      setTask(msg.task);
       render();
       break;
     case 'state':
@@ -77,7 +77,7 @@ function backToJoin(error = ''): void {
   client?.disconnect();
   client = null;
   store.state = null;
-  store.task = null;
+  setTask(null);
   joinError.textContent = error;
   render();
 }

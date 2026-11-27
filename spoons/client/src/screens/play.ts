@@ -1,10 +1,10 @@
-import { rankPlural, type Card } from '../../../shared/src/cards';
+import { fourOfAKind, rankPlural, type Card } from '../../../shared/src/cards';
 import { HECKLE_BUTTON_MIN_MS, HECKLE_COOLDOWN_MS, HECKLE_STEP_MS, SHOUT_MS } from '../../../shared/src/constants';
 import type { PlayerView, ResultView, StateView } from '../../../shared/src/types';
 import { sfx } from '../audio';
 import { cardEl, spoonEl } from '../cards';
 import { h, tilt } from '@tggame/base/client/dom';
-import { isHost, isSeated, me, nameOf, player, send, serverNow, store } from '../store';
+import { guessTask, isHost, isSeated, me, nameOf, player, send, serverNow, store } from '../store';
 import { seconds } from './finale';
 import type { Screen } from './index';
 
@@ -56,9 +56,18 @@ export function playScreen(): Screen {
 
   function pass(card: Card): void {
     const s = store.state;
-    if (!s || !started(s) || !store.task?.drawn) return;
+    const task = store.task;
+    if (!s || !started(s) || !task?.drawn) return;
+    // the card leaves the hand now, as it will on the server: the card just drawn takes its place
+    const hand = [...task.hand];
+    if (card !== task.drawn) {
+      const at = hand.indexOf(card);
+      if (at < 0) return;
+      hand[at] = task.drawn;
+    }
     send({ type: 'pass', card });
     sfx.pass();
+    guessTask({ hand, drawn: null, quad: !!fourOfAKind(hand) });
   }
 
   /** Whoever has sat on a card longest, and for how long. */
