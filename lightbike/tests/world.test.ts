@@ -49,10 +49,42 @@ describe('riding', () => {
     w.turn('a', 1);
     w.turn('a', 2);
     w.turn('a', 3); // a third is one too many
-    expect(a.queue).toEqual([1, 2]);
+    expect(a.queue.map((t) => t.d)).toEqual([1, 2]);
     ride(w, 'a', 3);
     expect(a.alive).toBe(true);
     expect([a.x, a.y, a.dir]).toEqual([5, 6, 2]);
+  });
+});
+
+describe('a turn booked for a cell', () => {
+  it('is taken in that cell, so a client riding ahead and the server turn in the same place', () => {
+    const { w } = floor();
+    const a = place(w, 'a', 5, 5, 0);
+    park(w, 'b');
+    w.turn('a', 1, 3);
+    ride(w, 'a', 2);
+    expect([a.x, a.dir]).toEqual([7, 0]);
+    ride(w, 'a', 1);
+    expect([a.x, a.y, a.dir, a.odo]).toEqual([8, 5, 1, 3]);
+  });
+
+  it('is taken in the next cell when that cell is already behind the bike', () => {
+    const { w } = floor();
+    const a = place(w, 'a', 5, 5, 0);
+    park(w, 'b');
+    ride(w, 'a', 4);
+    w.turn('a', 1, 2);
+    ride(w, 'a', 1);
+    expect([a.x, a.dir]).toEqual([10, 1]);
+  });
+
+  it('cannot be booked far ahead, and a second one follows the first', () => {
+    const { w } = floor();
+    const a = place(w, 'a', 5, 5, 0);
+    park(w, 'b');
+    w.turn('a', 1, 500);
+    w.turn('a', 2, 0);
+    expect(a.queue).toEqual([{ d: 1, at: 4 }, { d: 2, at: 5 }]);
   });
 });
 
@@ -65,7 +97,7 @@ describe('crashing', () => {
     expect(a.alive).toBe(false);
     expect([a.x, a.y]).toEqual([39, 5]);
     expect(stats.get('a')!.walls).toBe(1);
-    expect(w.out).toEqual([{ id: 'a', by: '' }]);
+    expect(w.out).toEqual([{ id: 'a', by: '', how: 'wall' }]);
   });
 
   it("into somebody's line gives them the cut-off, and every survivor a point", () => {
@@ -77,7 +109,7 @@ describe('crashing', () => {
     ride(w, 'a', 5);
     expect(a.alive).toBe(false);
     expect(a.x).toBe(7);
-    expect(w.out).toEqual([{ id: 'a', by: 'b' }]);
+    expect(w.out).toEqual([{ id: 'a', by: 'b', how: 'line' }]);
     expect(stats.get('b')).toMatchObject({ score: 2, cuts: 1 });
     expect(stats.get('c')).toMatchObject({ score: 1, cuts: 0 });
     expect(stats.get('a')).toMatchObject({ score: 0, firsts: 1 });
@@ -90,7 +122,7 @@ describe('crashing', () => {
     park(w, 'b');
     line(w, 'a', 8, 0, 8, 10);
     ride(w, 'a', 5);
-    expect(w.out).toEqual([{ id: 'a', by: 'a' }]);
+    expect(w.out).toEqual([{ id: 'a', by: 'a', how: 'own' }]);
     expect(stats.get('a')!.own).toBe(1);
     expect(stats.get('b')).toMatchObject({ score: 1, cuts: 0 });
   });
@@ -102,7 +134,7 @@ describe('crashing', () => {
       const b = place(w, 'b', 10 + gap + 1, 5, 2);
       steps(w, 30);
       expect([a.alive, b.alive], `gap ${gap}`).toEqual([false, false]);
-      expect(w.out.map((o) => o.by)).toEqual(['', '']);
+      expect(w.out.map((o) => [o.id, o.by, o.how]).sort()).toEqual([['a', 'b', 'headon'], ['b', 'a', 'headon']]);
       expect(stats.get('a')!.cuts + stats.get('b')!.cuts).toBe(0);
     }
   });
@@ -177,8 +209,8 @@ describe('snapshots', () => {
     place(w, 'a', 5, 5, 0);
     park(w, 'b');
     steps(w, 3);
-    const [id, x, y, dir, p, speed, flags, energy, turns] = w.bikeList()[0];
-    expect([id, x, y, dir, flags, energy, turns]).toEqual(['a', 5, 5, 0, 0, 100, 0]);
+    const [id, x, y, dir, p, speed, flags, energy, turns, odo] = w.bikeList()[0];
+    expect([id, x, y, dir, flags, energy, turns, odo]).toEqual(['a', 5, 5, 0, 0, 100, 0, 0]);
     expect(p).toBe(75);
     expect(speed).toBe(PACE_SPEED.normal * 10);
   });

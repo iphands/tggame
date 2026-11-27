@@ -42,8 +42,14 @@ export type RoundView = {
   target: number;
 };
 
-/** How one rider's round ended. `by`: whose line they hit, their own id for their own, '' for a wall or a draw. */
-export type Exit = { id: string; by: string; /** 1 for the winner. */ place: number; /** Points earned this round. */ gained: number };
+/**
+ * How a rider went out: into a `wall` (or a block, or the rim as it closed in), their `own` line,
+ * somebody else's `line`, nose to nose with another bike (`headon`), or they `left` the game.
+ */
+export type How = 'wall' | 'own' | 'line' | 'headon' | 'left';
+
+/** How one rider's round ended. `how` is '' for the rider left at the end; `by` is the other rider involved, if any. */
+export type Exit = { id: string; by: string; how: How | ''; /** 1 for the winner. */ place: number; /** Points earned this round. */ gained: number };
 
 /** The round just ridden. */
 export type ClearedView = {
@@ -98,11 +104,11 @@ export type StateView = {
 };
 
 /**
- * `[id, x, y, dir, p, speed, flags, energy, turns]`: the cell, the way it faces, how far it is to
- * the next cell (hundredths), cells per second (tenths), `FLAG_…` bits, the bar (hundredths) and
- * how many turns it has made this round.
+ * `[id, x, y, dir, p, speed, flags, energy, turns, odo]`: the cell, the way it faces, how far it is
+ * to the next cell (hundredths), cells per second (tenths), `FLAG_…` bits, the bar (hundredths),
+ * and how many turns it has made and cells it has reached this round.
  */
-export type BikeSnap = [string, number, number, number, number, number, number, number, number];
+export type BikeSnap = [string, number, number, number, number, number, number, number, number, number];
 
 /** A rider's line so far: `[id, gone, points]`, the points being x, y pairs from the start through every corner. */
 export type TrailInit = [string, 0 | 1, number[]];
@@ -110,9 +116,9 @@ export type TrailInit = [string, 0 | 1, number[]];
 /**
  * Things that happened since the last snapshot:
  * - `['c', id, x, y]` a bike turned in this cell
- * - `['x', id, by, x, y]` a bike crashed here (`by` as in `Exit`)
+ * - `['x', id, by, x, y, how]` a bike crashed in this cell (`by` and `how` as in `Exit`)
  * - `['e', id]` a line was erased
  * - `['b', id]` a bike set off its buster
  * - `['s', ring]` the rim moved in: `ring` cells from every edge are now wall
  */
-export type Fx = ['c', string, number, number] | ['x', string, string, number, number] | ['e', string] | ['b', string] | ['s', number];
+export type Fx = ['c', string, number, number] | ['x', string, string, number, number, How] | ['e', string] | ['b', string] | ['s', number];

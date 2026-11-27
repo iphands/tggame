@@ -64,7 +64,7 @@ function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
   if (!id) return; // must join first
   switch (msg.type) {
     case 'turn':
-      game.turn(id, msg.d);
+      game.turn(id, msg.d, msg.at);
       break;
     case 'boost':
       game.boost(id, msg.on);

@@ -12,8 +12,8 @@ export type ClientMessage =
   | { type: 'removeBot' }
   | { type: 'settings'; pace?: Pace; length?: Length; boost?: boolean; bust?: boolean; slip?: boolean; erase?: boolean }
   | { type: 'start' }
-  /** Turn to face this way (0 right, 1 down, 2 left, 3 up) at the next cell. */
-  | { type: 'turn'; d: number }
+  /** Turn to face this way (0 right, 1 down, 2 left, 3 up) in the `at`-th cell of the round (0: the next one). */
+  | { type: 'turn'; d: number; at?: number }
   /** The boost is being held, or was let go. */
   | { type: 'boost'; on: boolean }
   /** Set off the buster. */
@@ -73,7 +73,7 @@ export function isClientMessage(x: unknown): x is ClientMessage {
         optional(m.erase, 'boolean')
       );
     case 'turn':
-      return isDir(m.d);
+      return isDir(m.d) && (m.at === undefined || (Number.isInteger(m.at) && (m.at as number) >= 0));
     case 'boost':
       return typeof m.on === 'boolean';
     default:

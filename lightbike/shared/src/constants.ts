@@ -58,6 +58,8 @@ export const BUST_MS = 700;
 export const ERASE_FADE_MS = 1000;
 /** Turns a rider may have waiting. Two quick taps make a U-turn. */
 export const TURN_QUEUE = 2;
+/** A turn may be booked for a cell at most this far ahead of where the server has the bike. */
+export const TURN_LEAD_CELLS = 3;
 
 // ---- the walls close in
 

@@ -155,8 +155,8 @@ export class Game extends Roster<Player> {
     this.layRound();
   }
 
-  turn(id: string, d: number): void {
-    if (this.phase === 'countdown' || this.phase === 'play') this.world?.turn(id, d);
+  turn(id: string, d: number, at?: number): void {
+    if (this.phase === 'countdown' || this.phase === 'play') this.world?.turn(id, d, at);
   }
 
   boost(id: string, on: boolean): void {
@@ -256,8 +256,8 @@ export class Game extends Roster<Player> {
 
   private closeRound(world: World): void {
     const survivor = world.bikes.find((b) => b.alive);
-    const order = [...(survivor ? [{ id: survivor.id, by: '' }] : []), ...[...world.out].reverse()];
-    const exits: Exit[] = order.map((o, i) => ({ id: o.id, by: o.by, place: i + 1, gained: world.gained.get(o.id) ?? 0 }));
+    const order = [...(survivor ? [{ id: survivor.id, by: '', how: '' as const }] : []), ...[...world.out].reverse()];
+    const exits: Exit[] = order.map((o, i) => ({ id: o.id, by: o.by, how: o.how, place: i + 1, gained: world.gained.get(o.id) ?? 0 }));
     if (survivor) this.stats.get(survivor.id)!.wins++;
     this.cleared = { no: this.round, winner: survivor?.id ?? '', exits, last: this.leader() !== '' };
     this.phase = 'cleared';

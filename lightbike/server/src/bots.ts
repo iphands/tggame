@@ -128,5 +128,5 @@ export function pilot(world: World, b: Bike, rng: Rng): void {
     if (b.energy >= BUST_COST) world.bust(b.id);
     return;
   }
-  if (best !== b.dir) b.queue.push(best);
+  if (best !== b.dir) b.queue.push({ d: best, at: 0 });
 }

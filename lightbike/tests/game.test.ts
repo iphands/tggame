@@ -99,7 +99,7 @@ describe('a round', () => {
     const d = (bike.dir + 1) % 4;
     g.turn(ids[0], d);
     g.turn('nobody', d);
-    expect(bike.queue).toEqual([d]);
+    expect(bike.queue.map((t) => t.d)).toEqual([d]);
     g.bust(ids[0]); // not during the countdown
     expect(bike.energy).toBe(1);
     run(g, COUNTDOWN_MS + 200);

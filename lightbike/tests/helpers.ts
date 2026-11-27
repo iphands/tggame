@@ -67,7 +67,7 @@ export function floor(ids = ['a', 'b'], settings: Settings = PLAIN, w = 40, h = 
 /** Put a bike in a cell, facing `dir`, with its line starting there. */
 export function place(w: World, id: string, x: number, y: number, dir: number): Bike {
   const b = w.bike(id)!;
-  Object.assign(b, { x, y, dir, p: 0, queue: [], pts: [x, y] });
+  Object.assign(b, { x, y, dir, p: 0, odo: 0, queue: [], pts: [x, y] });
   w.occ[y * w.w + x] = b.idx + 1;
   return b;
 }

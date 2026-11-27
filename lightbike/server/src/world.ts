@@ -25,8 +25,8 @@ import {
   TICK_MS,
 } from '../../shared/src/constants.js';
 import { solidGrid, spawns, type Arena } from '../../shared/src/arenas.js';
-import { DX, DY, queueTurn, turnHere, type Rider } from '../../shared/src/sim.js';
-import type { BikeSnap, Fx, PlayerStats, Settings, TrailInit } from '../../shared/src/types.js';
+import { DX, DY, arriveAndTurn, queueTurn, type Rider } from '../../shared/src/sim.js';
+import type { BikeSnap, Fx, How, PlayerStats, Settings, TrailInit } from '../../shared/src/types.js';
 import { shuffle, type Rng } from '@tggame/base/party/roster';
 
 /** What a cell holds: 0 for nothing, `WALL`, or 1 + the index of the bike whose line runs through it. */
@@ -67,8 +67,8 @@ export class World {
   ring = 0;
   ageMs = 0;
   tick = 0;
-  /** Who is out, in the order they went: `by` is whose line it was, their own id, or '' for a wall or a head-on. */
-  readonly out: { id: string; by: string }[] = [];
+  /** Who is out, in the order they went, how, and whose line (or nose) it was. */
+  readonly out: { id: string; by: string; how: How }[] = [];
   /** Points earned this round. */
   readonly gained = new Map<string, number>();
   fx: Fx[] = [];
@@ -92,7 +92,7 @@ export class World {
     ids.forEach((id, idx) => {
       const [x, y, dir] = places[idx];
       const bike: Bike = {
-        id, idx, x, y, dir, p: 0, queue: [], alive: true, turns: 0, energy: 1, extra: 0, speed: 0,
+        id, idx, x, y, dir, p: 0, odo: 0, queue: [], alive: true, turns: 0, energy: 1, extra: 0, speed: 0,
         boosting: false, bustMs: 0, slipping: false, pts: [x, y], gone: false, arrivedAt: 0, thought: -1,
       };
       this.bikes.push(bike);
@@ -119,9 +119,9 @@ export class World {
 
   // ---- what riders ask for
 
-  turn(id: string, d: number): void {
+  turn(id: string, d: number, at = 0): void {
     const b = this.byId.get(id);
-    if (b?.alive) queueTurn(b, d);
+    if (b?.alive) queueTurn(b, d, at);
   }
 
   boost(id: string, on: boolean): void {
@@ -144,7 +144,7 @@ export class World {
     if (b.alive) {
       b.alive = false;
       b.speed = 0;
-      this.fx.push(['x', id, '', b.x, b.y]);
+      this.fx.push(['x', id, '', b.x, b.y, 'left']);
     }
     this.erase(b);
   }
@@ -189,16 +189,16 @@ export class World {
     const nx = b.x + DX[b.dir];
     const ny = b.y + DY[b.dir];
     const what = this.at(nx, ny);
-    if (what === WALL) return this.crash(b, '');
+    if (what === WALL) return this.crash(b, '', 'wall');
     if (what && b.bustMs <= 0) {
       const other = this.bikes[what - 1];
       // two bikes into one cell, nose to nose or in the same instant: both go, and nobody gets the credit
       const headOn = other !== b && other.alive && other.x === nx && other.y === ny && (other.arrivedAt === this.tick || (other.dir + 2) % 4 === b.dir);
       if (headOn) {
-        this.crash(other, '');
-        return this.crash(b, '');
+        this.crash(other, b.id, 'headon');
+        return this.crash(b, other.id, 'headon');
       }
-      return this.crash(b, other.id);
+      return this.crash(b, other.id, other === b ? 'own' : 'line');
     }
     b.x = nx;
     b.y = ny;
@@ -207,26 +207,26 @@ export class World {
       this.occ[ny * this.w + nx] = b.idx + 1;
       this.stats.get(b.id)!.cells++;
     }
-    if (turnHere(b)) {
+    if (arriveAndTurn(b)) {
       b.turns++;
       b.pts.push(nx, ny);
       this.fx.push(['c', b.id, nx, ny]);
     }
   }
 
-  private crash(b: Bike, by: string): void {
+  private crash(b: Bike, by: string, how: How): void {
     if (!b.alive) return;
     b.alive = false;
     b.speed = 0;
     b.p = 0;
     b.pts.push(b.x, b.y);
-    this.fx.push(['x', b.id, by, b.x, b.y]);
+    this.fx.push(['x', b.id, by, b.x, b.y, how]);
     const st = this.stats.get(b.id)!;
-    if (by === b.id) st.own++;
-    else if (by === '') st.walls++;
-    else this.score(by, POINTS_CUT_OFF, (s) => s.cuts++);
+    if (how === 'own') st.own++;
+    else if (how === 'wall') st.walls++;
+    else if (how === 'line') this.score(by, POINTS_CUT_OFF, (s) => s.cuts++);
     if (this.out.length === 0) st.firsts++;
-    this.out.push({ id: b.id, by });
+    this.out.push({ id: b.id, by, how });
     for (const o of this.bikes) if (o.alive) this.score(o.id, POINTS_OUTLIVE);
     if (this.settings.erase) this.erase(b);
   }
@@ -274,7 +274,7 @@ export class World {
       this.occ[y * this.w + this.w - 1 - k] = WALL;
     }
     this.fx.push(['s', this.ring]);
-    for (const b of this.bikes) if (b.alive && this.occ[b.y * this.w + b.x] === WALL) this.crash(b, '');
+    for (const b of this.bikes) if (b.alive && this.occ[b.y * this.w + b.x] === WALL) this.crash(b, '', 'wall');
   }
 
   // ---- what goes over the wire
@@ -292,6 +292,7 @@ export class World {
         (b.alive ? 0 : FLAG_DEAD) | (b.alive && b.boosting && b.energy > 0 ? FLAG_BOOST : 0) | (b.bustMs > 0 ? FLAG_BUST : 0) | (b.slipping ? FLAG_SLIP : 0),
         Math.round(b.energy * 100),
         b.turns,
+        b.odo,
       ]);
   }
 
