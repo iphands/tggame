@@ -10,8 +10,7 @@ import { onHilderReady } from './hilder';
 import { clearLive, onSnap } from './live';
 import { GameClient, type ConnectionStatus } from './net';
 import { MODE_NAMES, makeScreen, screenKey, type Screen } from './screens/index';
-import { getItem, setItem } from '@tggame/base/client/storage';
-import { isHost, isSeated, me, saved, send, store, wire } from './store';
+import { isHost, isSeated, me, saved, send, store, watching, wire } from './store';
 
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -29,18 +28,6 @@ const menuBtn = $<HTMLButtonElement>('menu');
 const menuEl = $('menu-pop');
 
 let client: GameClient | null = null;
-/**
- * This screen only watches: it never plays. Chosen on the join screen, or with `?watch=1` in the
- * address (for a TV: it then goes straight in); remembered until `?watch=0` or "Come in".
- */
-const WATCH_KEY = 'hb-watch';
-const asked = new URLSearchParams(location.search).get('watch');
-if (asked !== null) setItem(WATCH_KEY, asked === '0' ? null : '1');
-let watching = getItem(WATCH_KEY) === '1';
-function setWatching(on: boolean): void {
-  watching = on;
-  setItem(WATCH_KEY, on ? '1' : null);
-}
 let current: { key: string; screen: Screen } | null = null;
 
 // a Cousin with a Beast on their heels
@@ -64,7 +51,7 @@ onHilderReady(drawDemo);
 
 function connect(name: string): void {
   client?.disconnect();
-  client = new GameClient({ name, token: saved.token, onMessage, onStatus });
+  client = new GameClient({ name, token: saved.token, watch: watching.on, onMessage, onStatus });
   wire((msg) => client?.send(msg), render);
   client.connect();
 }
@@ -82,8 +69,6 @@ function onMessage(msg: ServerMessage): void {
   switch (msg.type) {
     case 'welcome':
       saved.setToken(msg.token);
-      // said again on every (re)connection: the server may have forgotten
-      if (watching) client?.send({ type: 'watch', on: true });
       break;
     case 'state':
       store.state = msg.state;
@@ -207,7 +192,7 @@ document.addEventListener(
 $('watch').addEventListener('click', () => {
   const name = sanitizeName(nameInput.value) || 'TV';
   saved.setName(name);
-  setWatching(true);
+  watching.set(true);
   joinError.textContent = '';
   unlockAudio();
   connect(name);
@@ -220,7 +205,7 @@ joinForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const name = sanitizeName(nameInput.value) || 'Cousin';
   saved.setName(name);
-  setWatching(false);
+  watching.set(false);
   joinError.textContent = '';
   unlockAudio();
   sfx.pop();
@@ -231,5 +216,5 @@ joinForm.addEventListener('submit', (e) => {
 // A saved seat means a reload mid-game: go straight back in.
 if (saved.token() && saved.name()) connect(saved.name());
 // a TV sent here with ?watch=1 needs nobody to press anything
-else if (watching && asked !== null) connect(saved.name() || 'TV');
+else if (watching.straightIn) connect(saved.name() || 'TV');
 render();

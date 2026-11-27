@@ -1,9 +1,10 @@
-import { MAX_PLAYERS, MIN_PLAYERS, MODES } from '../../../shared/src/constants';
+import { MAX_PLAYERS, MIN_PLAYERS, MODES, SPEEDS } from '../../../shared/src/constants';
 import { MAPS } from '../../../shared/src/maps';
 import { mapPicture } from '../art';
 import { sfx } from '../audio';
 import { h, tilt } from '@tggame/base/client/dom';
-import { isHost, nameOf, send, store } from '../store';
+import { isHost, nameOf, send, store, watching } from '../store';
+import { watchRow } from '@tggame/base/party/watchRow';
 import { MODE_NAMES, type Screen } from './index';
 
 const BLURB = {
@@ -32,16 +33,15 @@ export function lobbyScreen(): Screen {
   const mapPic = h('canvas', { class: 'map-pic', width: 240, height: 156 });
   const mapRow = h('div', { class: 'map-row' }, prev, mapName, next);
   let shownMap = -2;
-  const settings = h('div', { class: 'settings' }, h('span', { class: 'setting' }, modeBtns));
+  const speedBtns = SPEEDS.map((sp, speed) => h('button', { class: 'btn small', type: 'button', onclick: () => send({ type: 'settings', speed }) }, sp.name));
+  const settings = h('div', { class: 'settings' }, h('span', { class: 'setting' }, modeBtns), h('span', { class: 'setting' }, h('span', null, 'Speed'), speedBtns));
   const summary = h('p', { class: 'share' });
-  const watchers = h('p', { class: 'share' });
-  const toggle = h('button', { class: 'btn small', type: 'button' });
-  toggle.addEventListener('click', () => send({ type: 'watch', on: !store.state?.players.find((p) => p.id === store.state?.selfId)?.watcher }));
+  const tv = watchRow(watching, (on) => send({ type: 'watch', on }));
 
   const el = h(
     'section',
     { class: 'screen lobby' },
-    h('div', { class: 'sheet spiral' }, h('h2', null, "Who's in the house?"), notes, status, settings, summary, mapRow, mapPic, hostRow, start, watchers, toggle, share),
+    h('div', { class: 'sheet spiral' }, h('h2', null, "Who's in the house?"), notes, status, settings, summary, mapRow, mapPic, hostRow, start, tv.els, share),
     h(
       'ol',
       { class: 'howto' },
@@ -68,11 +68,7 @@ export function lobbyScreen(): Screen {
           ),
         ),
       );
-      const tv = s.players.filter((p) => p.watcher);
-      const mine = s.players.find((p) => p.id === s.selfId);
-      watchers.hidden = tv.length === 0;
-      watchers.textContent = `Watching: ${tv.map((p) => p.name).join(', ')}`;
-      toggle.textContent = mine?.watcher ? 'Play instead' : 'Just watch';
+      tv.update(s.players, s.selfId);
       if (s.settings.map !== shownMap) {
         shownMap = s.settings.map;
         const map = MAPS[shownMap];
@@ -97,8 +93,9 @@ export function lobbyScreen(): Screen {
       hostRow.hidden = !host;
       start.hidden = !host;
       settings.hidden = !host;
-      summary.textContent = `${host ? '' : `${MODE_NAMES[s.settings.mode]}. `}${BLURB[s.settings.mode]}`;
+      summary.textContent = `${host ? '' : `${MODE_NAMES[s.settings.mode]}, ${SPEEDS[s.settings.speed].name.toLowerCase()} speed. `}${BLURB[s.settings.mode]}`;
       modeBtns.forEach((b, i) => b.classList.toggle('primary', MODES[i] === s.settings.mode));
+      speedBtns.forEach((b, i) => b.classList.toggle('primary', i === s.settings.speed));
       start.disabled = !online || !enough;
       addBot.disabled = seated.length >= MAX_PLAYERS || !online;
       removeBot.disabled = !seated.some((p) => p.bot) || !online;

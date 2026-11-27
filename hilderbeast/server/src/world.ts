@@ -143,6 +143,8 @@ export class World {
     beastAt: Spot = map.den,
     /** Which of the map's exit spots is the way out this round. There is only ever the one. */
     exitNo = 0,
+    /** The round's speed setting: everybody's speed is multiplied by it. */
+    readonly pace = 1,
   ) {
     let seat = 0;
     for (const id of ids) {
@@ -268,7 +270,7 @@ export class World {
     if (b.ghost) {
       // a ghost only drifts: no boosts, no doors, and walls are nothing to it
       if (b.ix !== 0 || b.iy !== 0) {
-        const speed = speedOf(F_GHOST);
+        const speed = speedOf(F_GHOST, this.pace);
         moveBody(b, b.ix * speed * dtS, b.iy * speed * dtS, this.map, true);
       }
       return;
@@ -283,7 +285,7 @@ export class World {
       b.fx = b.ix / d;
       b.fy = b.iy / d;
     }
-    const speed = speedOf(this.flags(b));
+    const speed = speedOf(this.flags(b), this.pace);
     if (moving && speed > 0) moveBody(b, b.ix * speed * dtS, b.iy * speed * dtS, this.map);
 
     if (b.role === 'beast') this.enterPortal(b);

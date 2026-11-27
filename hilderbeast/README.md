@@ -62,6 +62,12 @@ win too; with two players, that is how the Cousin wins.
   or 6 minutes have passed. The Cousins win if at least one of them got out; the Beasts win if
   nobody did.
 
+## Speed
+
+The host picks how fast a round is played: **Default**, **Fast** (everybody 25 % quicker) or
+**Faster** (50 % quicker). It speeds up walking, boosts and dashes for Cousins and Beasts alike;
+clocks, cooldowns and traps keep their own time.
+
 ## Maps and traps
 
 Eight maps: the Old House, the Barn, the Wine Cellars, the Hedge Maze, the Attic, the Boathouse,

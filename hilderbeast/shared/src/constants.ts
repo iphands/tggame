@@ -57,6 +57,16 @@ export const ROLE = {
   },
 } as const;
 
+/**
+ * How fast a round is played, picked by the host: everybody's walking, boosts and dashes are
+ * multiplied by `x`. Clocks, cooldowns and traps keep their own time.
+ */
+export const SPEEDS = [
+  { name: 'Default', x: 1 },
+  { name: 'Fast', x: 1.25 },
+  { name: 'Faster', x: 1.5 },
+] as const;
+
 // ---- a Cousin's energy
 
 export const ENERGY_MAX = 100;

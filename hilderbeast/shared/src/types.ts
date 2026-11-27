@@ -9,7 +9,7 @@ export type Phase = 'lobby' | 'countdown' | 'play' | 'finale';
 /** `last`: Last Cousin Standing. `escape`: do the chores, open the doors, get out. */
 export type Mode = (typeof MODES)[number];
 /** `map`: which of `MAPS` to play, or -1 for a different one by lot each round. */
-export type Settings = { mode: Mode; map: number };
+export type Settings = { mode: Mode; map: number; /** An index into `SPEEDS`. */ speed: number };
 
 export type Role = 'cousin' | 'beast';
 /** What a player is right now: `c` a Cousin, `b` a Beast, `x` a Cousin who got out, `g` a caught Cousin's ghost (Escape only). */
@@ -33,6 +33,8 @@ export type RoundView = {
   mode: Mode;
   /** Which of `MAPS` this round is played on. */
   map: number;
+  /** Which of `SPEEDS` this round is played at. */
+  speed: number;
   /** Which of that map's exit spots is the one way out this round (Escape). */
   exit: number;
   /** The whole clock for this round. */

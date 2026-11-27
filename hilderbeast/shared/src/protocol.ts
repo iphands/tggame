@@ -1,4 +1,4 @@
-import { MODES } from './constants.js';
+import { MODES, SPEEDS } from './constants.js';
 import type { BodySnap, Fx, Mode, SelfSnap, StateView } from './types.js';
 
 // ---- client → server
@@ -10,7 +10,7 @@ export type ClientMessage =
   | { type: 'addBot' }
   | { type: 'removeBot' }
   /** `map`: an index into `MAPS`, or -1 for one by lot. */
-  | { type: 'settings'; mode?: Mode; map?: number }
+  | { type: 'settings'; mode?: Mode; map?: number; /** An index into `SPEEDS`. */ speed?: number }
   | { type: 'start' }
   /** Only watch from now on (`on`), or ask for a seat again. A screen that only watches sees the whole house. */
   | { type: 'watch'; on: boolean }
@@ -68,7 +68,7 @@ export function isClientMessage(x: unknown): x is ClientMessage {
     case 'rename':
       return typeof m.name === 'string' && m.name.length <= 64;
     case 'settings':
-      return (m.mode === undefined || (MODES as readonly unknown[]).includes(m.mode)) && (m.map === undefined || (Number.isInteger(m.map) && (m.map as number) >= -1 && (m.map as number) < 64));
+      return (m.mode === undefined || (MODES as readonly unknown[]).includes(m.mode)) && (m.map === undefined || (Number.isInteger(m.map) && (m.map as number) >= -1 && (m.map as number) < 64)) && (m.speed === undefined || (Number.isInteger(m.speed) && (m.speed as number) >= 0 && (m.speed as number) < SPEEDS.length));
     case 'watch':
       return typeof m.on === 'boolean';
     case 'in':

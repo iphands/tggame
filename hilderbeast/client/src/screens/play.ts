@@ -25,6 +25,7 @@ import {
   NOISE_SHOW_MS,
   PORTALS_ON,
   SIGHT_R,
+  SPEEDS,
   TASK_R,
   TILE,
 } from '../../../shared/src/constants';
@@ -63,6 +64,8 @@ const MINI = 4;
 export function playScreen(): Screen {
   /** The map this round is played on. A new round is a new play screen, so it never changes under us. */
   const MAP = MAPS[store.state?.round?.map ?? 0] ?? MAPS[0];
+  /** The round's speed setting: what everybody's speed is multiplied by. */
+  const PACE = SPEEDS[store.state?.round?.speed ?? 0]?.x ?? 1;
   /** The one way out this round. */
   const exitAt = MAP.exits[store.state?.round?.exit ?? 0];
   const canvas = h('canvas');
@@ -281,9 +284,9 @@ export function playScreen(): Screen {
     // goo is in the map, so we know we are in it without being told: the flag is worked out here, per place
     const wades = !ghost && !(flags & F_BEAST);
     const dry = flags & ~F_SLOW;
-    const speedAt = (x: number, y: number): number => speedOf(wades && kindAt(MAP, x, y) === T_GOO ? dry | F_SLOW : dry);
+    const speedAt = (x: number, y: number): number => speedOf(wades && kindAt(MAP, x, y) === T_GOO ? dry | F_SLOW : dry, PACE);
     flags = wades && self.ready && kindAt(MAP, self.x, self.y) === T_GOO ? dry | F_SLOW : dry;
-    const speed = speedOf(flags);
+    const speed = speedOf(flags, PACE);
     // while the server holds the body (the den, a Beast door, turning, a catch being shown) we only follow
     const steering = speedOf(dry) > 0 && live.hold <= 0;
     const ahead = steering ? predictBody({ x: latest[1], y: latest[2] }, live.stampedAt, netClock.rtt, sticks, now, speedAt, MAP, ghost) : { x: latest[1], y: latest[2] };

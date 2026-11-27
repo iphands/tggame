@@ -16,6 +16,7 @@ import {
   MODES,
   PLAYER_COLORS,
   SIGHT_R,
+  SPEEDS,
   TICK_MS,
   TILE,
   tasksFor,
@@ -57,7 +58,9 @@ export class Game extends Roster<Player> {
   phase: Phase = 'lobby';
   /** Bumped each time a round starts. */
   gameNo = 0;
-  settings: Settings = { mode: DEFAULT_MODE, map: -1 };
+  settings: Settings = { mode: DEFAULT_MODE, map: -1, speed: 0 };
+  /** The speed setting of the round being played. */
+  private speedNo = 0;
   /** The map of the round being played, or of the last one. */
   private mapNo = -1;
   private exitNo = 0;
@@ -159,9 +162,10 @@ export class Game extends Roster<Player> {
 
   // ---- game flow
 
-  configure(by: string, mode?: Mode, map?: number): void {
+  configure(by: string, mode?: Mode, map?: number, speed?: number): void {
     if (this.phase !== 'lobby' || by !== this.hostId()) return;
     if (mode !== undefined && MODES.includes(mode)) this.settings.mode = mode;
+    if (speed !== undefined && Number.isInteger(speed) && speed >= 0 && speed < SPEEDS.length) this.settings.speed = speed;
     if (map !== undefined && Number.isInteger(map) && map >= -1 && map < MAPS.length) this.settings.map = map;
   }
 
@@ -190,7 +194,8 @@ export class Game extends Roster<Player> {
       this.rng,
     ).slice(0, tasksFor(this.cousinsAtStart));
     // seats in the hall are dealt by lot too
-    this.world = new World(mode, [beast, ...shuffle(ids.filter((id) => id !== beast), this.rng)], beast, spots.sort((a, b) => a - b), map, this.beastStart(map), this.exitNo);
+    this.world = new World(mode, [beast, ...shuffle(ids.filter((id) => id !== beast), this.rng)], beast, spots.sort((a, b) => a - b), map, this.beastStart(map), this.exitNo, SPEEDS[this.settings.speed].x);
+    this.speedNo = this.settings.speed;
     this.bots = new Bots();
     this.roundClockMs = this.clockMs = mode === 'escape' ? ESCAPE_CLOCK_MS : LAST_CLOCK_MS;
     this.phase = 'countdown';
@@ -351,7 +356,7 @@ export class Game extends Roster<Player> {
       hostId: this.hostId(),
       players,
       settings: { ...this.settings },
-      round: world ? { seq: this.gameNo, mode: world.mode, map: this.mapNo, exit: this.exitNo, clockMs: this.roundClockMs, tasks: world.tasks.map((t) => t.spot), sides, firstBeast: world.firstBeast } : null,
+      round: world ? { seq: this.gameNo, mode: world.mode, map: this.mapNo, speed: this.speedNo, exit: this.exitNo, clockMs: this.roundClockMs, tasks: world.tasks.map((t) => t.spot), sides, firstBeast: world.firstBeast } : null,
       result: this.result,
     };
   }

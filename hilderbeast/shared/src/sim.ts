@@ -11,8 +11,16 @@ export function unit(x: number, y: number): Point {
   return d > 1 ? { x: x / d, y: y / d } : { x, y };
 }
 
-/** World units a second for a body with these snapshot flags. Zero while it cannot steer itself. */
-export function speedOf(flags: number): number {
+/**
+ * World units a second for a body with these snapshot flags. Zero while it cannot steer itself.
+ * `pace` is the round's speed setting (`SPEEDS[n].x`).
+ */
+export function speedOf(flags: number, pace = 1): number {
+  return pace * unpaced(flags);
+}
+
+/** `speedOf` at the default speed setting. */
+function unpaced(flags: number): number {
   if (flags & (F_CONVERT | F_PORTAL | F_HELD | F_OUT)) return 0;
   if (flags & F_GHOST) return BASE_SPEED * GHOST_SPEED;
   const role = flags & F_BEAST ? ROLE.beast : ROLE.cousin;

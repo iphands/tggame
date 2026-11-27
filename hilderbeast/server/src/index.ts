@@ -80,7 +80,7 @@ function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
       game.removeBot(id);
       break;
     case 'settings':
-      game.configure(id, msg.mode, msg.map);
+      game.configure(id, msg.mode, msg.map, msg.speed);
       break;
     case 'start':
       game.start(id);

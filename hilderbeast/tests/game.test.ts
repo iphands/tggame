@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BEAST_START_CLEAR, F_SCARE_SHIFT, SCARE_MAX, COUNTDOWN_MS, CUTSCENE_MS, DREAD_STEPS, ESCAPE_CLOCK_MS, F_HELD, HEAD_START_MS, LAST_CLOCK_MS, MAX_PLAYERS, TICK_MS, tasksFor } from '../shared/src/constants';
+import { BEAST_START_CLEAR, SPEEDS, F_SCARE_SHIFT, SCARE_MAX, COUNTDOWN_MS, CUTSCENE_MS, DREAD_STEPS, ESCAPE_CLOCK_MS, F_HELD, HEAD_START_MS, LAST_CLOCK_MS, MAX_PLAYERS, TICK_MS, tasksFor } from '../shared/src/constants';
 import { MAP } from '../shared/src/maps';
 import { Game } from '../server/src/game';
 import { sees, speedOf } from '../shared/src/sim';
@@ -46,6 +46,33 @@ describe('the lobby', () => {
       last = now;
       g.abort(ids[0]);
     }
+  });
+  it('lets the host pick the speed: default, fast or faster, for everybody alike', () => {
+    expect(SPEEDS.map((s) => s.name)).toEqual(['Default', 'Fast', 'Faster']);
+    const went = SPEEDS.map((_, speed) => {
+      const { g, ids } = table(3);
+      g.configure(ids[1], undefined, undefined, speed);
+      expect(g.settings.speed).toBe(0);
+      g.configure(ids[0], undefined, undefined, 7);
+      expect(g.settings.speed).toBe(0);
+      g.configure(ids[0], undefined, undefined, speed);
+      g.start(ids[0]);
+      expect(g.viewFor(ids[0]).round!.speed).toBe(speed);
+      const w = g.world!;
+      const c = w.cousins()[0];
+      const beast = w.beasts()[0];
+      // out in the open, well apart, both heading the same way
+      place(w, c.id, 15.5 * 40, 9.5 * 40);
+      place(w, beast.id, 15.5 * 40, 16.5 * 40);
+      beast.heldMs = 0;
+      g.input(c.id, 1, 0, false, false);
+      g.input(beast.id, 1, 0, false, false);
+      run(g, 500);
+      return [c.x - 15.5 * 40, beast.x - 15.5 * 40];
+    });
+    for (const [cousin, beast] of went) expect(beast).toBeCloseTo(cousin, 0);
+    expect(went[1][0] / went[0][0]).toBeCloseTo(SPEEDS[1].x, 1);
+    expect(went[2][0] / went[0][0]).toBeCloseTo(SPEEDS[2].x, 1);
   });
   it('seats bots up to the limit and gives a human a bot\'s seat', () => {
     const { g, ids } = table(1);
