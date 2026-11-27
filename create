@@ -4,7 +4,8 @@
 #   ./create               container "tggame", serving on port 8082
 #   PORT=9000 ./create     another port
 #   NAME=games ./create    another name; extra arguments go to the create command
-# Then: docker start tggame   (or podman start tggame)
+# A container of that name is replaced, and started again if it was running.
+# Otherwise: docker start tggame   (or podman start tggame)
 set -euo pipefail
 
 ENGINE=${ENGINE:-$(command -v docker || command -v podman || true)}
@@ -15,12 +16,19 @@ PORT=${PORT:-8082}
 IMAGE=${IMAGE:-tggame}
 
 "$ENGINE" image inspect "$IMAGE" >/dev/null 2>&1 || { echo "No image \"$IMAGE\" yet. Run ./build first." >&2; exit 1; }
+# An older container of this name is replaced; if it was running, the new one is started too.
+WAS_RUNNING=false
 if "$ENGINE" container inspect "$NAME" >/dev/null 2>&1; then
-  echo "A container named \"$NAME\" already exists. Remove it first:" >&2
-  echo "  $(basename "$ENGINE") rm -f $NAME" >&2
-  exit 1
+  WAS_RUNNING=$("$ENGINE" container inspect --format '{{.State.Running}}' "$NAME")
+  "$ENGINE" rm -f "$NAME" >/dev/null
+  echo "Removed the old \"$NAME\"."
 fi
 
 "$ENGINE" create --init --restart unless-stopped --name "$NAME" -p "$PORT:8081" "$@" "$IMAGE" >/dev/null
-echo "Created \"$NAME\". Start it with: $(basename "$ENGINE") start $NAME"
-echo "It will serve Game Night on http://localhost:$PORT"
+if [ "$WAS_RUNNING" = true ]; then
+  "$ENGINE" start "$NAME" >/dev/null
+  echo "Created \"$NAME\" and started it, as the old one was running."
+else
+  echo "Created \"$NAME\". Start it with: $(basename "$ENGINE") start $NAME"
+fi
+echo "It serves Game Night on http://localhost:$PORT"
