@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { clock } from '@tggame/base/client/clock';
 import { FLAG_DEAD } from '../shared/src/constants';
 import type { ArenaMessage, SnapMessage } from '../shared/src/protocol';
 import type { BikeSnap, Fx } from '../shared/src/types';
@@ -38,6 +39,23 @@ describe('the floor as the client knows it', () => {
     onSnap(snap([bike('a', 8, 6, 1, { turns: 1, odo: 4 })], [['c', 'a', 8, 5]]));
     expect(a.pts).toEqual([5, 5, 8, 5]);
     expect(a.dir).toBe(1);
+  });
+
+  it('on a slow line carries other riders forward by one trip, to where the server has them by now', () => {
+    clock.reset();
+    clock.add({ rtt: 240, offset: 0 }, 0); // a trip of 120 ms: 1.8 cells at 15 cells a second
+    try {
+      onArena(arena([['a', 0, [5, 5]]]));
+      onSnap(snap([bike('a', 7, 5, 0, { p: 50, odo: 2 })]));
+      const a = live.bikes.get('a')!;
+      expect([a.x, a.y, a.odo]).toEqual([9, 5, 4]);
+      expect(a.p).toBeCloseTo(0.3);
+      // what the server said is kept as it said it
+      expect([a.sx, a.sodo]).toEqual([7, 2]);
+    } finally {
+      clock.reset();
+      clock.add({ rtt: 0, offset: 0 }, 0);
+    }
   });
 
   it('leaves our own bike to the play screen, but keeps what the server said', () => {

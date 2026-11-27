@@ -3,10 +3,11 @@
  * messages. Kept apart from the party store because it changes 30 times a second and nothing
  * re-renders on it; the play screen reads it every frame.
  */
+import { clock } from '@tggame/base/client/clock';
 import { FLAG_DEAD } from '../../shared/src/constants';
 import type { Rect } from '../../shared/src/arenas';
 import type { ArenaMessage, SnapMessage } from '../../shared/src/protocol';
-import type { Turn } from '../../shared/src/sim';
+import { DX, DY, type Turn } from '../../shared/src/sim';
 import type { How } from '../../shared/src/types';
 
 export type BikeView = {
@@ -95,6 +96,9 @@ export function onArena(msg: ArenaMessage): void {
 }
 
 /** Where a bike is drawn, in cells (the middle of cell 0 is 0.5). */
+/** Rivals are carried forward from a snapshot by one trip of the line, at most this much. */
+const RIVAL_AHEAD_MAX_MS = 150;
+
 export const drawnX = (b: BikeView): number => b.x + 0.5 + (b.dir === 0 ? b.p : b.dir === 2 ? -b.p : 0) + b.ox;
 export const drawnY = (b: BikeView): number => b.y + 0.5 + (b.dir === 1 ? b.p : b.dir === 3 ? -b.p : 0) + b.oy;
 
@@ -103,6 +107,8 @@ export function onSnap(msg: SnapMessage): void {
   live.cd = msg.cd;
   live.calm = msg.calm;
   live.stampedAt = now;
+  // one trip, as the socket measures it; never more than the line is worth guessing across
+  const aheadS = Math.min(RIVAL_AHEAD_MAX_MS, clock.rtt / 2) / 1000;
   for (const [id, x, y, dir, p, speed, flags, energy, turns, odo] of msg.bikes) {
     let b = live.bikes.get(id);
     if (!b) live.bikes.set(id, (b = bike(id, [x, y], false)));
@@ -128,9 +134,22 @@ export function onSnap(msg: SnapMessage): void {
     b.turns = turns;
     b.odo = odo;
     b.ox = b.oy = 0;
+    // The snapshot is a trip old, and a bike keeps going: put it where the server has it by now.
+    // (If it turned in the meantime the next snapshot says so, and the jump is eased like any other.)
+    const ahead = b.speed * aheadS;
+    if (!(flags & FLAG_DEAD) && !b.dead) {
+      b.p += ahead;
+      while (b.p >= 1) {
+        b.p -= 1;
+        b.x += DX[dir];
+        b.y += DY[dir];
+        b.odo++;
+        b.coasted++;
+      }
+    }
     const jx = px - drawnX(b);
     const jy = py - drawnY(b);
-    if (b.snapNo > 1 && Math.abs(jx) + Math.abs(jy) < 2.5) [b.ox, b.oy] = [jx, jy];
+    if (b.snapNo > 1 && Math.abs(jx) + Math.abs(jy) < 2.5 + 2 * ahead) [b.ox, b.oy] = [jx, jy];
   }
   for (const fx of msg.fx) {
     if (fx[0] === 's') {
