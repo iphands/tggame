@@ -33,6 +33,8 @@ loop come from `slurp/`. Shared code is imported from `@tggame/base`. Read `READ
   only: hiding something there is not enough, it must not be in the snapshot.
 - **Dread is a distance, never a direction.** `World.dread` sends a Cousin how near the nearest
   Beast is in `DREAD_STEPS` coarse steps, through walls. Keep it coarse and keep position out of it.
+- **A watcher has no body.** `Game.watch` marks a player who only watches: never seated, sent
+  the whole house. Keep watchers out of anything that counts or seats players.
 - **Two channels.** `state` is per player and sent only when its JSON changes: keep anything that
   changes every tick (clock, positions, energy, chore progress) out of `StateView`. Sides are in
   `StateView` because they change only on a catch; bump `World.sidesRev` when they do.

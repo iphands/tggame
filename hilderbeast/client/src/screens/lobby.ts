@@ -20,11 +20,14 @@ export function lobbyScreen(): Screen {
   const modeBtns = MODES.map((mode) => h('button', { class: 'btn small', type: 'button', onclick: () => send({ type: 'settings', mode }) }, MODE_NAMES[mode]));
   const settings = h('div', { class: 'settings' }, h('span', { class: 'setting' }, modeBtns));
   const summary = h('p', { class: 'share' });
+  const watchers = h('p', { class: 'share' });
+  const toggle = h('button', { class: 'btn small', type: 'button' });
+  toggle.addEventListener('click', () => send({ type: 'watch', on: !store.state?.players.find((p) => p.id === store.state?.selfId)?.watcher }));
 
   const el = h(
     'section',
     { class: 'screen lobby' },
-    h('div', { class: 'sheet spiral' }, h('h2', null, "Who's in the house?"), notes, status, settings, summary, hostRow, start, share),
+    h('div', { class: 'sheet spiral' }, h('h2', null, "Who's in the house?"), notes, status, settings, summary, hostRow, start, watchers, toggle, share),
     h(
       'ol',
       { class: 'howto' },
@@ -51,6 +54,11 @@ export function lobbyScreen(): Screen {
           ),
         ),
       );
+      const tv = s.players.filter((p) => p.watcher);
+      const mine = s.players.find((p) => p.id === s.selfId);
+      watchers.hidden = tv.length === 0;
+      watchers.textContent = `Watching: ${tv.map((p) => p.name).join(', ')}`;
+      toggle.textContent = mine?.watcher ? 'Play instead' : 'Just watch';
       const host = isHost();
       const online = store.status === 'connected';
       const enough = seated.length >= MIN_PLAYERS;

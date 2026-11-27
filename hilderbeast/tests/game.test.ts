@@ -255,6 +255,45 @@ describe('Escape', () => {
   });
 });
 
+describe('only watching', () => {
+  it('gives up the seat, is never dealt in, and sees the whole house', () => {
+    const { g, ids } = table(3);
+    const tv = join(g, 'TV');
+    g.watch(tv.id, true);
+    const me = () => g.viewFor(tv.id).players.find((p) => p.id === tv.id)!;
+    expect(me()).toMatchObject({ spectator: true, watcher: true });
+    g.start(ids[0]);
+    run(g, COUNTDOWN_MS + TICK_MS);
+    const w = g.world!;
+    expect(w.bodies).toHaveLength(3);
+    expect(snap(g, tv.id).bodies).toHaveLength(3);
+    expect(snap(g, tv.id).me).toBeNull();
+    // still only watching in the next lobby, and the host is still a player
+    g.abort(ids[0]);
+    expect(me()).toMatchObject({ spectator: true, watcher: true });
+    expect(g.hostId()).toBe(ids[0]);
+    g.watch(tv.id, false);
+    expect(me()).toMatchObject({ spectator: false, watcher: false });
+  });
+  it('does not take up a seat or count toward the two a round needs', () => {
+    const { g, ids } = table(1);
+    const tv = join(g, 'TV');
+    g.watch(tv.id, true);
+    g.start(ids[0]);
+    expect(g.phase).toBe('lobby');
+    for (let i = 0; i < 20; i++) g.addBot(ids[0]);
+    expect(g.viewFor(ids[0]).players.filter((p) => !p.spectator)).toHaveLength(MAX_PLAYERS);
+  });
+  it('chosen mid-round takes the body out of the round', () => {
+    const { g, ids, w } = started(4);
+    const c = w.cousins()[0];
+    g.watch(c.id, true);
+    expect(w.body(c.id)).toBeUndefined();
+    expect(g.phase).toBe('play');
+    expect(g.viewFor(ids[0]).round!.sides[c.id]).toBeUndefined();
+  });
+});
+
 describe('coming and going', () => {
   it('keeps a dropped player\'s body, plays it, and hands it back', () => {
     const { g, ids, tokens, w } = started(3);

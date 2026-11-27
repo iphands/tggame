@@ -40,6 +40,8 @@ type Player = {
   token: string;
   connected: boolean;
   spectator: boolean;
+  /** Only ever watches: never seated, whatever the phase. */
+  watcher: boolean;
 };
 
 export type JoinResult = { id: string; token: string; resumed: boolean } | 'full';
@@ -105,6 +107,7 @@ export class Game extends Roster<Player> {
       bot: false,
       token: randomBytes(16).toString('hex'),
       connected: true,
+      watcher: false,
       // arrivals during a round watch it, and are in the next one
       spectator: this.phase !== 'lobby' || this.participants().length >= MAX_PLAYERS,
     };
@@ -125,10 +128,28 @@ export class Game extends Roster<Player> {
     this.remove(id);
   }
 
+  /**
+   * A player chooses to only watch (a TV in the room), or to play again. A watcher has no seat and
+   * no body, and so is sent the whole house. Giving up a body mid-round is the same as leaving it;
+   * asking for a seat back takes effect in the lobby.
+   */
+  watch(id: string, on: boolean): void {
+    const p = this.players.get(id);
+    if (!p || p.bot || p.watcher === on) return;
+    p.watcher = on;
+    if (on) {
+      const playing = !p.spectator && this.phase !== 'lobby' && this.phase !== 'finale';
+      p.spectator = true;
+      if (playing) this.leaveRound(id);
+    } else if (this.phase === 'lobby') {
+      p.spectator = this.participants().length >= MAX_PLAYERS;
+    }
+  }
+
   addBot(by: string): void {
     if (!this.canAddBot(by)) return;
     const id = `b${this.nextId++}`;
-    this.players.set(id, { id, name: this.botName(BOT_NAMES, 'Cousin'), color: this.freeColor(), bot: true, token: '', connected: true, spectator: false });
+    this.players.set(id, { id, name: this.botName(BOT_NAMES, 'Cousin'), color: this.freeColor(), bot: true, token: '', connected: true, spectator: false, watcher: false });
   }
 
   /** Nobody is left: clear the table (bots included) so the next visitor finds an open lobby. */
@@ -250,6 +271,11 @@ export class Game extends Roster<Player> {
     this.players.delete(id);
     this.beastTurns.delete(id);
     if (p.spectator || this.phase === 'lobby' || this.phase === 'finale') return;
+    this.leaveRound(id);
+  }
+
+  /** Take a body out of the round that is on, and see whether the round can go on without it. */
+  private leaveRound(id: string): void {
     const world = this.world;
     if (!world) return;
     world.remove(id, this.rng);
@@ -264,13 +290,13 @@ export class Game extends Roster<Player> {
     this.result = null;
     for (const p of [...this.players.values()]) if (!p.connected) this.players.delete(p.id);
     let n = 0;
-    for (const p of this.players.values()) p.spectator = ++n > MAX_PLAYERS;
+    for (const p of this.players.values()) p.spectator = p.watcher || ++n > MAX_PLAYERS;
   }
 
   // ---- what goes over the wire
 
   viewFor(id: string): StateView {
-    const players: PlayerView[] = [...this.players.values()].map((p) => ({ id: p.id, name: p.name, color: p.color, bot: p.bot, connected: p.connected, spectator: p.spectator }));
+    const players: PlayerView[] = [...this.players.values()].map((p) => ({ id: p.id, name: p.name, color: p.color, bot: p.bot, connected: p.connected, spectator: p.spectator, watcher: p.watcher }));
     const world = this.world;
     const sides: Record<string, Side> = {};
     if (world) for (const b of world.bodies) sides[b.id] = b.out ? 'x' : b.role === 'beast' ? 'b' : 'c';

@@ -8,7 +8,7 @@ describe('isClientMessage', () => {
       { type: 'join' }, { type: 'join', name: 'Ann', token: 'abc' },
       { type: 'leave' }, { type: 'rename', name: 'Mo' }, { type: 'addBot' }, { type: 'removeBot' },
       { type: 'settings' }, { type: 'settings', mode: 'escape' }, { type: 'settings', mode: 'last' },
-      { type: 'start' }, { type: 'in', x: 0.5, y: -1, b: 0, a: 1 }, { type: 'again' }, { type: 'abort' },
+      { type: 'start' }, { type: 'watch', on: true }, { type: 'watch', on: false }, { type: 'in', x: 0.5, y: -1, b: 0, a: 1 }, { type: 'again' }, { type: 'abort' },
     ];
     for (const m of good) expect(isClientMessage(m)).toBe(true);
   });
@@ -17,6 +17,7 @@ describe('isClientMessage', () => {
       null, 7, 'join', [], {}, { type: 7 }, { type: 'nope' }, { type: 'rename' }, { type: 'rename', name: 5 },
       { type: 'join', name: 7 }, { type: 'join', token: 'x'.repeat(65) },
       { type: 'settings', mode: 'tag' }, { type: 'settings', mode: 3 },
+      { type: 'watch' }, { type: 'watch', on: 1 },
       { type: 'in' }, { type: 'in', x: 1, y: 0 }, { type: 'in', x: '1', y: 0, b: 0, a: 0 }, { type: 'in', x: NaN, y: 0, b: 0, a: 0 },
       { type: 'in', x: 5, y: 0, b: 0, a: 0 }, { type: 'in', x: 0, y: 0, b: true, a: 0 }, { type: 'in', x: 0, y: 0, b: 0, a: 2 },
     ];

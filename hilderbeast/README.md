@@ -52,6 +52,12 @@ win too; with two players, that is how the Cousin wins.
   or 6 minutes have passed. The Cousins win if at least one of them got out; the Beasts win if
   nobody did.
 
+## Just watching
+
+A screen can watch without playing: press **Just watch** on the join screen, or in the lobby.
+For a TV, open the game with `?watch=1` on the end of the address: it goes straight in as "TV",
+never takes a seat, and shows the whole house with nothing hidden. `?watch=0` undoes it.
+
 ## Bots
 
 The host can fill the house with bots. They play either side with only what a player in their

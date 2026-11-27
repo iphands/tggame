@@ -63,6 +63,9 @@ function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
     case 'in':
       game.input(id, msg.x, msg.y, msg.b === 1, msg.a === 1);
       break;
+    case 'watch':
+      game.watch(id, msg.on);
+      break;
     case 'rename':
       game.rename(id, msg.name);
       break;

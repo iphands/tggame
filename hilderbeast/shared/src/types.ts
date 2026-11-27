@@ -20,8 +20,10 @@ export type PlayerView = {
   color: string;
   bot: boolean;
   connected: boolean;
-  /** Not in the round: they arrived while it was on, or the table is full. */
+  /** Not in the round: they arrived while it was on, the table is full, or they only watch. */
   spectator: boolean;
+  /** Here only to watch (a TV in the room): never given a seat. */
+  watcher: boolean;
 };
 
 export type RoundView = {

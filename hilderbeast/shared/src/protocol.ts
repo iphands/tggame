@@ -11,6 +11,8 @@ export type ClientMessage =
   | { type: 'removeBot' }
   | { type: 'settings'; mode?: Mode }
   | { type: 'start' }
+  /** Only watch from now on (`on`), or ask for a seat again. A screen that only watches sees the whole house. */
+  | { type: 'watch'; on: boolean }
   /**
    * Everything a player is doing with their controls right now: the stick (`x`, `y`, each within
    * -1..1), the boost button and the action button. Sent whenever it changes, so a lost message
@@ -61,6 +63,8 @@ export function isClientMessage(x: unknown): x is ClientMessage {
       return typeof m.name === 'string' && m.name.length <= 64;
     case 'settings':
       return m.mode === undefined || (MODES as readonly unknown[]).includes(m.mode);
+    case 'watch':
+      return typeof m.on === 'boolean';
     case 'in':
       return axis(m.x) && axis(m.y) && bit(m.b) && bit(m.a);
     default:

@@ -326,7 +326,8 @@ export function playScreen(): Screen {
   }
 
   function label(text: string, x: number, y: number, color: string): void {
-    ctx.font = '12px "Patrick Hand", sans-serif';
+    // never smaller than 13 pixels on the screen, however far out the camera is (a TV shows the whole house)
+    ctx.font = `${Math.max(12, 13 / view.scale).toFixed(1)}px "Patrick Hand", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
     ctx.lineWidth = 3;
@@ -564,7 +565,9 @@ export function playScreen(): Screen {
       chores.classList.toggle('open', exitsOpen());
     }
     watching.hidden = isSeated() && !out;
-    setText(watching, out ? 'You are out and safe. Watching the rest.' : 'Watching. You are in the next round.');
+    setText(watching, out ? 'You are out and safe. Watching the rest.' : player(s.selfId)?.watcher ? 'Watching' : 'Watching. You are in the next round.');
+    // with the whole house on screen there is nothing for the little map to add
+    mini.hidden = !mine || out;
 
     // the two pads
     const playing = !!mine && !out && s.phase === 'play';
