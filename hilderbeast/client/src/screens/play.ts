@@ -6,7 +6,8 @@ import { lerp } from '@tggame/base/platformer/interp';
 import {
   BEAST_BOOST_COOLDOWN_MS,
   BEAST_BOOST_MS,
-  CATCH_COOLDOWN_MS,
+  DASH_COOLDOWN_MS,
+  DASH_MS,
   DREAD_STEPS,
   ENERGY_MAX,
   ENERGY_TO_START,
@@ -18,7 +19,6 @@ import {
   F_HELD,
   F_OUT,
   F_PORTAL,
-  F_WINDUP,
   F_WORK,
   NOISE_SHOW_MS,
   SIGHT_R,
@@ -66,7 +66,7 @@ export function playScreen(): Screen {
   const boostFill = h('i');
   const boostPad = h('button', { class: 'pad boost', type: 'button' }, boostFill, h('span', null, 'BOOST'), h('small', null, 'Space'));
   const actFill = h('i');
-  const actText = h('span', null, 'CATCH');
+  const actText = h('span', null, 'DASH');
   const actPad = h('button', { class: 'pad act', type: 'button' }, actFill, actText, h('small', null, 'E'));
   const mini = h('canvas', { class: 'minimap', width: MAP.cols * MINI, height: MAP.lines * MINI });
   const hud = h('div', { class: 'hud' }, dreadEl, sides, clock, role, chores, watching, mini, boostPad, actPad);
@@ -88,6 +88,8 @@ export function playScreen(): Screen {
   let camReady = false;
   let cousinBoost = false;
   let burstUntil = 0;
+  let dashUntil = 0;
+  let actWas = false;
   let boostWas = false;
   let shownSecond = -1;
   let shownCount = -1;
@@ -231,7 +233,9 @@ export function playScreen(): Screen {
     // our own boost starts the moment the button goes down, not a round trip later
     let flags = latest[3];
     if (flags & F_BEAST) {
-      const free = !(flags & (F_HELD | F_CONVERT | F_PORTAL | F_WINDUP | F_DASH));
+      const free = !(flags & (F_HELD | F_CONVERT | F_PORTAL));
+      if (ctl.act && !actWas && free && (live.me?.[2] ?? 1) <= 0) dashUntil = now + Math.min(DASH_MS, netClock.rtt + 200);
+      if (now < dashUntil && free) flags |= F_DASH;
       if (ctl.boost && !boostWas && free && (live.me?.[1] ?? 1) <= 0) {
         burstUntil = now + Math.min(BEAST_BOOST_MS, netClock.rtt + 200);
         sfx.burst();
@@ -246,10 +250,11 @@ export function playScreen(): Screen {
       flags = cousinBoost && moving ? flags | F_BOOST : flags & ~F_BOOST;
     }
     boostWas = ctl.boost;
+    actWas = ctl.act;
 
     const speed = speedOf(flags);
-    // while the server is moving the body by itself (a lunge, a Beast door) we only follow
-    const steering = speed > 0 && !(flags & F_DASH);
+    // while the server holds the body (the den, a Beast door, turning) we only follow
+    const steering = speed > 0;
     const ahead = steering ? predictBody({ x: latest[1], y: latest[2] }, live.stampedAt, netClock.rtt, sticks, now, speed, MAP) : { x: latest[1], y: latest[2] };
     const off = Math.hypot(ahead.x - self.x, ahead.y - self.y);
     if (!self.ready || off > SNAP_UNITS) {
@@ -565,19 +570,19 @@ export function playScreen(): Screen {
     const playing = !!mine && !out && s.phase === 'play';
     boostPad.hidden = !playing;
     if (playing && live.me) {
-      const [energy, boostWait, lungeWait] = live.me;
+      const [energy, boostWait, dashWait] = live.me;
       boostFill.style.height = `${Math.round(100 * (beast ? 1 - boostWait / BEAST_BOOST_COOLDOWN_MS : energy / ENERGY_MAX))}%`;
       boostPad.classList.toggle('off', beast ? boostWait > 0 : energy < ENERGY_TO_START && !cousinBoost);
       let act = '';
-      if (beast) act = 'CATCH';
+      if (beast) act = 'DASH';
       else if (escape() && round && self.ready) {
         if (exitsOpen() && MAP.exits.some((e) => Math.hypot(e.x - self.x, e.y - self.y) <= EXIT_R)) act = 'GET OUT';
         else if (round.tasks.some((spot, i) => (live.tasks[i] ?? 0) < 100 && Math.hypot(MAP.tasks[spot].x - self.x, MAP.tasks[spot].y - self.y) <= TASK_R)) act = 'WORK';
       }
       actPad.hidden = !act;
       setText(actText, act);
-      actFill.style.height = `${beast ? Math.round(100 * (1 - lungeWait / CATCH_COOLDOWN_MS)) : 100}%`;
-      actPad.classList.toggle('off', beast && lungeWait > 0);
+      actFill.style.height = `${beast ? Math.round(100 * (1 - dashWait / DASH_COOLDOWN_MS)) : 100}%`;
+      actPad.classList.toggle('off', beast && dashWait > 0);
     } else actPad.hidden = true;
 
     if (now - miniAt > 120) {

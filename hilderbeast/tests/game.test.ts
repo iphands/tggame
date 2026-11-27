@@ -97,7 +97,7 @@ describe('what a player is told', () => {
     const late = join(g, 'Late');
     expect(snap(g, late.id).bodies).toHaveLength(w.bodies.length);
   });
-  it('tells only Beasts about noises, and only those in sight about lunges', () => {
+  it('tells only Beasts about noises, and only those in sight about dashes', () => {
     const { g, w } = started(3, 'escape');
     const beast = w.beasts()[0];
     const [a] = w.cousins();

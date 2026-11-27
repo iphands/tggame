@@ -25,7 +25,7 @@ export const sfx = {
     tone('sine', 660, 990, 0.08, 0.35);
     tone('sine', 990, 1320, 0.1, 0.3, 0.07);
   },
-  /** A Beast rears back. Louder when it is near you. */
+  /** A Beast dashes. */
   lunge: (mine: boolean) => {
     tone('sawtooth', 240, 90, 0.2, mine ? 0.3 : 0.4);
     noise(0.14, 0.2, 1800, 500);

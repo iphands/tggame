@@ -7,11 +7,11 @@ loop come from `slurp/`. Shared code is imported from `@tggame/base`. Read `READ
 
 | Path | What |
 |---|---|
-| `shared/src/constants.ts` | every tunable number: speeds, boosts, the lunge, Beast doors, clocks, chores |
+| `shared/src/constants.ts` | every tunable number: speeds, boosts, the dash, catching, Beast doors, clocks, chores |
 | `shared/src/map.ts` | the house as rows of text; `MAP`, `wallAt`, `roomAt` |
 | `shared/src/sim.ts` | rules both sides run: `moveBody`, `speedOf`, `rayDist`, `sees` |
 | `shared/src/protocol.ts`, `types.ts` | messages and views |
-| `server/src/world.ts` | one round: bodies, boosts, pills, lunges and catches, Beast doors, chores, exits |
+| `server/src/world.ts` | one round: bodies, boosts, pills, catches by touch, Beast doors, chores, exits |
 | `server/src/game.ts` | `Game extends Roster`: lobby, modes, who wins, views, per-player snapshots |
 | `server/src/bots.ts`, `path.ts` | bots for both sides; also drive a human's body while they are disconnected |
 | `server/src/index.ts` | sockets, `sync()` for state, the tick loop and `broadcast()` for snapshots |
@@ -38,7 +38,7 @@ loop come from `slurp/`. Shared code is imported from `@tggame/base`. Read `READ
   `StateView` because they change only on a catch; bump `World.sidesRev` when they do.
 - **`frame()` drains** the events. Call it once per broadcast, then `snapFor` per player.
 - **`moveBody` and `speedOf` are shared** by the server and the client's prediction. Change them
-  in one place only. Anything that moves a body by itself (the lunge dash, a Beast door) must show
+  in one place only. Anything that changes how fast a body goes, or holds it still (the dash, a Beast door), must show
   in the flags, so the client knows to stop predicting.
 - **The map is code, not a message.** Both sides import `MAP`; only what changes (pills, chore
   progress) travels. `tests/sim.test.ts` checks every square can be reached and no Cousin starts

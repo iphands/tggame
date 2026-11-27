@@ -20,7 +20,7 @@ export const HILDER_BOX = { x: -6, y: -30, w: 212, h: 236, cx: 100, cy: 112 };
 export type HilderLook = {
   /** Her top: in the game, the colour of the player who is this Beast. */
   top?: string;
-  /** Rearing back to lunge: the eyes go red. */
+  /** Boosting or dashing: the eyes go red. */
   angry?: boolean;
   /** For the size she is in the game: thicker lines and none of the fine detail. */
   small?: boolean;

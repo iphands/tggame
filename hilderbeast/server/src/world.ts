@@ -1,13 +1,14 @@
 /**
- * One round in the house: bodies, boosts, pills, lunges and catches, Beast doors, chores and
+ * One round in the house: bodies, boosts, pills, catches by touch, Beast doors, chores and
  * exits. Pure: time comes from `step()`, chance from the RNG handed in.
  */
 import {
   BEAST_BOOST_COOLDOWN_MS,
   BEAST_BOOST_MS,
   CATCH_COOLDOWN_MS,
-  CATCH_R,
   CONVERT_MS,
+  DASH_COOLDOWN_MS,
+  DASH_MS,
   DREAD_FULL_R,
   DREAD_R,
   DREAD_STEPS,
@@ -22,16 +23,11 @@ import {
   F_CONVERT,
   F_DASH,
   F_HELD,
-  F_MISS,
   F_OUT,
   F_PORTAL,
-  F_WINDUP,
   F_WORK,
   HEAD_START_MS,
   HELP_RATE,
-  LUNGE_DASH_MS,
-  LUNGE_MISS_MS,
-  LUNGE_WINDUP_MS,
   NOISE_BLUR,
   NOISE_EVERY_MS,
   PILL_BACK_MS,
@@ -43,6 +39,7 @@ import {
   TASK_R,
   TASK_WORK_MS,
   TICK_MS,
+  TOUCH_R,
 } from '../../shared/src/constants.js';
 import { MAP, type GameMap, type Spot } from '../../shared/src/map.js';
 import { moveBody, sees, speedOf, unit } from '../../shared/src/sim.js';
@@ -50,20 +47,12 @@ import type { Catch, Fx, Mode, Role } from '../../shared/src/types.js';
 
 export type Rng = () => number;
 
-/** Where a Beast is in its lunge. */
-export enum Lunge {
-  None,
-  Windup,
-  Dash,
-  Miss,
-}
-
 export type Body = {
   id: string;
   role: Role;
   x: number;
   y: number;
-  /** The way it faces: the last way it moved. A lunge goes this way. */
+  /** The way it faces: the last way it moved. */
   fx: number;
   fy: number;
   /** The controls as last heard: stick, boost button, action button. */
@@ -81,11 +70,11 @@ export type Body = {
   /** A Beast's burst: time left of it, and time until the next one. */
   boostMs: number;
   boostWaitMs: number;
-  lunge: Lunge;
-  /** Time left of the current lunge stage. */
-  lungeMs: number;
-  /** Time until this Beast may lunge again. */
-  lungeWaitMs: number;
+  /** A Beast's dash: time left of it, and time until the next one. */
+  dashMs: number;
+  dashWaitMs: number;
+  /** Time until this Beast's touch catches again. */
+  catchWaitMs: number;
   /** Time left frozen while turning into a Beast. */
   convertMs: number;
   /** Time left out of sight between two Beast doors, and until the next trip. */
@@ -155,9 +144,9 @@ export class World {
         boosting: false,
         boostMs: 0,
         boostWaitMs: 0,
-        lunge: Lunge.None,
-        lungeMs: 0,
-        lungeWaitMs: 0,
+        dashMs: 0,
+        dashWaitMs: 0,
+        catchWaitMs: 0,
         convertMs: 0,
         portalMs: 0,
         portalWaitMs: 0,
@@ -234,7 +223,8 @@ export class World {
     const dtS = TICK_MS / 1000;
     if (b.heldMs > 0) b.heldMs -= TICK_MS;
     if (b.boostWaitMs > 0) b.boostWaitMs -= TICK_MS;
-    if (b.lungeWaitMs > 0) b.lungeWaitMs -= TICK_MS;
+    if (b.dashWaitMs > 0) b.dashWaitMs -= TICK_MS;
+    if (b.catchWaitMs > 0) b.catchWaitMs -= TICK_MS;
     if (b.portalWaitMs > 0) b.portalWaitMs -= TICK_MS;
     if (b.convertMs > 0) {
       b.convertMs -= TICK_MS;
@@ -252,16 +242,15 @@ export class World {
     else this.stepCousinBoost(b, dtS);
 
     const moving = b.ix !== 0 || b.iy !== 0;
-    if (moving && b.lunge !== Lunge.Dash && b.lunge !== Lunge.Windup) {
+    if (moving) {
       const d = Math.hypot(b.ix, b.iy);
       b.fx = b.ix / d;
       b.fy = b.iy / d;
     }
     const speed = speedOf(this.flags(b));
-    if (b.lunge === Lunge.Dash) moveBody(b, b.fx * speed * dtS, b.fy * speed * dtS, this.map);
-    else if (moving && speed > 0) moveBody(b, b.ix * speed * dtS, b.iy * speed * dtS, this.map);
+    if (moving && speed > 0) moveBody(b, b.ix * speed * dtS, b.iy * speed * dtS, this.map);
 
-    if (b.role === 'beast' && b.lunge === Lunge.None) this.enterPortal(b);
+    if (b.role === 'beast') this.enterPortal(b);
   }
 
   private stepCousinBoost(b: Body, dtS: number): void {
@@ -280,41 +269,26 @@ export class World {
     if (b.boostMs > 0) {
       b.boostMs -= TICK_MS;
       if (b.boostMs <= 0) b.boosting = false;
-    } else if (b.boostHeld && !b.boostWas && b.boostWaitMs <= 0 && b.lunge === Lunge.None) {
+    } else if (b.boostHeld && !b.boostWas && b.boostWaitMs <= 0) {
       b.boosting = true;
       b.boostMs = BEAST_BOOST_MS;
       b.boostWaitMs = BEAST_BOOST_COOLDOWN_MS;
     }
-    // the lunge
-    if (b.lunge !== Lunge.None) {
-      b.lungeMs -= TICK_MS;
-      if (b.lungeMs <= 0) {
-        if (b.lunge === Lunge.Windup) {
-          b.lunge = Lunge.Dash;
-          b.lungeMs = LUNGE_DASH_MS;
-        } else if (b.lunge === Lunge.Dash) {
-          // nobody caught
-          b.lunge = Lunge.Miss;
-          b.lungeMs = LUNGE_MISS_MS;
-        } else {
-          b.lunge = Lunge.None;
-        }
-      }
-    } else if (b.actHeld && !b.actWas && b.lungeWaitMs <= 0) {
-      b.lunge = Lunge.Windup;
-      b.lungeMs = LUNGE_WINDUP_MS;
-      b.boosting = false;
-      b.boostMs = 0;
+    // the dash: the smaller boost, on the action button
+    if (b.dashMs > 0) b.dashMs -= TICK_MS;
+    else if (b.actHeld && !b.actWas && b.dashWaitMs <= 0) {
+      b.dashMs = DASH_MS;
+      b.dashWaitMs = DASH_COOLDOWN_MS;
       this.fx.push(['l', b.id]);
     }
   }
 
-  /** Every dashing Beast catches the nearest Cousin in reach with no wall between. One each. */
+  /** A Beast that touches a Cousin, with no wall between, has caught them. One each per tick. */
   private catchCousins(): void {
     for (const beast of this.bodies) {
-      if (beast.role !== 'beast' || beast.lunge !== Lunge.Dash) continue;
+      if (beast.role !== 'beast' || beast.catchWaitMs > 0 || !this.free(beast)) continue;
       let best: Body | null = null;
-      let bestD = CATCH_R;
+      let bestD = TOUCH_R;
       // `<` keeps the earlier seat on a tie, so the outcome never depends on chance
       for (const c of this.bodies) {
         if (c.role !== 'cousin' || c.out) continue;
@@ -325,9 +299,7 @@ export class World {
         }
       }
       if (!best) continue;
-      beast.lunge = Lunge.None;
-      beast.lungeMs = 0;
-      beast.lungeWaitMs = CATCH_COOLDOWN_MS;
+      beast.catchWaitMs = CATCH_COOLDOWN_MS;
       this.convert(best, beast.id);
     }
   }
@@ -340,7 +312,9 @@ export class World {
     c.boosting = false;
     c.boostMs = 0;
     c.boostWaitMs = 0;
-    c.lungeWaitMs = 0;
+    c.dashMs = 0;
+    c.dashWaitMs = 0;
+    c.catchWaitMs = 0;
     c.working = false;
     c.escapeMs = 0;
     this.sidesRev++;
@@ -442,9 +416,7 @@ export class World {
     let f = 0;
     if (b.role === 'beast') f |= F_BEAST;
     if (b.boosting && (b.role === 'beast' || b.ix !== 0 || b.iy !== 0)) f |= F_BOOST;
-    if (b.lunge === Lunge.Windup) f |= F_WINDUP;
-    else if (b.lunge === Lunge.Dash) f |= F_DASH;
-    else if (b.lunge === Lunge.Miss) f |= F_MISS;
+    if (b.dashMs > 0) f |= F_DASH;
     if (b.convertMs > 0) f |= F_CONVERT;
     if (b.portalMs > 0) f |= F_PORTAL;
     if (b.working) f |= F_WORK;

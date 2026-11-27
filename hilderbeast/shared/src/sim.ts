@@ -1,5 +1,5 @@
 /** The rules both sides must agree on: the server runs them, the client predicts its own body with them. */
-import { BASE_SPEED, BODY_R, F_BEAST, F_BOOST, F_CONVERT, F_DASH, F_HELD, F_MISS, F_OUT, F_PORTAL, F_WINDUP, LUNGE_MISS_SPEED, LUNGE_SPEED, ROLE, TILE } from './constants.js';
+import { BASE_SPEED, BODY_R, F_BEAST, F_BOOST, F_CONVERT, DASH_SPEED, F_DASH, F_HELD, F_OUT, F_PORTAL, ROLE, TILE } from './constants.js';
 import { wallAt, type GameMap } from './map.js';
 
 export type Point = { x: number; y: number };
@@ -13,10 +13,9 @@ export function unit(x: number, y: number): Point {
 
 /** World units a second for a body with these snapshot flags. Zero while it cannot steer itself. */
 export function speedOf(flags: number): number {
-  if (flags & (F_CONVERT | F_PORTAL | F_HELD | F_OUT | F_WINDUP)) return 0;
-  if (flags & F_DASH) return BASE_SPEED * LUNGE_SPEED;
+  if (flags & (F_CONVERT | F_PORTAL | F_HELD | F_OUT)) return 0;
   const role = flags & F_BEAST ? ROLE.beast : ROLE.cousin;
-  if (flags & F_MISS) return BASE_SPEED * role.speed * LUNGE_MISS_SPEED;
+  if (flags & F_DASH) return BASE_SPEED * role.speed * DASH_SPEED;
   return BASE_SPEED * role.speed * (flags & F_BOOST ? role.boost : 1);
 }
 

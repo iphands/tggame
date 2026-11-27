@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   BASE_SPEED, BEAST_BOOST_COOLDOWN_MS, BEAST_BOOST_MS, CATCH_COOLDOWN_MS, CONVERT_MS, ENERGY_MAX, ENERGY_START, ESCAPE_HOLD_MS,
-  F_BOOST, F_CONVERT, LUNGE_DASH_MS, LUNGE_WINDUP_MS, NOISE_EVERY_MS, PILL_BACK_MS, PILL_ENERGY, PORTAL_COOLDOWN_MS, PORTAL_TRANSIT_MS, ROLE,
+  DASH_COOLDOWN_MS, DASH_MS, DASH_SPEED, F_BOOST, F_CONVERT, F_DASH, NOISE_EVERY_MS, PILL_BACK_MS, PILL_ENERGY, PORTAL_COOLDOWN_MS, PORTAL_TRANSIT_MS, ROLE,
   TASK_WORK_MS, TICK_MS, TILE,
 } from '../shared/src/constants';
 import { MAP } from '../shared/src/map';
-import { Lunge } from '../server/src/world';
 import { place, seeded, steps, world, YARD } from './helpers';
 
 const at = (c: number, r: number) => [(c + 0.5) * TILE, (r + 0.5) * TILE] as const;
@@ -88,82 +87,101 @@ describe('pills', () => {
   });
 });
 
-describe('the lunge', () => {
-  function lunge(w: ReturnType<typeof world>) {
-    w.setInput('beast', 0, 0, false, true);
-    steps(w, LUNGE_WINDUP_MS + LUNGE_DASH_MS + 50);
-  }
-  it('catches a Cousin in front, who then turns', () => {
+describe('catching', () => {
+  it('is by touch: a Beast that reaches a Cousin has caught them, and they turn', () => {
     const w = world(['beast', 'a', 'c'], 'last', YARD);
-    const b = place(w, 'beast', ...at(1, 4));
-    b.fx = 1;
-    b.fy = 0;
+    place(w, 'beast', ...at(1, 4));
     const a = place(w, 'a', ...at(3, 4));
     place(w, 'c', ...at(8, 1));
-    lunge(w);
+    steps(w, 200);
+    expect(a.role).toBe('cousin');
+    w.setInput('beast', 1, 0, false, false);
+    steps(w, 400);
     expect(a.role).toBe('beast');
     expect(w.flags(a) & F_CONVERT).toBeTruthy();
     expect(w.catches).toEqual([expect.objectContaining({ by: 'beast', who: 'a' })]);
-    expect(b.lungeWaitMs).toBeGreaterThan(CATCH_COOLDOWN_MS - 300);
     // frozen and harmless while it turns
     w.setInput('a', 1, 0, false, true);
     const x = a.x;
-    steps(w, CONVERT_MS - 400);
+    steps(w, CONVERT_MS - 600);
     expect(a.x).toBe(x);
-    expect(a.lunge).toBe(Lunge.None);
-    steps(w, 500);
+    steps(w, 700);
     expect(w.flags(a) & F_CONVERT).toBeFalsy();
     expect(w.catches).toHaveLength(1);
   });
   it('does not reach through a wall', () => {
     const w = world(['beast', 'a'], 'last', YARD);
-    const b = place(w, 'beast', 5 * TILE - 14, 2.5 * TILE);
-    b.fx = 1;
-    b.fy = 0;
+    place(w, 'beast', 5 * TILE - 14, 2.5 * TILE);
     const a = place(w, 'a', 6 * TILE + 14, 2.5 * TILE);
-    lunge(w);
+    w.setInput('beast', 1, 0, false, false);
+    steps(w, 500);
     expect(a.role).toBe('cousin');
-    expect(b.lunge).toBe(Lunge.Miss);
   });
-  it('that misses leaves the Beast stumbling', () => {
-    const w = world(['beast', 'a'], 'last', YARD);
-    const b = place(w, 'beast', ...at(1, 1));
-    place(w, 'a', ...at(8, 1));
-    lunge(w);
-    expect(b.lunge).toBe(Lunge.Miss);
-    // pressing again mid-stumble does nothing
+  it('takes one Cousin at a time from a huddle, the nearest first', () => {
+    const w = world(['beast', 'a', 'c', 'd'], 'last', YARD);
+    place(w, 'beast', 3.5 * TILE - 20, 4.5 * TILE);
+    place(w, 'a', 3.5 * TILE + 4, 4.5 * TILE);
+    place(w, 'c', 3.5 * TILE, 4.5 * TILE);
+    place(w, 'd', 3.5 * TILE + 2, 4.5 * TILE);
+    steps(w, TICK_MS);
+    expect(w.catches.map((c) => c.who)).toEqual(['c']);
+    steps(w, CATCH_COOLDOWN_MS - 100);
+    expect(w.catches).toHaveLength(1);
+    steps(w, 200);
+    expect(w.catches.map((c) => c.who)).toEqual(['c', 'd']);
+  });
+  it('is not open to a Beast still held in its den, or still turning', () => {
+    const w = world(['beast', 'a', 'c'], 'last', YARD);
+    const b = place(w, 'beast', ...at(2, 4));
+    const a = place(w, 'a', b.x + 10, b.y);
+    b.heldMs = 300;
+    steps(w, 200);
+    expect(a.role).toBe('cousin');
+    steps(w, 200);
+    expect(a.role).toBe('beast');
+    // the new Beast is standing on another Cousin
+    const c = place(w, 'c', a.x + 5, a.y);
+    place(w, 'beast', ...at(8, 1));
+    steps(w, CONVERT_MS - 600);
+    expect(c.role).toBe('cousin');
+    steps(w, 800);
+    expect(c.role).toBe('beast');
+  });
+});
+
+describe('the dash', () => {
+  it('is a quick extra burst on its own cooldown', () => {
+    const w = world(['beast', 'a'], 'last', MAP);
+    const b = place(w, 'beast', ...at(15, 1));
+    place(w, 'a', ...at(30, 20));
+    w.setInput('beast', 1, 0, false, true);
+    const x0 = b.x;
+    steps(w, DASH_MS);
+    expect(w.flags(b) & F_DASH).toBeTruthy();
+    expect(b.x - x0).toBeCloseTo((BASE_SPEED * ROLE.beast.speed * DASH_SPEED * DASH_MS) / 1000, -1);
+    expect(w.fx).toContainEqual(['l', 'beast']);
+    steps(w, 100);
+    expect(w.flags(b) & F_DASH).toBeFalsy();
+    // not again until the cooldown is over
     w.setInput('beast', 0, 0, false, false);
     steps(w, TICK_MS);
     w.setInput('beast', 0, 0, false, true);
     steps(w, TICK_MS * 2);
-    expect(b.lunge).toBe(Lunge.Miss);
-  });
-  it('takes one Cousin from a crowd, the nearest', () => {
-    const w = world(['beast', 'a', 'c', 'd'], 'last', YARD);
-    const b = place(w, 'beast', ...at(1, 4));
-    b.fx = 1;
-    b.fy = 0;
-    place(w, 'a', 3.5 * TILE + 10, 4.5 * TILE);
-    place(w, 'c', 3.5 * TILE, 4.5 * TILE);
-    place(w, 'd', 3.5 * TILE + 5, 4.5 * TILE);
-    lunge(w);
-    expect(w.catches.map((c) => c.who)).toEqual(['c']);
-    // and cannot lunge again at once
+    expect(w.flags(b) & F_DASH).toBeFalsy();
     w.setInput('beast', 0, 0, false, false);
-    steps(w, TICK_MS);
+    steps(w, DASH_COOLDOWN_MS);
     w.setInput('beast', 0, 0, false, true);
-    steps(w, 400);
-    expect(w.catches).toHaveLength(1);
+    steps(w, TICK_MS * 2);
+    expect(w.flags(b) & F_DASH).toBeTruthy();
   });
-  it('is not open to a Beast still held in its den', () => {
+  it('can be used together with the big boost', () => {
     const w = world(['beast', 'a'], 'last', YARD);
     const b = w.body('beast')!;
-    b.heldMs = 1000;
-    w.setInput('beast', 1, 0, false, true);
-    const x = b.x;
-    steps(w, 500);
-    expect(b.lunge).toBe(Lunge.None);
-    expect(b.x).toBe(x);
+    place(w, 'a', ...at(8, 1));
+    w.setInput('beast', 0, 0, true, true);
+    steps(w, TICK_MS * 2);
+    expect(w.flags(b) & F_DASH).toBeTruthy();
+    expect(w.flags(b) & F_BOOST).toBeTruthy();
   });
 });
 
@@ -180,7 +198,7 @@ describe('Beast doors', () => {
     w.setInput('beast', 1, 0, false, true);
     steps(w, PORTAL_TRANSIT_MS - 100);
     expect([b.x, b.y]).toEqual([to.x, to.y]);
-    expect(b.lunge).toBe(Lunge.None);
+    expect(b.dashMs).toBe(0);
     w.setInput('beast', 0, 0, false, false);
     steps(w, PORTAL_COOLDOWN_MS - 200);
     expect([b.x, b.y]).toEqual([to.x, to.y]);

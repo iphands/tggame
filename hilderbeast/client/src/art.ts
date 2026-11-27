@@ -1,5 +1,5 @@
 /** Everything on the floor of the house, drawn in code. */
-import { BODY_R, F_BEAST, F_BOOST, F_CONVERT, F_DASH, F_HELD, F_MISS, F_WINDUP, F_WORK, TILE } from '../../shared/src/constants';
+import { BODY_R, F_BEAST, F_BOOST, F_CONVERT, F_DASH, F_HELD, F_WORK, TILE } from '../../shared/src/constants';
 import { wallAt, type GameMap } from '../../shared/src/map';
 import { HILDER_BOX, hilderSprite } from './hilder';
 
@@ -163,14 +163,11 @@ export function drawBeast(c: Ctx, x: number, y: number, color: string, facing: n
   }
   c.save();
   c.translate(x, y);
-  // rearing back before a lunge, reeling after a miss; otherwise leaning the way she is going
-  if (flags & F_WINDUP) {
-    c.translate(-lx * 5, -ly * 5);
-    c.scale(1.2, 1.2);
-  } else if (flags & F_MISS) c.rotate(Math.sin(t / 50) * 0.2);
-  else c.rotate(lx * 0.1 + Math.sin(t / 160) * 0.03);
+  // leaning the way she is going, and bigger in a dash
+  c.rotate(lx * 0.1 + Math.sin(t / 160) * 0.03);
+  if (flags & F_DASH) c.scale(1.12, 1.12);
   if (flags & (F_HELD | F_CONVERT)) c.globalAlpha = 0.75;
-  const img = hilderSprite(color, (flags & (F_WINDUP | F_DASH)) !== 0);
+  const img = hilderSprite(color, (flags & (F_BOOST | F_DASH)) !== 0);
   if (img) c.drawImage(img, -HILDER_W * HEAD_X, -4 - HILDER_H * HEAD_Y, HILDER_W, HILDER_H);
   else {
     // the frame or two before her picture is ready

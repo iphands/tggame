@@ -334,7 +334,7 @@ export class Game extends Roster<Player> {
       cd: this.phase === 'countdown' ? Math.max(0, Math.round(this.phaseLeftMs)) : 0,
       left: Math.max(0, Math.round(this.clockMs)),
       bodies,
-      me: me ? [Math.round(me.energy), Math.max(0, Math.round(me.boostWaitMs)), Math.max(0, Math.round(me.lungeWaitMs)), Math.max(0, Math.round(me.portalWaitMs)), world.dread(me)] : null,
+      me: me ? [Math.round(me.energy), Math.max(0, Math.round(me.boostWaitMs)), Math.max(0, Math.round(me.dashWaitMs)), Math.max(0, Math.round(me.portalWaitMs)), world.dread(me)] : null,
       pl: world.pillBits(),
       tk: world.tasks.map((t) => (t.progress >= 1 ? 100 : Math.floor(t.progress * 100))),
       fx,

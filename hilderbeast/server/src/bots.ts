@@ -3,18 +3,20 @@
  * from bodies in its line of sight, and otherwise goes by the map. Also drives a human's body
  * while they are disconnected.
  */
-import { CATCH_R, ENERGY_MAX, EXIT_R, PORTAL_R, SIGHT_R, TASK_R, TILE } from '../../shared/src/constants.js';
+import { ENERGY_MAX, EXIT_R, PORTAL_R, SIGHT_R, TASK_R, TILE } from '../../shared/src/constants.js';
 import type { Spot } from '../../shared/src/map.js';
 import { sees } from '../../shared/src/sim.js';
 import { FAR, stepsAt, stepsFrom, towards } from './path.js';
-import { Lunge, type Body, type Rng, type World } from './world.js';
+import { type Body, type Rng, type World } from './world.js';
 
 export const BOT_NAMES = ['Agnes', 'Barnaby', 'Clementine', 'Dudley', 'Edith', 'Fergus', 'Gertie', 'Horace', 'Ida', 'Jasper', 'Mabel', 'Ned', 'Olive', 'Percy'];
 
-/** A Beast bot lunges when a Cousin is this near. */
-const LUNGE_AT = CATCH_R + 38;
+/** A Beast bot dashes when a Cousin is this near. */
+const DASH_AT = 130;
 /** A Cousin bot runs from a Beast it can see within this distance. */
 const DANGER = 360;
+/** How long a Cousin bot keeps running after it loses sight of the Beast. */
+const KEEP_RUNNING_MS = 3000;
 /** How long a Beast bot heads for the place it last saw a Cousin. */
 const REMEMBER_MS = 2500;
 
@@ -26,6 +28,9 @@ type Mind = {
   seenMs: number;
   /** Where a Beast bot heard a chore being worked on. */
   heard: Spot | null;
+  /** Where a Cousin bot is running to, and for how much longer it keeps running once the Beast is out of sight. */
+  flee: Spot | null;
+  fleeMs: number;
 };
 
 export class Bots {
@@ -39,10 +44,10 @@ export class Bots {
   /** Decide what `b` does until the next think, `dtMs` after the last one. */
   think(world: World, b: Body, rng: Rng, dtMs: number): void {
     let mind = this.minds.get(b.id);
-    if (!mind) this.minds.set(b.id, (mind = { goal: null, seen: null, seenMs: 0, heard: null }));
+    if (!mind) this.minds.set(b.id, (mind = { goal: null, seen: null, seenMs: 0, heard: null, flee: null, fleeMs: 0 }));
     if (b.out) return;
     if (b.role === 'beast') this.beast(world, b, mind, rng, dtMs);
-    else this.cousin(world, b, mind, rng);
+    else this.cousin(world, b, mind, rng, dtMs);
   }
 
   private go(world: World, b: Body, to: Spot, boost = false, act = false): void {
@@ -70,9 +75,9 @@ export class Bots {
       // straight at it: there is no wall between
       const dx = (prey.x - b.x) / near;
       const dy = (prey.y - b.y) / near;
-      const lunge = near < LUNGE_AT && b.lunge === Lunge.None && b.lungeWaitMs <= 0;
-      // the button must come up between lunges for the next press to count
-      world.setInput(b.id, dx, dy, near > 110 && near < 320, lunge && !b.actHeld);
+      const dash = near < DASH_AT && b.dashWaitMs <= 0;
+      // the button must come up between dashes for the next press to count
+      world.setInput(b.id, dx, dy, near > 140 && near < 340, dash && !b.actHeld);
       return;
     }
     if (mind.seen && mind.seenMs < REMEMBER_MS && Math.hypot(mind.seen.x - b.x, mind.seen.y - b.y) > TILE) {
@@ -92,7 +97,7 @@ export class Bots {
     this.go(world, b, mind.goal);
   }
 
-  private cousin(world: World, b: Body, mind: Mind, rng: Rng): void {
+  private cousin(world: World, b: Body, mind: Mind, rng: Rng, dtMs: number): void {
     const map = world.map;
     let threat: Body | null = null;
     let near = DANGER;
@@ -122,11 +127,20 @@ export class Bots {
         }
       }
       mind.goal = null;
+      mind.flee = best;
+      mind.fleeMs = KEEP_RUNNING_MS;
       if (best) return this.go(world, b, best, near < 190);
       // cornered: straight away from it
       world.setInput(b.id, (b.x - threat.x) / near, (b.y - threat.y) / near, true, false);
       return;
     }
+
+    // out of sight is not out of danger: keep going a while rather than walk straight back
+    if (mind.flee && mind.fleeMs > 0) {
+      mind.fleeMs -= dtMs;
+      if (Math.hypot(mind.flee.x - b.x, mind.flee.y - b.y) > TILE) return this.go(world, b, mind.flee);
+    }
+    mind.flee = null;
 
     const nearest = (spots: Spot[]): Spot | null => {
       const field = stepsFrom(map, b.x, b.y);

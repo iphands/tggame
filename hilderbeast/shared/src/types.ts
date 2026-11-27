@@ -73,7 +73,7 @@ export type StateView = {
 export type BodySnap = [string, number, number, number, number];
 
 /**
- * What only the player themselves is told: `[energy, boost wait ms, lunge wait ms, door wait ms, dread]`.
+ * What only the player themselves is told: `[energy, boost wait ms, dash wait ms, door wait ms, dread]`.
  * `dread` is how near the nearest Beast is to a Cousin, 0 to `DREAD_STEPS`: a distance only, never a direction.
  */
 export type SelfSnap = [number, number, number, number, number];
@@ -82,7 +82,7 @@ export type SelfSnap = [number, number, number, number, number];
  * Things that happened since the last snapshot:
  * - `['c', beast, cousin, x, y]` a catch (everyone hears of it)
  * - `['b', id]` a caught Cousin finished turning into a Beast
- * - `['l', id]` a Beast began a lunge
+ * - `['l', id]` a Beast began a dash
  * - `['p', pill, id]` a Cousin took this pill
  * - `['t', id, from, to]` a Beast went through a Beast door
  * - `['n', x, y, strength]` Beasts only: a chore is being worked on somewhere near here

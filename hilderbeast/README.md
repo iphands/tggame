@@ -24,9 +24,10 @@ Phones on the same Wi-Fi join at `http://<your-ip>:5180`.
   faster the nearer it is. It says how near, never which way.
 - **Cousins** hold **Boost** (Space) to run faster. It burns energy: a full bar is four seconds.
   **Pills** on the floor give back 40 %, and come back 20 seconds after they are taken.
-- **The Beast** is a touch faster than a Cousin. Its **Boost** is a short, sharp burst on a
-  9-second cooldown. **Catch** (E) is a lunge the way it faces: a moment's wind-up, then a dash.
-  A Cousin it reaches, with no wall between, is caught. A miss leaves the Beast stumbling.
+- **The Beast** catches a Cousin by **touching** them. On foot it is no faster than a Cousin, so
+  it has two boosts: **Boost** (Space), a big burst on a 9-second cooldown, and **Dash** (E), a
+  quick small one every 3.5 seconds. After a catch its touch is harmless for a moment, so a
+  huddle is not swept in one step.
 - **Beast doors.** The swirls in the floor are paired: a Beast that walks onto one comes out of
   the other a moment later. Cousins cannot use them, but can see them flare when a Beast does.
 - **Caught.** A caught Cousin stands frozen for 2.5 seconds, then is a Beast.

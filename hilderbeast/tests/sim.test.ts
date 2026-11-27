@@ -76,10 +76,11 @@ describe('moving', () => {
 describe('speed', () => {
   it('gives the Beast a sharper burst and a Cousin a gentler one', () => {
     expect(speedOf(0)).toBe(BASE_SPEED);
-    expect(speedOf(F_BEAST)).toBeCloseTo(BASE_SPEED * ROLE.beast.speed);
+    expect(speedOf(F_BEAST)).toBe(speedOf(0));
     expect(speedOf(F_BEAST | F_BOOST)).toBeGreaterThan(speedOf(F_BOOST));
     expect(speedOf(F_BOOST)).toBeGreaterThan(speedOf(F_BEAST));
     expect(speedOf(F_BEAST | F_DASH)).toBeGreaterThan(speedOf(F_BEAST | F_BOOST));
+    expect(speedOf(F_BEAST | F_DASH | F_BOOST)).toBe(speedOf(F_BEAST | F_DASH));
     expect(speedOf(F_BEAST | F_CONVERT)).toBe(0);
   });
 });

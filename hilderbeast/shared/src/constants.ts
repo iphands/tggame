@@ -50,16 +50,17 @@ export const ROLE = {
     boost: 1.35,
   },
   beast: {
-    speed: 1.05,
+    /** No faster than a Cousin on foot: a touch is a catch, so the Beast must earn it with its boosts, the doors and its friends. */
+    speed: 1,
     /** A short, sharp burst. */
-    boost: 1.9,
+    boost: 1.7,
   },
 } as const;
 
 // ---- a Cousin's energy
 
 export const ENERGY_MAX = 100;
-export const ENERGY_START = 60;
+export const ENERGY_START = 80;
 /** A full bar is four seconds of boost. */
 export const ENERGY_DRAIN_PER_S = 25;
 /** A boost cannot start on less than this, so an empty bar does not stutter. */
@@ -73,21 +74,19 @@ export const PILL_BACK_MS = 20_000;
 
 export const BEAST_BOOST_MS = 1200;
 /** From the moment the burst starts. */
-export const BEAST_BOOST_COOLDOWN_MS = 9000;
+export const BEAST_BOOST_COOLDOWN_MS = 10_000;
 
-// ---- the lunge
+// ---- catching, and the Beast's dash
 
-/** The Beast rears back and cannot move: this is the warning a Cousin gets. */
-export const LUNGE_WINDUP_MS = 180;
-export const LUNGE_DASH_MS = 180;
-export const LUNGE_SPEED = 2.6;
-/** A Cousin this near a dashing Beast, with no wall between, is caught. */
-export const CATCH_R = 30;
-/** A lunge that catches nobody leaves the Beast stumbling for this long, at this speed. */
-export const LUNGE_MISS_MS = 700;
-export const LUNGE_MISS_SPEED = 0.55;
-/** After a catch the Beast cannot lunge again for this long, so a crowd is not swept in one go. */
-export const CATCH_COOLDOWN_MS = 2000;
+/** A Beast that touches a Cousin has caught them: their two bodies this near, with no wall between. */
+export const TOUCH_R = BODY_R * 2 + 2;
+/** After a catch that Beast cannot catch again for this long, so a huddle is not swept in one step. */
+export const CATCH_COOLDOWN_MS = 800;
+/** The Beast's second, smaller boost: a quick dash on its own short cooldown. */
+export const DASH_MS = 260;
+export const DASH_SPEED = 2;
+/** From the moment the dash starts. */
+export const DASH_COOLDOWN_MS = 4000;
 /** A caught Cousin stands frozen and harmless for this long, then is a Beast. */
 export const CONVERT_MS = 2500;
 
@@ -103,7 +102,7 @@ export const PORTAL_COOLDOWN_MS = 4000;
 
 export const COUNTDOWN_MS = 3000;
 /** The first Beast stays in its den this long after the countdown. */
-export const HEAD_START_MS = 6000;
+export const HEAD_START_MS = 8000;
 /** Last Cousin Standing: Cousins still free when this runs out have won. */
 export const LAST_CLOCK_MS = 240_000;
 /** Escape: the Beasts win when this runs out. */
@@ -139,11 +138,8 @@ export const BOT_THINK_MS = 150;
 
 export const F_BEAST = 1;
 export const F_BOOST = 2;
-/** Rearing back before a lunge. */
-export const F_WINDUP = 4;
+/** A Beast in its dash. */
 export const F_DASH = 8;
-/** Stumbling after a missed lunge. */
-export const F_MISS = 16;
 /** Just caught: frozen while it turns into a Beast. */
 export const F_CONVERT = 32;
 /** Between two Beast doors: nowhere to be seen. */

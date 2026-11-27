@@ -31,7 +31,7 @@ export function lobbyScreen(): Screen {
       h('li', null, h('span', null, 'One of you is the ', h('b', null, 'Hilder Beast'), '. Everyone else is a ', h('b', null, 'Cousin'), '. You are told which.')),
       h('li', null, h('span', null, h('b', null, 'Move'), ' with WASD or the arrows, or drag a thumb anywhere. Walls hide you: nobody sees round a corner.')),
       h('li', null, h('span', null, 'Cousins: hold ', h('b', null, 'Boost'), ' (Space) to run. It burns energy; ', h('b', null, 'pills'), ' give it back.')),
-      h('li', null, h('span', null, 'Beast: ', h('b', null, 'Boost'), ' is a short burst. ', h('b', null, 'Catch'), ' (E) is a lunge: miss and you stumble. Swirls in the floor are your ', h('b', null, 'Beast doors'), '.')),
+      h('li', null, h('span', null, 'Beast: ', h('b', null, 'touch'), ' a Cousin to catch them. ', h('b', null, 'Boost'), ' (Space) is a big burst, ', h('b', null, 'Dash'), ' (E) a quick small one. Swirls in the floor are your ', h('b', null, 'Beast doors'), '.')),
       h('li', null, h('span', null, 'A caught Cousin ', h('b', null, 'becomes a Beast'), ' and joins the hunt.')),
     ),
   );
