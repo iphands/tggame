@@ -204,7 +204,10 @@ export function playScreen(): Screen {
     shown.x = self.x;
     shown.y = self.y;
     offBy += (off - offBy) * 0.05;
-    if (netMeterShown()) setNetExtra('hole', `off by ${offBy.toFixed(1)}`);
+    if (netMeterShown()) {
+      setNetExtra('hole', `off by ${offBy.toFixed(1)}`);
+      setNetExtra('others', `${live.buffer.delayMs.toFixed(0)} ms behind · ran dry ${live.buffer.underruns}×`);
+    }
 
     if (now - lastAimAt >= AIM_EVERY_MS && (Math.abs(self.ax - sentX) > 0.5 || Math.abs(self.ay - sentY) > 0.5)) {
       lastAimAt = now;

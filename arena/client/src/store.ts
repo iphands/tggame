@@ -58,6 +58,7 @@ export function onSnapshot(snap: SnapshotMessage): void {
   if (netMeterShown()) {
     setNetExtra('lead', `${pred.leadMs.toFixed(0)} ms · late ${pred.late}×`);
     setNetExtra('fixed', `${pred.corrections}× · last ${pred.lastCorrection.toFixed(0)} px`);
+    setNetExtra('others', `${store.buffer.delayMs.toFixed(0)} ms behind · ran dry ${store.buffer.underruns}×`);
   }
   for (const fx of snap.fx) {
     // our own jumps and landings were already played, from the prediction

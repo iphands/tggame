@@ -30,7 +30,12 @@ change that touches input, movement, timing or messages is judged at that distan
   `clock.jitter` and `serverNow()`. Never estimate the server's clock from one message, and never
   from when a message happened to arrive: a message that queued has the wrong time on it.
 - **Interpolation** (`base/src/platformer/interp.ts`): other players are drawn a little in the
-  past, between two snapshots, by the server's sim time and never by arrival time.
+  past, between two snapshots, by the server's sim time and never by arrival time. The delay
+  is 75 ms on a steady line and grows with the unevenness it measures; when the buffer runs dry,
+  motion carries on for up to 100 ms (`alpha` passes 1) instead of freezing. Whatever reads a
+  bracket must lerp plainly, with no clamp to 1.
+- **Stamped commands and prediction** (arena, runner: `client/src/predict.ts`, `Game.enqueue`):
+  the pattern for any game with a body the player steers. Copy it, do not reinvent it.
 
 ### Rules
 

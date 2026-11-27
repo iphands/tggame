@@ -75,7 +75,7 @@ tests/*.test.ts          levels (course validation), interp, protocol, controls
 ## Architecture rules
 
 - **The server owns the sim.** Physics, damage, items, bots and phase
-  transitions all live in `server/src/sim/`. The client never simulates. It
+  transitions all live in `server/src/sim/` and `shared/src/sim/`. The client
   sends input + one-shot actions, interpolates snapshots (`INTERP_DELAY_MS` in
   `interp.ts`), and plays `fx` events. Keep gameplay logic out of the client.
 - **The one thing the client simulates is your own runner's movement, and
