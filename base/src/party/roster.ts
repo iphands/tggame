@@ -14,6 +14,9 @@ export type Seated = {
   spectator: boolean;
 };
 
+/** This player (name compared without regard to case) hosts every game they are in. Names are unique per table. */
+export const HOUSE_HOST = 'easye';
+
 export abstract class Roster<P extends Seated> {
   /** Everyone at the table, in arrival order. */
   readonly players = new Map<string, P>();
@@ -36,10 +39,15 @@ export abstract class Roster<P extends Seated> {
     if (bot) this.players.delete(bot.id);
   }
 
-  /** The first connected human: seated players first, then anyone. Null when nobody is here. */
+  /**
+   * `HOUSE_HOST` whenever they are connected, even if someone else was hosting or they are only
+   * watching. Otherwise the first connected human: seated players first, then anyone. Null when
+   * nobody is here.
+   */
   hostId(): string | null {
     const humans = [...this.players.values()].filter((p) => !p.bot && p.connected);
-    return (humans.find((p) => !p.spectator) ?? humans[0])?.id ?? null;
+    const house = humans.find((p) => p.name.toLowerCase() === HOUSE_HOST);
+    return (house ?? humans.find((p) => !p.spectator) ?? humans[0])?.id ?? null;
   }
 
   /** Back to the lobby after the finale. */
