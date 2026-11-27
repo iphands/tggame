@@ -16,6 +16,8 @@ export const live = {
   /** Countdown and clock as of `stampedAt`. */
   cd: 0,
   left: 0,
+  /** Left of a pause for a catch, as of `stampedAt`. */
+  hold: 0,
   stampedAt: 0,
   /** Our own energy and waits, or null while only watching. */
   me: null as SelfSnap | null,
@@ -31,6 +33,7 @@ export function clearLive(): void {
   live.buffer.clear();
   live.cd = 0;
   live.left = 0;
+  live.hold = 0;
   live.stampedAt = 0;
   live.me = null;
   live.pills = 0;
@@ -42,6 +45,7 @@ export function onSnap(msg: SnapMessage): void {
   const now = performance.now();
   live.cd = msg.cd;
   live.left = msg.left;
+  live.hold = msg.hold;
   live.stampedAt = now;
   live.me = msg.me;
   live.pills = msg.pl;
@@ -55,7 +59,7 @@ export function onSnap(msg: SnapMessage): void {
 
 /** Clock left on the round at `now`, counted on from the last snapshot. `aheadMs` shifts it onto our own timeline. */
 export function clockLeft(now: number, aheadMs = 0): number {
-  return live.cd > 0 ? live.left : Math.max(0, live.left - (now - live.stampedAt) - aheadMs);
+  return live.cd > 0 || live.hold > 0 ? live.left : Math.max(0, live.left - (now - live.stampedAt) - aheadMs);
 }
 
 /** Countdown left before the round starts, on that same timeline. */

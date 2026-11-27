@@ -6,6 +6,7 @@ import { randomBytes } from 'node:crypto';
 import {
   BOT_THINK_MS,
   COUNTDOWN_MS,
+  CUTSCENE_MS,
   DEFAULT_MODE,
   ESCAPE_CLOCK_MS,
   LAST_CLOCK_MS,
@@ -69,6 +70,9 @@ export class Game extends Roster<Player> {
   /** Left of the countdown. */
   private phaseLeftMs = 0;
   private botThinkMs = 0;
+  /** Left of the pause while a catch is shown, and how many catches have been shown. */
+  private holdMs = 0;
+  private shown = 0;
   private bots = new Bots();
   /** Cousins the round started with. */
   private cousinsAtStart = 0;
@@ -197,6 +201,8 @@ export class Game extends Roster<Player> {
     this.roundClockMs = this.clockMs = mode === 'escape' ? ESCAPE_CLOCK_MS : LAST_CLOCK_MS;
     this.phase = 'countdown';
     this.phaseLeftMs = COUNTDOWN_MS;
+    this.holdMs = 0;
+    this.shown = 0;
     this.botThinkMs = 0;
   }
 
@@ -224,10 +230,20 @@ export class Game extends Roster<Player> {
       this.phaseLeftMs -= TICK_MS;
       if (this.phaseLeftMs <= 0) this.phase = 'play';
     } else if (this.phase === 'play') {
+      // a catch is being shown: the whole round stands still, clock and all, and is judged after
+      if (this.holdMs > 0) {
+        this.holdMs -= TICK_MS;
+        if (this.holdMs <= 0) this.judge(world);
+        return;
+      }
       this.autopilot(world);
       world.step(this.rng);
       this.clockMs -= TICK_MS;
-      this.judge(world);
+      // a catch by a Beast (not a Cousin turned because the Beast walked out) stops everything
+      const caught = world.catches.slice(this.shown).some((c) => c.by !== '');
+      this.shown = world.catches.length;
+      if (caught) this.holdMs = CUTSCENE_MS;
+      else this.judge(world);
     }
   }
 
@@ -374,6 +390,7 @@ export class Game extends Roster<Player> {
       simTimeMs: Math.round(this.simTimeMs),
       cd: this.phase === 'countdown' ? Math.max(0, Math.round(this.phaseLeftMs)) : 0,
       left: Math.max(0, Math.round(this.clockMs)),
+      hold: Math.max(0, Math.round(this.holdMs)),
       bodies,
       me: me ? [Math.round(me.energy), Math.max(0, Math.round(me.boostWaitMs)), Math.max(0, Math.round(me.dashWaitMs)), Math.max(0, Math.round(me.portalWaitMs)), world.dread(me)] : null,
       pl: world.pillBits(),

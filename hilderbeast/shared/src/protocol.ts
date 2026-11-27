@@ -34,6 +34,8 @@ export type SnapMessage = {
   cd: number;
   /** Clock left on the round. */
   left: number;
+  /** Left of the pause for a catch being shown (0 when the round is running): nothing moves meanwhile. */
+  hold: number;
   bodies: BodySnap[];
   /** Null for someone who is only watching. */
   me: SelfSnap | null;

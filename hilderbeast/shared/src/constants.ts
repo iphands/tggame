@@ -87,8 +87,10 @@ export const DASH_MS = 260;
 export const DASH_SPEED = 2;
 /** From the moment the dash starts. */
 export const DASH_COOLDOWN_MS = 4000;
-/** A caught Cousin stands frozen and harmless for this long, then is a Beast. */
-export const CONVERT_MS = 2500;
+/** Every catch stops the round, for everyone, while it is shown. */
+export const CUTSCENE_MS = 2500;
+/** Once the round goes on, the Cousin just caught stands frozen and harmless for this long, then is a Beast. */
+export const CONVERT_MS = 1200;
 
 // ---- traps: they only ever trouble Cousins
 

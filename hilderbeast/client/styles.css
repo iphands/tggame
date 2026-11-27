@@ -296,6 +296,131 @@ input[type='text'] {
   background: rgba(12, 10, 20, 0.55);
 }
 
+/* ---- a catch: the round stands still for 2.5 seconds and this plays over it */
+
+.cutscene {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at center, rgba(90, 15, 30, 0.82), rgba(12, 10, 20, 0.94));
+  animation: cs-in 0.18s ease-out;
+  pointer-events: none;
+}
+.cs-title {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  translate: -50% 0;
+  padding: 2px 16px;
+  white-space: nowrap;
+  color: var(--ink);
+  background: var(--sun);
+  border: 2px solid var(--ink);
+  border-radius: var(--wobble);
+}
+.cs-stage {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: min(92vw, 660px);
+}
+.cs-beast {
+  width: min(48vw, 46vh, 320px);
+  margin-right: -6%;
+  z-index: 1;
+  transform-origin: 60% 80%;
+  animation: cs-bite 2.5s ease-in-out both;
+}
+.cs-beast svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.cs-victim {
+  width: min(38vw, 36vh, 260px);
+  height: auto;
+}
+/* what Hilder says: one after the other, slapped across the screen */
+.cs-say {
+  position: absolute;
+  left: 50%;
+  /* the long ones wrap: nothing she says may run off the screen */
+  width: 94%;
+  text-align: center;
+  font-family: var(--display);
+  font-size: min(9vw, 12vh, 76px);
+  line-height: 0.95;
+  color: var(--sun);
+  -webkit-text-stroke: 0.05em var(--ink);
+  paint-order: stroke fill;
+  text-shadow: 0.06em 0.07em 0 var(--ink);
+  opacity: 0;
+  z-index: 2;
+}
+.cs-a {
+  top: 16%;
+  --tilt: -7deg;
+  animation: cs-say 1.15s 0.15s ease-out both;
+}
+.cs-b {
+  bottom: 12%;
+  --tilt: 5deg;
+  color: #fff;
+  animation: cs-say 1.15s 1.3s ease-out both;
+}
+@keyframes cs-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes cs-bite {
+  0% {
+    transform: translateX(-70vw) rotate(-10deg);
+  }
+  24% {
+    transform: translateX(0) rotate(0);
+  }
+  32% {
+    transform: translateX(-6%) rotate(-8deg) scale(1.08);
+  }
+  38%,
+  50% {
+    transform: translateX(22%) rotate(12deg) scale(1.2);
+  }
+  44% {
+    transform: translateX(8%) rotate(2deg) scale(1.12);
+  }
+  60%,
+  100% {
+    transform: translateX(-4%) rotate(-3deg) scale(1);
+  }
+}
+@keyframes cs-say {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) rotate(var(--tilt)) scale(2.4);
+  }
+  14% {
+    opacity: 1;
+    transform: translateX(-50%) rotate(var(--tilt)) scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: translateX(-50%) rotate(var(--tilt)) scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) rotate(var(--tilt)) scale(1.1);
+  }
+}
+/* for anyone who has asked for less motion: the words and the picture, without the lunging */
+.cutscene.still .cs-beast {
+  animation: none;
+}
+
 /* ---- the two pads, and the thumb stick */
 
 .pad {
@@ -513,7 +638,7 @@ input[type='text'] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
+  *:not(.cs-say),
   *::before,
   *::after {
     animation-duration: 0.01ms !important;

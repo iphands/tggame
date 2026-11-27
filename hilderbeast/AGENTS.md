@@ -38,6 +38,9 @@ loop come from `slurp/`. Shared code is imported from `@tggame/base`. Read `READ
   Cousins (`World.cousins()` leaves it out), is sent the whole house, and is never sent to the living.
 - **A watcher has no body.** `Game.watch` marks a player who only watches: never seated, sent
   the whole house. Keep watchers out of anything that counts or seats players.
+- **A catch holds the round.** `Game` stops stepping the world for `CUTSCENE_MS` after a catch by
+  a Beast and says so in every snapshot (`hold`); the client shows the cutscene and stops
+  predicting. The round is judged when the hold ends, so the last catch is seen before the result.
 - **Two channels.** `state` is per player and sent only when its JSON changes: keep anything that
   changes every tick (clock, positions, energy, chore progress) out of `StateView`. Sides are in
   `StateView` because they change only on a catch; bump `World.sidesRev` when they do.

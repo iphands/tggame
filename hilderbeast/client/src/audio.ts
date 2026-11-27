@@ -35,6 +35,11 @@ export const sfx = {
     tone('sawtooth', 330, 55, me ? 0.7 : 0.4, me ? 0.45 : 0.22);
     tone('square', 165, 41, me ? 0.7 : 0.4, me ? 0.25 : 0.1, 0.05);
   },
+  /** Hilder bites. */
+  chomp: () => {
+    noise(0.07, 0.3, 900, 200);
+    tone('square', 160, 60, 0.09, 0.3);
+  },
   /** You are a Beast now. */
   turned: () => [110, 147, 196].forEach((f, i) => tone('sawtooth', f, f * 1.5, 0.22, 0.28, i * 0.12)),
   /** A Beast went through a Beast door. */

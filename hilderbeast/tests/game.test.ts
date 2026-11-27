@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COUNTDOWN_MS, DREAD_STEPS, ESCAPE_CLOCK_MS, F_HELD, HEAD_START_MS, LAST_CLOCK_MS, MAX_PLAYERS, TICK_MS, tasksFor } from '../shared/src/constants';
+import { COUNTDOWN_MS, CUTSCENE_MS, DREAD_STEPS, ESCAPE_CLOCK_MS, F_HELD, HEAD_START_MS, LAST_CLOCK_MS, MAX_PLAYERS, TICK_MS, tasksFor } from '../shared/src/constants';
 import { MAP } from '../shared/src/maps';
 import { Game } from '../server/src/game';
 import { join, place, run, seeded, started, table } from './helpers';
@@ -166,7 +166,8 @@ describe('what a player is told', () => {
 
 /** Turn a Cousin by hand, as a catch would. */
 function turn(g: Game, id: string): void {
-  (g.world as unknown as { convert(c: unknown, by: string): void }).convert(g.world!.body(id), 'test');
+  // by nobody: a catch by a Beast would stop the round for the cutscene, which has its own tests
+  (g.world as unknown as { convert(c: unknown, by: string): void }).convert(g.world!.body(id), '');
 }
 
 describe('Last Cousin Standing', () => {
@@ -277,6 +278,42 @@ describe('Escape', () => {
   });
 });
 
+describe('a catch', () => {
+  it('stops the whole round for the cutscene, then lets it go on', () => {
+    const { g, ids, w } = started(4);
+    const beast = w.beasts()[0];
+    const [a, b] = w.cousins();
+    run(g, HEAD_START_MS);
+    const left = snap(g, ids[0]).left;
+    place(w, a.id, beast.x + 10, beast.y);
+    run(g, TICK_MS);
+    expect(a.role).toBe('beast');
+    expect(snap(g, ids[0]).hold).toBeGreaterThan(CUTSCENE_MS - 100);
+    // nobody moves, the clock stands still, nobody else is caught
+    const at = b.x;
+    g.input(b.id, 1, 0, false, false);
+    place(w, b.id, at, b.y);
+    run(g, CUTSCENE_MS - 200);
+    expect(b.x).toBe(at);
+    expect(snap(g, ids[0]).left).toBeGreaterThan(left - 100);
+    expect(snap(g, ids[0]).hold).toBeGreaterThan(0);
+    run(g, 400);
+    expect(snap(g, ids[0]).hold).toBe(0);
+    expect(b.x).toBeGreaterThan(at);
+  });
+  it('that ends the round is shown before the result', () => {
+    const { g, w } = started(2);
+    const beast = w.beasts()[0];
+    const [a] = w.cousins();
+    run(g, HEAD_START_MS);
+    place(w, a.id, beast.x + 10, beast.y);
+    run(g, TICK_MS * 2);
+    expect(g.phase).toBe('play');
+    run(g, CUTSCENE_MS);
+    expect(g.phase).toBe('finale');
+  });
+});
+
 describe('ghosts', () => {
   it('are what a caught Cousin becomes in Escape: the Beast stays alone', () => {
     const { g, ids, w } = started(4, 'escape');
@@ -292,7 +329,7 @@ describe('ghosts', () => {
     expect(g.viewFor(ids[0]).round!.sides[a.id]).toBe('g');
     expect(g.phase).toBe('play');
     // cannot be caught again, and does not stop the Beast catching someone else behind it
-    run(g, 1000);
+    run(g, CUTSCENE_MS + 1000);
     expect(w.catches).toHaveLength(1);
     place(w, b.id, beast.x + 12, beast.y);
     run(g, TICK_MS * 2);

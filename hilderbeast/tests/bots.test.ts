@@ -13,7 +13,7 @@ function botRound(mode: Mode, bots: number, seed: number, map = 0) {
   g.configure(host.id, mode, map);
   g.start(host.id);
   g.drop(host.id);
-  const tookMs = runUntil(g, () => g.phase === 'finale', (mode === 'escape' ? ESCAPE_CLOCK_MS : LAST_CLOCK_MS) + 10_000);
+  const tookMs = runUntil(g, () => g.phase === 'finale', (mode === 'escape' ? ESCAPE_CLOCK_MS : LAST_CLOCK_MS) + 60_000);
   return { result: g.viewFor(host.id).result!, tookMs, world: g.world! };
 }
 

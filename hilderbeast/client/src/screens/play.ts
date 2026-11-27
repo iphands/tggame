@@ -33,6 +33,7 @@ import { moveBody, rayDist, sees, speedOf } from '../../../shared/src/sim';
 import type { Fx } from '../../../shared/src/types';
 import { INK, NIGHT, drawBody, drawExit, drawHouse, drawPill, drawPortal, drawTask, mapPicture } from '../art';
 import { buzz, sfx } from '../audio';
+import { endCutscene, playCutscene } from '../cutscene';
 import { createInput } from '../input';
 import { clockLeft, countdownLeft, live } from '../live';
 import { noteStick, predictBody, type SentStick } from '../predict';
@@ -149,9 +150,19 @@ export function playScreen(): Screen {
     switch (e[0]) {
       case 'c': {
         const mine = e[2] === me;
-        sfx.caught(mine);
+        // a catch by a Beast stops the round and is shown to everyone; the sounds are the cutscene's
+        if (e[1]) {
+          playCutscene(el, {
+            beast: who(e[1]),
+            victim: who(e[2]).replace(/^You$/, 'you'),
+            beastColor: colorOf(e[1]),
+            victimColor: colorOf(e[2]),
+            ghost: escape(),
+            seed: e[3] * 31 + e[4] * 17 + (store.state?.round?.seq ?? 0),
+            mine,
+          });
+        } else sfx.caught(mine);
         say(e[1] ? `${who(e[2])} ${mine ? 'were' : 'was'} caught by ${who(e[1]).replace(/^You$/, 'you')}!` : `${who(e[2])} turned into a Beast!`);
-        floats.push({ x: e[3], y: e[4] - 24, at: performance.now(), text: 'Caught!' });
         if (mine) {
           buzz(250);
           if (!reducedMotion()) shake = 1;
@@ -266,8 +277,8 @@ export function playScreen(): Screen {
     const speedAt = (x: number, y: number): number => speedOf(wades && kindAt(MAP, x, y) === T_GOO ? dry | F_SLOW : dry);
     flags = wades && self.ready && kindAt(MAP, self.x, self.y) === T_GOO ? dry | F_SLOW : dry;
     const speed = speedOf(flags);
-    // while the server holds the body (the den, a Beast door, turning) we only follow
-    const steering = speedOf(dry) > 0;
+    // while the server holds the body (the den, a Beast door, turning, a catch being shown) we only follow
+    const steering = speedOf(dry) > 0 && live.hold <= 0;
     const ahead = steering ? predictBody({ x: latest[1], y: latest[2] }, live.stampedAt, netClock.rtt, sticks, now, speedAt, MAP, ghost) : { x: latest[1], y: latest[2] };
     const off = Math.hypot(ahead.x - self.x, ahead.y - self.y);
     if (!self.ready || off > SNAP_UNITS) {
@@ -655,6 +666,7 @@ export function playScreen(): Screen {
     update() {},
     destroy() {
       cancelAnimationFrame(raf);
+      endCutscene();
       input.destroy();
       if (live.onEvent === onEvent) live.onEvent = null;
     },
