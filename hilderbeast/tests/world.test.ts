@@ -266,8 +266,7 @@ describe('chores and exits', () => {
   it('open the exits only when every chore is done; then a Cousin can get out', () => {
     const w = escapeWorld();
     const exit = w.exit;
-    // the map's other exit spot is not a way out this round
-    const other = place(w, 'c', MAP.exits[1].x, MAP.exits[1].y);
+    const other = place(w, 'c', w.exits[1].x, w.exits[1].y);
     const a = place(w, 'a', exit.x, exit.y);
     steps(w, 500);
     expect(a.out).toBe(false);
@@ -277,7 +276,7 @@ describe('chores and exits', () => {
     w.setInput('c', 0, 0, false, true);
     steps(w, 100, seeded(3));
     expect(w.exitsOpen).toBe(true);
-    expect(w.fx).toContainEqual(['o']);
+    expect(w.fx).toContainEqual(['o', 1]);
     expect(c.out).toBe(false);
     // a touch is enough: nothing to hold
     expect(a.out).toBe(true);
@@ -285,10 +284,11 @@ describe('chores and exits', () => {
     expect(w.escaped).toEqual(['a']);
     expect(w.cousins().map((b) => b.id)).toEqual(['c']);
   });
-  it('open the exit with one chore to spare, so no single chore can be guarded', () => {
+  it('open one exit with the last chore but one, and the other with the last', () => {
     const w = world(['beast', 'a', 'c'], 'escape', MAP, [0, 1, 2, 3]);
     place(w, 'beast', MAP.den.x, MAP.den.y);
     expect(tasksNeeded(4)).toBe(3);
+    expect(w.exits).toHaveLength(2);
     const finish = (i: number): void => {
       w.tasks[i].progress = 0.999;
       place(w, 'a', w.tasks[i].x, w.tasks[i].y);
@@ -297,17 +297,25 @@ describe('chores and exits', () => {
     };
     finish(0);
     finish(2);
-    expect(w.exitsOpen).toBe(false);
+    expect(w.open).toBe(0);
     // any third one will do: here the last in the list, leaving chore 1 undone
     finish(3);
-    expect(w.exitsOpen).toBe(true);
-    expect(w.tasks[1].progress).toBe(0);
-    // and the one left over cannot be worked any more
-    place(w, 'c', w.tasks[1].x, w.tasks[1].y);
-    w.setInput('c', 0, 0, false, true);
-    steps(w, 1000);
-    expect(w.tasks[1].progress).toBe(0);
-    expect(tasksNeeded(1)).toBe(1);
+    expect(w.open).toBe(1);
+    expect(w.fx).toContainEqual(['o', 0]);
+    expect(w.fx).not.toContainEqual(['o', 1]);
+    // only the first exit lets anyone out yet
+    const c = place(w, 'c', w.exits[1].x, w.exits[1].y);
+    w.setInput('c', 0, 0, false, false);
+    steps(w, 200);
+    expect(c.out).toBe(false);
+    // the last chore opens the other, and now it does
+    place(w, 'c', MAP.cousinStarts[0].x, MAP.cousinStarts[0].y);
+    finish(1);
+    expect(w.open).toBe(2);
+    expect(w.fx).toContainEqual(['o', 1]);
+    place(w, 'c', w.exits[1].x, w.exits[1].y);
+    steps(w, 50);
+    expect(c.out).toBe(true);
   });
   it('are not for Beasts', () => {
     const w = escapeWorld();

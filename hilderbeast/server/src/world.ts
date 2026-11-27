@@ -132,9 +132,10 @@ export class World {
   readonly bodies: Body[] = [];
   readonly pills: Pill[];
   readonly tasks: Task[];
-  /** The one way out (Escape). */
-  readonly exit: Spot;
-  exitsOpen = false;
+/** The two ways out (Escape), in the order they open: the first with one chore to spare, the second with the last chore. */
+  readonly exits: Spot[];
+  /** How many of them are open: 0, 1 or 2. */
+  open = 0;
   /** Everything that happened since the last `drainFx()`. */
   fx: Fx[] = [];
   readonly catches: Catch[] = [];
@@ -198,9 +199,25 @@ export class World {
         ghost: false,
       });
     }
-    this.exit = map.exits[exitNo % Math.max(1, map.exits.length)] ?? map.den;
+    const first = exitNo % Math.max(1, map.exits.length);
+    this.exits = map.exits.length ? [map.exits[first], ...map.exits.filter((_, i) => i !== first)] : [map.den];
     this.pills = map.pills.map((p) => ({ ...p, on: true, backMs: 0 }));
     this.tasks = mode === 'escape' ? taskSpots.map((spot) => ({ ...map.tasks[spot], spot, progress: 0, workers: 0, noiseMs: 0 })) : [];
+  }
+
+  /** The exits that are open right now. */
+  openExits(): Spot[] {
+    return this.exits.slice(0, this.open);
+  }
+
+  /** The exit that opens first. */
+  get exit(): Spot {
+    return this.exits[0];
+  }
+
+  /** Is there a way out yet? */
+  get exitsOpen(): boolean {
+    return this.open > 0;
   }
 
   body(id: string): Body | undefined {
@@ -498,8 +515,6 @@ export class World {
 
   private stepTasks(rng: Rng): void {
     for (const b of this.bodies) b.working = false;
-    // enough are done and the exit is open: the one left over is no longer worth anyone's time
-    if (this.exitsOpen) return;
     this.tasks.forEach((task, i) => {
       if (task.progress >= 1) return;
       const workers = this.bodies.filter((b) => this.atWork(b, task, TASK_R));
@@ -517,9 +532,15 @@ export class World {
       if (task.progress >= 1) {
         task.workers = 0;
         this.fx.push(['d', i]);
-        if (this.tasks.filter((t) => t.progress >= 1).length >= tasksNeeded(this.tasks.length)) {
-          this.exitsOpen = true;
-          this.fx.push(['o']);
+        // the last chore but one opens the first exit, the last chore the second
+        const done = this.tasks.filter((t) => t.progress >= 1).length;
+        if (this.open < 1 && done >= tasksNeeded(this.tasks.length)) {
+          this.open = 1;
+          this.fx.push(['o', 0]);
+        }
+        if (this.open < this.exits.length && done >= this.tasks.length) {
+          this.open = this.exits.length;
+          this.fx.push(['o', 1]);
         }
       }
     });
@@ -527,10 +548,11 @@ export class World {
 
   /** A Cousin who touches an open exit is out, there and then. */
   private stepExits(): void {
-    if (!this.exitsOpen) return;
+    if (!this.open) return;
+    const ways = this.exits.slice(0, this.open);
     for (const b of this.bodies) {
       if (b.role !== 'cousin' || b.out || b.ghost) continue;
-      if (Math.hypot(this.exit.x - b.x, this.exit.y - b.y) > EXIT_R) continue;
+      if (!ways.some((e) => Math.hypot(e.x - b.x, e.y - b.y) <= EXIT_R)) continue;
       b.out = true;
       b.working = false;
       b.boosting = false;

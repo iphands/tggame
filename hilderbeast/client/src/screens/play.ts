@@ -67,8 +67,9 @@ export function playScreen(): Screen {
   const MAP = MAPS[store.state?.round?.map ?? 0] ?? MAPS[0];
   /** The round's speed setting: what everybody's speed is multiplied by. */
   const PACE = SPEEDS[store.state?.round?.speed ?? 0]?.x ?? 1;
-  /** The one way out this round. */
-  const exitAt = MAP.exits[store.state?.round?.exit ?? 0];
+  /** The two ways out, in the order they open: the first with one chore to spare, the second with the last chore. */
+  const firstExit = (store.state?.round?.exit ?? 0) % Math.max(1, MAP.exits.length);
+  const exitSpots = MAP.exits.length ? [MAP.exits[firstExit], ...MAP.exits.filter((_, i) => i !== firstExit)] : [];
   const canvas = h('canvas');
   const ctx = canvas.getContext('2d')!;
   const clock = h('div', { class: 'clock' }, '');
@@ -138,7 +139,8 @@ export function playScreen(): Screen {
   const escape = (): boolean => store.state?.round?.mode === 'escape';
   const choresDone = (): number => live.tasks.filter((p) => p >= 100).length;
   /** All but one of the chores will do: see `tasksNeeded`. */
-  const exitsOpen = (): boolean => live.tasks.length > 0 && choresDone() >= tasksNeeded(live.tasks.length);
+  /** How many exits are open: 0, 1 (all but one chore done) or 2 (every chore done). */
+  const openCount = (): number => (!live.tasks.length ? 0 : choresDone() >= live.tasks.length ? 2 : choresDone() >= tasksNeeded(live.tasks.length) ? 1 : 0);
 
   /** Text is only touched when it changes: this runs every frame. */
   function setText(node: HTMLElement, text: string): void {
@@ -212,12 +214,13 @@ export function playScreen(): Screen {
         break;
       case 'd': {
         sfx.done();
-        say(`A chore is done: ${choresDone()} of ${tasksNeeded(live.tasks.length)}`);
+        say(`A chore is done: ${choresDone()} of ${live.tasks.length}`);
         break;
       }
       case 'o':
         sfx.doors();
-        say(sideOf(me) === 'b' ? 'The exit is open. Guard it!' : 'The exit is open. Get out!', 4000, 'open');
+        if (e[1] === 0 && live.tasks.length > 1) say(sideOf(me) === 'b' ? 'An exit is open! One chore left opens the other' : 'An exit is open! Get out, or do the last chore for the other', 4500, 'open');
+        else say(sideOf(me) === 'b' ? 'Both exits are open!' : 'Both exits are open. Get out!', 4000, 'open');
         break;
       case 'x':
         say(`${who(e[1])} got out!`);
@@ -411,13 +414,13 @@ export function playScreen(): Screen {
       drawPortal(ctx, p.x, p.y, now, flares[i], i >> 1);
     });
     if (escape() && s.round) {
-      const open = exitsOpen();
+      const open = openCount();
       s.round.tasks.forEach((spot, i) => {
         const t = MAP.tasks[spot];
         const busy = bodies.some((b) => b.flags & F_WORK && Math.hypot(b.x - t.x, b.y - t.y) <= TASK_R + 4);
         drawTask(ctx, t.x, t.y, live.tasks[i] ?? 0, now, busy);
       });
-      if (exitAt) drawExit(ctx, exitAt.x, exitAt.y, open, now);
+      exitSpots.forEach((e, i) => drawExit(ctx, e.x, e.y, i < open, now));
     }
     MAP.pills.forEach((p, i) => drawPill(ctx, p.x, p.y, now, ((live.pills >> i) & 1) === 1));
 
@@ -537,11 +540,11 @@ export function playScreen(): Screen {
         m.fillStyle = (live.tasks[i] ?? 0) >= 100 ? '#3ddc97' : '#c98b5b';
         m.fillRect(t.x * k - 3, t.y * k - 3, 6, 6);
       });
-      for (const e of exitAt ? [exitAt] : []) {
-        m.strokeStyle = exitsOpen() ? '#3ddc97' : '#8a8298';
+      exitSpots.forEach((e, i) => {
+        m.strokeStyle = i < openCount() ? '#3ddc97' : '#8a8298';
         m.lineWidth = 2;
         m.strokeRect(e.x * k - 3.5, e.y * k - 3.5, 7, 7);
-      }
+      });
     }
     for (const n of live.noises) {
       m.strokeStyle = '#ffd23f';
@@ -629,8 +632,9 @@ export function playScreen(): Screen {
     setText(sides, `Cousins ${all.filter((x) => x === 'c').length} · Beasts ${all.filter((x) => x === 'b').length}${outs ? ` · Out ${outs}` : ''}${ghosts ? ` · Ghosts ${ghosts}` : ''}`);
     chores.hidden = !escape();
     if (escape()) {
-      setText(chores, exitsOpen() ? 'Exit open!' : `Chores ${choresDone()} of ${tasksNeeded(live.tasks.length)}`);
-      chores.classList.toggle('open', exitsOpen());
+      const open = openCount();
+      setText(chores, open >= 2 ? 'Both exits open!' : `${open ? '1 exit open · ' : ''}Chores ${choresDone()} of ${live.tasks.length}`);
+      chores.classList.toggle('open', open > 0);
     }
     watching.hidden = isSeated() && !out;
     setText(watching, out ? 'You are out and safe. Watching the rest.' : player(s.selfId)?.watcher ? 'Watching' : 'Watching. You are in the next round.');

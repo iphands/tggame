@@ -187,7 +187,7 @@ export class Game extends Roster<Player> {
     while (mapNo < 0 || (this.settings.map < 0 && mapNo === this.mapNo && MAPS.length > 1)) mapNo = Math.floor(this.rng() * MAPS.length);
     this.mapNo = mapNo;
     const map = MAPS[mapNo];
-    // one way out a round, by lot among the map's exit spots
+    // which of the map's two exits opens first, by lot
     this.exitNo = Math.floor(this.rng() * map.exits.length);
     const spots = shuffle(
       map.tasks.map((_, i) => i),

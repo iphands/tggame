@@ -263,7 +263,7 @@ describe('Last Cousin Standing', () => {
 });
 
 describe('Escape', () => {
-  it('has one way out a round, not always the same one', () => {
+  it('has two exits, and which opens first changes from round to round', () => {
     const { g, ids } = table(3);
     g.configure(ids[0], 'escape');
     const seen = new Set<number>();
@@ -285,7 +285,7 @@ describe('Escape', () => {
   it('goes on until every Cousin still free has got out or been caught', () => {
     const { g, ids, w } = started(4, 'escape');
     for (const t of w.tasks) t.progress = 1;
-    w.exitsOpen = true;
+    w.open = 1;
     const [a, b, c] = w.cousins();
     for (const x of [a, b]) {
       place(w, x.id, w.exit.x, w.exit.y);
@@ -305,7 +305,7 @@ describe('Escape', () => {
   it('ends at once when the last Cousin in the house gets out', () => {
     const { g, ids, w } = started(3, 'escape');
     for (const t of w.tasks) t.progress = 1;
-    w.exitsOpen = true;
+    w.open = 1;
     for (const x of w.cousins()) {
       place(w, x.id, w.exit.x, w.exit.y);
       g.input(x.id, 0, 0, false, true);
@@ -317,7 +317,7 @@ describe('Escape', () => {
   it('counts whoever got out if the clock runs out on the rest', () => {
     const { g, ids, w } = started(4, 'escape');
     for (const t of w.tasks) t.progress = 1;
-    w.exitsOpen = true;
+    w.open = 1;
     const [a, b, c] = w.cousins();
     place(w, a.id, w.exit.x, w.exit.y);
     g.input(a.id, 0, 0, false, true);

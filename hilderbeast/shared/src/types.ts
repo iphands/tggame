@@ -35,7 +35,7 @@ export type RoundView = {
   map: number;
   /** Which of `SPEEDS` this round is played at. */
   speed: number;
-  /** Which of that map's exit spots is the one way out this round (Escape). */
+  /** Which of that map's two exit spots opens first this round (Escape); the other opens with the last chore. */
   exit: number;
   /** The whole clock for this round. */
   clockMs: number;
@@ -97,7 +97,7 @@ export type SelfSnap = [number, number, number, number, number];
  * - `['n', x, y, strength]` Beasts only: a chore is being worked on somewhere near here (`strength` is how many are at it; 0 is a creaky board)
  * - `['h']` Cousins at that chore only: you were heard
  * - `['d', task]` a chore is finished
- * - `['o']` the exits are open
+ * - `['o', n]` an exit opened: 0 the first (one chore to spare), 1 the second (every chore done)
  * - `['x', id]` a Cousin got out
  * - `['s', id, x, y]` a Cousin was caught on the spikes
  * - `['g', ghost, beast, x, y]` a ghost bumped a Beast, here
@@ -111,7 +111,7 @@ export type Fx =
   | ['n', number, number, number]
   | ['h']
   | ['d', number]
-  | ['o']
+  | ['o', number]
   | ['x', string]
   | ['s', string, number, number]
   | ['g', string, string, number, number];

@@ -110,7 +110,7 @@ export class Bots {
     }
     // patrol: the places Cousins want to be
     if (!mind.goal || Math.hypot(mind.goal.x - b.x, mind.goal.y - b.y) < TILE) {
-      const spots = [...map.pills, ...world.tasks.filter((t) => t.progress < 1), ...(world.exitsOpen ? [world.exit] : [])];
+      const spots = [...map.pills, ...world.tasks.filter((t) => t.progress < 1), ...world.openExits()];
       mind.goal = spots[Math.floor(rng() * spots.length)];
     }
     this.go(world, b, mind.goal);
@@ -134,7 +134,7 @@ export class Bots {
       const fromMe = stepsFrom(map, b.x, b.y);
       let best: Spot | null = null;
       let bestScore = -Infinity;
-      for (const s of [...map.pills, ...map.cousinStarts, ...map.tasks, world.exit]) {
+      for (const s of [...map.pills, ...map.cousinStarts, ...map.tasks, ...world.exits]) {
         const mine = stepsAt(map, fromMe, s.x, s.y);
         const theirs = stepsAt(map, fromBeast, s.x, s.y);
         // never run to a spot the Beast reaches first
@@ -177,7 +177,8 @@ export class Bots {
 
     if (world.mode === 'escape') {
       if (world.exitsOpen) {
-        return this.go(world, b, world.exit, true);
+        const exit = nearest(world.openExits());
+        if (exit) return this.go(world, b, exit, true);
       }
       if (b.energy >= 40 || !world.pills.some((p) => p.on)) {
         const task = nearest(world.tasks.filter((t) => t.progress < 1));
