@@ -149,6 +149,78 @@ const DRAW: ((c: Ctx, r: number) => void)[] = [
     c.fillStyle = '#5b3a24';
     c.fill();
   },
+  // turkey: a whole roast bird seen from above, drumsticks towards the bottom
+  (c, r) => {
+    const SKIN = '#c97a2b';
+    const GLAZE = '#e6a04a';
+    const BONE = '#fff3d6';
+    const oval = (x: number, y: number, rx: number, ry: number, turn: number): void => {
+      c.beginPath();
+      c.ellipse(x, y, rx, ry, turn, 0, Math.PI * 2);
+    };
+    // a ring of greens under the bird, peeking out round the edge
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2 + 0.2;
+      oval(Math.cos(a) * r * 0.82, Math.sin(a) * r * 0.82, r * 0.2, r * 0.12, a + Math.PI / 2);
+      c.fillStyle = i % 2 ? '#5fbf5a' : '#3f9d4c';
+      c.fill();
+      ink(c, 1.6);
+    }
+    // wings, tucked in at the sides
+    for (const side of [-1, 1]) {
+      oval(side * r * 0.62, -r * 0.12, r * 0.2, r * 0.36, side * 0.35);
+      c.fillStyle = SKIN;
+      c.fill();
+      ink(c, 2.4);
+    }
+    // drumsticks, bone ends first so the meat overlaps them
+    for (const side of [-1, 1]) {
+      c.save();
+      c.translate(side * r * 0.36, r * 0.44);
+      c.rotate(side * -0.55);
+      c.fillStyle = BONE;
+      c.beginPath();
+      c.roundRect(-r * 0.055, r * 0.2, r * 0.11, r * 0.26, r * 0.05);
+      c.fill();
+      ink(c, 2);
+      for (const dx of [-0.07, 0.07]) {
+        circle(c, dx * r, r * 0.47, r * 0.075);
+        c.fill();
+        ink(c, 2);
+      }
+      oval(0, 0, r * 0.2, r * 0.32, 0);
+      c.fillStyle = SKIN;
+      c.fill();
+      ink(c, 2.4);
+      c.restore();
+    }
+    // the breast
+    oval(0, -r * 0.14, r * 0.56, r * 0.62, 0);
+    c.fillStyle = SKIN;
+    c.fill();
+    ink(c, 3);
+    oval(0, -r * 0.2, r * 0.42, r * 0.46, 0);
+    c.fillStyle = GLAZE;
+    c.fill();
+    // the seam down the middle and a few roasting marks
+    c.strokeStyle = '#9a5416';
+    c.lineWidth = r * 0.045;
+    c.lineCap = 'round';
+    c.beginPath();
+    c.moveTo(0, -r * 0.58);
+    c.quadraticCurveTo(r * 0.05, -r * 0.15, 0, r * 0.3);
+    for (const side of [-1, 1]) {
+      c.moveTo(side * r * 0.18, -r * 0.42);
+      c.quadraticCurveTo(side * r * 0.3, -r * 0.2, side * r * 0.2, r * 0.02);
+    }
+    c.stroke();
+    // a glint on the glaze
+    c.beginPath();
+    c.arc(-r * 0.05, -r * 0.2, r * 0.36, Math.PI * 1.1, Math.PI * 1.4);
+    c.lineWidth = r * 0.07;
+    c.strokeStyle = 'rgba(255,255,255,.7)';
+    c.stroke();
+  },
 ];
 
 export type Sprite = { img: HTMLCanvasElement; /** Half the sprite's size in world units. */ half: number };
@@ -243,4 +315,4 @@ export function drawBlanket(c: Ctx, w: number, h: number, x0: number, y0: number
 }
 
 export const GRASS = '#5fae57';
-export const TIER_NAMES = ['berries', 'cookies', 'sandwiches', 'pies', 'melons'] as const;
+export const TIER_NAMES = ['berries', 'cookies', 'sandwiches', 'pies', 'melons', 'turkeys'] as const;

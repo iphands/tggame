@@ -278,27 +278,12 @@ input[type='text'] {
 .grow.bump {
   animation: bump 0.4s;
 }
-.banner {
-  position: absolute;
-  top: 26%;
-  left: 50%;
-  translate: -50% 0;
-  padding: 2px 18px;
-  font-family: var(--display);
-  font-size: 1.6em;
-  text-align: center;
-  color: var(--ink);
+.grow.fresh {
   background: var(--sun);
-  border: var(--line);
-  border-radius: var(--wobble);
-  box-shadow: var(--shadow);
-  opacity: 0;
-  transition: opacity 0.3s;
-  max-width: calc(100% - 24px);
 }
-.banner.show {
-  opacity: 1;
-  animation: bump 0.4s;
+.grow.fresh span:first-child {
+  font-family: var(--display);
+  font-size: 1.15em;
 }
 .count {
   position: absolute;
@@ -469,4 +454,41 @@ input[type='text'] {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ---- who ate the most: per course on the cleared screen, and the roll of honour in the finale */
+
+.crew.bites li.best {
+  background: #fff1b8;
+}
+.champions {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.champions h3 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.3em;
+}
+.course-no {
+  flex: none;
+  width: 1.7em;
+  height: 1.7em;
+  display: grid;
+  place-items: center;
+  font-family: var(--display);
+  color: var(--paper);
+  background: var(--ink);
+  border-radius: 50%;
+}
+.avatar.mini {
+  display: inline-grid;
+  width: 1.4em;
+  height: 1.4em;
+  font-size: 0.8em;
+  vertical-align: middle;
 }

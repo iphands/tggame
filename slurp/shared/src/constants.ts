@@ -40,11 +40,12 @@ export const TIERS = [
   { name: 'sandwich', r: 28, value: 8 },
   { name: 'pie', r: 40, value: 16 },
   { name: 'melon', r: 56, value: 31 },
+  { name: 'turkey', r: 76, value: 58 },
 ] as const;
-export const MAX_FOOD_R = 56;
+export const MAX_FOOD_R = 76;
 
 /** How many of each tier a one-player table holds on course 1 (when that tier is in play). */
-export const BASE_COUNTS = [56, 32, 15, 7, 2] as const;
+export const BASE_COUNTS = [56, 32, 15, 7, 2, 1] as const;
 /** How many tiers course `no` uses. */
 export const tiersInCourse = (no: number): number => Math.min(TIERS.length, no + 1);
 /** Later courses are more crowded. */

@@ -32,10 +32,9 @@ export function playScreen(): Screen {
   const bar = h('i');
   const growText = h('span');
   const grow = h('div', { class: 'grow' }, growText, nextIcon, h('span', { class: 'bar' }, bar));
-  const banner = h('div', { class: 'banner' });
   const count = h('div', { class: 'count' });
   const watching = h('div', { class: 'watching' }, 'Watching. You get a hole on the next course.');
-  const hud = h('div', { class: 'hud' }, team, clock, left, banner, count, grow, watching);
+  const hud = h('div', { class: 'hud' }, team, clock, left, count, grow, watching);
   const el = h('section', { class: 'screen play' }, canvas, hud);
 
   const input = createInput(el);
@@ -56,7 +55,9 @@ export function playScreen(): Screen {
   let shownCount = -1;
   let shownSecond = -1;
   let shownIcon = -1;
-  let bannerTimer = 0;
+  /** Until when the grow badge announces the food just unlocked, instead of the next one. */
+  let unlockedUntil = 0;
+  let unlockedName = '';
   let goTimer = 0;
   let camReady = false;
   let teamAt = 0;
@@ -66,13 +67,9 @@ export function playScreen(): Screen {
   const selfId = (): string => store.state?.selfId ?? '';
   const colorOf = (id: string): string => player(id)?.color ?? '#fff';
 
-  function say(text: string): void {
-    banner.textContent = text;
-    banner.classList.remove('show');
-    void banner.offsetWidth; // restart the pop
-    banner.classList.add('show');
-    clearTimeout(bannerTimer);
-    bannerTimer = window.setTimeout(() => banner.classList.remove('show'), 1800);
+  /** Text is only touched when it changes: this runs every frame. */
+  function setText(el: HTMLElement, text: string): void {
+    if (el.textContent !== text) el.textContent = text;
   }
 
   function onEvent(e: LiveEvent): void {
@@ -390,7 +387,9 @@ export function playScreen(): Screen {
       if (can > edible && edible > 0) {
         sfx.grow();
         buzz(40);
-        say(`You can eat ${TIER_NAMES[can - 1]} now!`);
+        // said in the badge at the bottom of the screen, so nothing ever covers the table
+        unlockedName = TIER_NAMES[can - 1];
+        unlockedUntil = performance.now() + 2500;
         grow.classList.remove('bump');
         void grow.offsetWidth;
         grow.classList.add('bump');
@@ -398,7 +397,9 @@ export function playScreen(): Screen {
       edible = can;
       const done = can >= tiers;
       nextIcon.hidden = bar.parentElement!.hidden = done;
-      growText.textContent = done ? 'You can eat everything!' : 'Next';
+      const fresh = performance.now() < unlockedUntil;
+      grow.classList.toggle('fresh', fresh);
+      setText(growText, fresh ? `${unlockedName[0].toUpperCase()}${unlockedName.slice(1)} unlocked!` : done ? 'You can eat everything!' : 'Next');
       if (!done) {
         if (shownIcon !== can) {
           shownIcon = can;
@@ -453,7 +454,6 @@ export function playScreen(): Screen {
     },
     destroy() {
       cancelAnimationFrame(raf);
-      clearTimeout(bannerTimer);
       clearTimeout(goTimer);
       input.destroy();
       if (live.onEvent === onEvent) live.onEvent = null;

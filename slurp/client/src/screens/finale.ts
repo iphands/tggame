@@ -30,6 +30,40 @@ export function finaleScreen(): Screen {
     give(most(stats, (s) => s.spills), '🫣 clumsiest');
   }
 
+  // who ate the most on each course
+  const nameIn = (id: string): string => s0.players.find((p) => p.id === id)?.name ?? 'someone';
+  const colorIn = (id: string): string => s0.players.find((p) => p.id === id)?.color ?? '#fff';
+  const champions =
+    stats.length > 1 &&
+    r.courses.length > 0 &&
+    h(
+      'div',
+      { class: 'sheet champions' },
+      h('h3', null, 'Hungriest on each course'),
+      h(
+        'ol',
+        { class: 'crew' },
+        r.courses.map((course) => {
+          const top = course.bites[0]?.eaten ?? 0;
+          const best = top > 0 ? course.bites.filter((b) => b.eaten === top) : [];
+          return h(
+            'li',
+            { class: best.some((b) => b.id === s0.selfId) ? 'me' : '' },
+            h('span', { class: 'course-no' }, course.no),
+            h(
+              'span',
+              { class: 'who' },
+              best.length === 0
+                ? 'nobody got a bite'
+                : best.flatMap((b, i) => [i > 0 && ' & ', h('span', { class: 'avatar mini', style: `--c:${colorIn(b.id)}` }, nameIn(b.id).slice(0, 1).toUpperCase()), ' ', nameIn(b.id)]),
+              !course.cleared && h('span', { class: 'medals' }, 'the clock ran out here'),
+            ),
+            h('span', { class: 'ate' }, top > 0 ? top : ''),
+          );
+        }),
+      ),
+    );
+
   const again = h('button', { class: 'btn primary big', type: 'button', onclick: () => send({ type: 'again' }) }, 'Play again');
   const waiting = h('p', { class: 'sub' });
   const headline = r.won ? 'The whole banquet, gone!' : r.cleared === 0 ? 'Out of time!' : `Out of time on course ${r.failedOn}`;
@@ -72,6 +106,7 @@ export function finaleScreen(): Screen {
         }),
       ),
     ),
+    champions,
     again,
     waiting,
   );

@@ -29,6 +29,12 @@ export type CourseView = {
   tiers: number;
 };
 
+/** How much each hole ate on one course, hungriest first. */
+export type Bites = { id: string; eaten: number }[];
+
+/** One course of the run: who ate what, and whether the table was cleared in time. */
+export type CourseTally = { no: number; cleared: boolean; bites: Bites };
+
 /** How the course just cleared went. */
 export type ClearedView = {
   no: number;
@@ -38,6 +44,8 @@ export type ClearedView = {
   spills: number;
   /** Time taken along to the next course. */
   carryMs: number;
+  /** Who ate how much on this course. */
+  bites: Bites;
 };
 
 export type PlayerStats = {
@@ -63,6 +71,8 @@ export type ResultView = {
   /** Pieces of food left on the table when the clock ran out. */
   leftOver: number;
   stats: PlayerStats[];
+  /** Every course played, in order, the one the clock ran out on included. */
+  courses: CourseTally[];
 };
 
 /** Public game state, sent to a player whenever it changes. Positions travel separately, in snapshots. */

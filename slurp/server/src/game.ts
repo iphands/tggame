@@ -22,7 +22,7 @@ import {
   courseTimeMs,
 } from '../../shared/src/constants.js';
 import type { CourseMessage, SnapMessage } from '../../shared/src/protocol.js';
-import type { ClearedView, Difficulty, Phase, PlayerStats, PlayerView, ResultView, Settings, StateView } from '../../shared/src/types.js';
+import type { Bites, ClearedView, CourseTally, Difficulty, Phase, PlayerStats, PlayerView, ResultView, Settings, StateView } from '../../shared/src/types.js';
 import { sanitizeName } from '@tggame/base/shared/text';
 import { Roster } from '@tggame/base/party/roster';
 import { BOT_NAMES, botAim, type Rng } from './bots.js';
@@ -76,6 +76,10 @@ export class Game extends Roster<Player> {
   private cleared: ClearedView | null = null;
   private result: ResultView | null = null;
   private stats = new Map<string, PlayerStats>();
+  /** What each hole on the table had eaten when this course was laid. */
+  private eatenBefore = new Map<string, number>();
+  /** The courses of this run played so far. */
+  private tallies: CourseTally[] = [];
 
   constructor(rng: Rng = Math.random) {
     super(rng, MAX_PLAYERS, PLAYER_COLORS);
@@ -160,6 +164,7 @@ export class Game extends Roster<Player> {
     this.result = null;
     this.carryMs = 0;
     this.stats.clear();
+    this.tallies = [];
     this.layCourse(1);
   }
 
@@ -222,6 +227,7 @@ export class Game extends Roster<Player> {
     }
     const ids = this.participants().map((p) => p.id);
     for (const id of ids) if (!this.stats.has(id)) this.stats.set(id, { id, eaten: 0, biggest: -1, spills: 0, herds: 0 });
+    this.eatenBefore = new Map(ids.map((id) => [id, this.stats.get(id)!.eaten]));
     const course = makeCourse(no, ids.length, this.rng);
     this.course = no;
     this.courseSeq++;
@@ -241,13 +247,24 @@ export class Game extends Roster<Player> {
     const stars = share >= STAR_3 && tidy ? 3 : share >= STAR_2 ? 2 : 1;
     this.stars.push(stars);
     this.carryMs = Math.min(CARRY_MAX_MS, Math.round(leftMs * CARRY_SHARE));
-    this.cleared = { no: this.course, stars, leftMs, spills: world.spills, carryMs: this.carryMs };
+    this.cleared = { no: this.course, stars, leftMs, spills: world.spills, carryMs: this.carryMs, bites: this.tally(true) };
     if (this.course >= COURSES) return this.finish(true);
     this.phase = 'cleared';
     this.phaseLeftMs = CLEARED_MS;
   }
 
+  /** Close the books on the course being played: who ate how much of it, hungriest first. */
+  private tally(cleared: boolean): Bites {
+    const bites = [...this.eatenBefore]
+      .map(([id, before]) => ({ id, eaten: (this.stats.get(id)?.eaten ?? before) - before }))
+      .sort((a, b) => b.eaten - a.eaten);
+    this.tallies.push({ no: this.course, cleared, bites });
+    return bites;
+  }
+
   private finish(won: boolean): void {
+    // a run that ends on the clock leaves one course unfinished: it still counts for who ate what
+    if (!won) this.tally(false);
     this.phase = 'finale';
     this.result = {
       won,
@@ -255,6 +272,7 @@ export class Game extends Roster<Player> {
       failedOn: won ? 0 : this.course,
       leftOver: this.world?.left ?? 0,
       stats: [...this.stats.values()].filter((s) => this.players.has(s.id)).map((s) => ({ ...s })),
+      courses: this.tallies,
     };
   }
 

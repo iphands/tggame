@@ -19,7 +19,7 @@ Phones on the same Wi-Fi join at `http://<your-ip>:5178`.
 - **Steer.** Drag anywhere on the screen (the hole moves the way your finger does), point with
   the mouse, or use the arrow keys / WASD.
 - **Eat.** Food goes down when it fits: its radius must be at most 90 % of the hole's. A new hole
-  eats berries only. Then cookies, sandwiches, pies and melons as it grows.
+  eats berries only. Then cookies, sandwiches, pies, melons and whole roast turkeys as it grows.
 - **Grow.** Your hole grows by what it eats. Every other hole grows by a quarter of each bite, so
   nobody is left behind and the team's biggest hole can always reach the next size.
 - **Push.** Food too big for your hole is solid to it: you shove it along. Herd it into a bigger
@@ -28,7 +28,9 @@ Phones on the same Wi-Fi join at `http://<your-ip>:5178`.
 - **Clock.** One shared clock per course. Half of what is left (up to 12 s) carries into the next.
   Clear the table for 1 to 3 stars (time to spare, few spills). Run out and the run is over.
 - **Courses.** Eight of them. Each has a bigger table, more food, more food near the edge and,
-  up to course 4, one more size of food. Clear all eight to finish the banquet.
+  up to course 5, one more size of food. Clear all eight to finish the banquet.
+- **Hungriest.** After each course you see who ate how much of it, with a crown for the most; the
+  finale lists the hungriest hole on every course.
 - **Players.** The table's area and the amount of food grow with the number of holes, so it is
   as crowded for eight as for one. Late arrivals watch and get a hole on the next course. A
   player who drops off keeps the seat (the hole steers itself meanwhile) and can come straight back.
