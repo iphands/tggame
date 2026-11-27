@@ -38,6 +38,8 @@ export class SocketClient<C extends { type: string }, S extends { type: string }
   private reconnectAttempt = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private disposed = false;
+  /** The client build the server was handing out when this page first connected. */
+  private build: string | null = null;
 
   constructor(private readonly opts: SocketClientOptions<S>) {}
 
@@ -58,6 +60,7 @@ export class SocketClient<C extends { type: string }, S extends { type: string }
     this.ws = ws;
     ws.onopen = () => {
       this.reconnectAttempt = 0;
+      void this.checkBuild();
       this.opened();
       this.opts.onStatus?.('connected');
       // an absent token is left out of the JSON, so games without tokens see a plain join
@@ -105,6 +108,23 @@ export class SocketClient<C extends { type: string }, S extends { type: string }
 
   send(msg: C): void {
     if (this.connected) this.ws!.send(JSON.stringify(msg));
+  }
+
+  /**
+   * A page left open across a server update is running the old client against the new server,
+   * and the two may no longer agree on the rules. Each time the socket opens, ask the server
+   * which client it is handing out; if that has changed since this page first asked, reload.
+   */
+  private async checkBuild(): Promise<void> {
+    try {
+      const res = await fetch('health', { cache: 'no-store' });
+      const build: unknown = ((await res.json()) as { build?: unknown }).build;
+      if (typeof build !== 'string') return;
+      if (this.build === null) this.build = build;
+      else if (build !== this.build) location.reload();
+    } catch {
+      /* the dev server, or no network: nothing to compare */
+    }
   }
 
   /** Called each time the socket opens, before the join is sent. */

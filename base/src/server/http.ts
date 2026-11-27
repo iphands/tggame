@@ -2,6 +2,7 @@
 import http from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import { WebSocketServer } from 'ws';
 
 export type GameServerOptions = {
@@ -38,9 +39,23 @@ const MIME: Record<string, string> = {
   '.webmanifest': 'application/manifest+json; charset=utf-8',
 };
 
+/**
+ * Names the client this server is handing out: a short hash of its index.html, which lists the
+ * hashed script and style files, so it changes exactly when the client does. A page compares it
+ * across reconnects to notice that it has been left behind by an update (see `SocketClient`).
+ */
+export function buildId(staticDir: string): string {
+  try {
+    return createHash('sha1').update(fs.readFileSync(path.join(staticDir, 'index.html'))).digest('hex').slice(0, 12);
+  } catch {
+    return 'none';
+  }
+}
+
 /** Builds the HTTP server and its WebSocket server. Nothing listens until `listen()` is called. */
 export function createGameServer(opts: GameServerOptions) {
   const STATIC_DIR = path.resolve(process.cwd(), opts.staticDir);
+  const BUILD = buildId(STATIC_DIR);
 
   const server = http.createServer((req, res) => {
     try {
@@ -67,7 +82,7 @@ export function createGameServer(opts: GameServerOptions) {
 
     if (route === '/health') {
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
-      res.end(JSON.stringify({ ok: true, ...opts.health() }));
+      res.end(JSON.stringify({ ok: true, build: BUILD, ...opts.health() }));
       return;
     }
 
