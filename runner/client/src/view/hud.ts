@@ -217,6 +217,11 @@ export class Hud {
 
   // ------------------------------------------------------------ player cards
 
+  /** Build the cards afresh on the next update: a name on them changed. */
+  redrawCards(): void {
+    this.cardsKey = '';
+  }
+
   private updateCards(players: PlayerState[], selfId: string | null, snap: SnapshotMessage): void {
     const simNow = snap.simTimeMs;
     const active = players.filter((p) => p.life !== 'waiting');

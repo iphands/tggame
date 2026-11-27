@@ -136,6 +136,18 @@ export class Game {
     return p;
   }
 
+  /** A human picks a new name. Returns it as it ended up (made unique), or null when nothing changed. */
+  rename(id: string, name?: string): string | null {
+    const p = this.w.players.get(id);
+    const wanted = sanitizeName(name);
+    if (!p || p.bot || !wanted) return null;
+    const others = new Map([...this.w.players].filter(([otherId]) => otherId !== id));
+    const next = uniqueName(others, wanted);
+    if (next === p.name) return null;
+    p.name = next;
+    return next;
+  }
+
   leave(id: string): void {
     const p = this.w.players.get(id);
     if (!p) return;

@@ -54,6 +54,13 @@ function join(name: string): void {
     name,
     onWelcome: (id) => (store.selfId = id),
     onSnapshot,
+    onRenamed: (id, newName) => {
+      // the newest snapshot predates the change: correct it, then tell whatever has the name drawn
+      const p = store.snapshot?.players.find((q) => q.id === id);
+      if (p) p.name = newName;
+      renderLobby();
+      window.dispatchEvent(new CustomEvent('lsr-renamed', { detail: { id, name: newName } }));
+    },
     onRecords: (records) => {
       store.records = records;
       renderLobby();

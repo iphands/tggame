@@ -11,6 +11,7 @@ export type GameClientOptions = {
   url?: string;
   onWelcome?: (selfId: string) => void;
   onSnapshot?: (snap: SnapshotMessage) => void;
+  onRenamed?: (id: string, name: string) => void;
   onStatus?: (status: ConnectionStatus) => void;
 };
 
@@ -27,6 +28,7 @@ export class GameClient extends SocketClient<ClientMessage, ServerMessage> {
       onMessage: (msg) => {
         if (msg.type === 'snapshot') opts.onSnapshot?.(msg);
         else if (msg.type === 'welcome') opts.onWelcome?.(msg.selfId);
+        else if (msg.type === 'renamed') opts.onRenamed?.(msg.id, msg.name);
       },
     });
   }

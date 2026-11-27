@@ -78,6 +78,13 @@ function handle(ws: WebSocket, peer: { id: string | null }, msg: ClientMessage):
     case 'pickLevel':
       game.pickLevel(msg.dir);
       break;
+    case 'rename': {
+      const name = game.rename(id, msg.name);
+      if (name === null) break;
+      const told = JSON.stringify({ type: 'renamed', id, name } satisfies ServerMessage);
+      for (const other of peers.keys()) if (other.readyState === WebSocket.OPEN) other.send(told);
+      break;
+    }
     case 'leave':
       game.leave(id);
       peer.id = null;

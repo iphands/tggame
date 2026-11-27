@@ -14,6 +14,7 @@ export type GameClientOptions = {
   onSnapshot?: (snap: SnapshotMessage) => void;
   onStatus?: (status: ConnectionStatus) => void;
   onRecords?: (records: Records) => void;
+  onRenamed?: (id: string, name: string) => void;
 };
 
 /** This game's socket: auto-reconnects and re-joins under the same name. */
@@ -30,6 +31,7 @@ export class GameClient extends SocketClient<ClientMessage, ServerMessage> {
         if (msg.type === 'snapshot') opts.onSnapshot?.(msg);
         else if (msg.type === 'welcome') opts.onWelcome?.(msg.selfId);
         else if (msg.type === 'records') opts.onRecords?.(msg.records);
+        else if (msg.type === 'renamed') opts.onRenamed?.(msg.id, msg.name);
       },
     });
   }

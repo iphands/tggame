@@ -8,6 +8,7 @@ export type ClientMessage =
   | { type: 'drop' }
   | { type: 'restart' }
   | { type: 'leave' }
+  | { type: 'rename'; name: string }
   | { type: 'addBot' }
   | { type: 'removeBot' }
   | { type: 'pickLevel'; dir: 1 | -1 };
@@ -56,6 +57,8 @@ export type ServerMessage =
   | { type: 'welcome'; selfId: string; capacity: number; serverTimeMs: number }
   /** Sent after the welcome and again whenever somebody sets a new best. */
   | { type: 'records'; records: Records }
+  /** Somebody changed their name. Sent once, so nothing has to watch for it in every snapshot. */
+  | { type: 'renamed'; id: string; name: string }
   | { type: 'full'; capacity: number }
   | SnapshotMessage;
 
@@ -71,6 +74,8 @@ export function isClientMessage(v: unknown): v is ClientMessage {
       return typeof m.left === 'boolean' && typeof m.right === 'boolean' && typeof m.jump === 'boolean';
     case 'pickLevel':
       return m.dir === 1 || m.dir === -1;
+    case 'rename':
+      return typeof m.name === 'string' && m.name.length <= 64;
     default:
       return typeof m.type === 'string' && NO_ARGS.has(m.type);
   }

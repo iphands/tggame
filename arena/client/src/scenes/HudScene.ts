@@ -19,7 +19,12 @@ export class HudScene extends Phaser.Scene {
 
   create(): void {
     this.hud = new Hud(this, store.touchMode, view.small ? 1.3 : 1);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.hud.destroy());
+    const onRenamed = () => this.hud.redrawCards();
+    window.addEventListener('lsa-renamed', onRenamed);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      window.removeEventListener('lsa-renamed', onRenamed);
+      this.hud.destroy();
+    });
   }
 
   update(_time: number, delta: number): void {

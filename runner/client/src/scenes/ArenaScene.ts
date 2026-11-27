@@ -116,10 +116,16 @@ export class ArenaScene extends Phaser.Scene {
     this.createdAt = performance.now();
     const onQuality = () => this.applyQuality();
     window.addEventListener('lsr-quality', onQuality);
+    const onRenamed = (e: Event) => {
+      const { id, name } = (e as CustomEvent<{ id: string; name: string }>).detail;
+      this.fighters.get(id)?.rename(name);
+    };
+    window.addEventListener('lsr-renamed', onRenamed);
     this.applyQuality();
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       window.removeEventListener('lsr-quality', onQuality);
+      window.removeEventListener('lsr-renamed', onRenamed);
       kb?.off('keydown-R', onRestart);
       kb?.off('keydown-M', onMute);
       this.input.off('pointerdown', onDown);

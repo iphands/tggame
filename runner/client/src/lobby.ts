@@ -3,6 +3,7 @@ import { raceTime } from './view/hud';
 import { MATCH } from '../../shared/src/constants';
 import { LEVELS, levelAt } from '../../shared/src/levels';
 import { store } from './store';
+import { askName } from '@tggame/base/client/rename';
 import { isMuted, play, setMuted, unlockAudio } from '@tggame/base/platformer/audio';
 import { nextSetting } from '@tggame/base/platformer/quality';
 import { canFullscreen, enterFullscreen, isFullscreen, isIOS, isStandalone, toggleFullscreen } from '@tggame/base/platformer/fullscreen';
@@ -82,6 +83,19 @@ export function initLobbyDom(onJoin: (name: string) => void): void {
   click('bot-remove', () => store.client?.send({ type: 'removeBot' }));
   click('go-btn', () => store.client?.send({ type: 'restart' }));
   click('restart-btn', () => store.client?.send({ type: 'restart' }));
+  click('name-btn', () => {
+    const current = store.snapshot?.players.find((p) => p.id === store.selfId)?.name ?? store.name;
+    const name = askName(current);
+    if (!name) return;
+    store.name = name;
+    try {
+      localStorage.setItem('lsr-name', name);
+    } catch {
+      /* private mode */
+    }
+    store.client?.setName(name);
+    store.client?.send({ type: 'rename', name });
+  });
   click('fs-btn', () => void toggleFullscreen());
   click('gfx-btn', () => {
     const next = nextSetting(store.quality.setting);

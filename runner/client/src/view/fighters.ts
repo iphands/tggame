@@ -67,6 +67,11 @@ export class FighterView {
   private spin = 0;
   private lastShown = false;
 
+  /** The player changed their name mid-round. */
+  rename(name: string): void {
+    this.name.setText(name);
+  }
+
   constructor(private scene: Phaser.Scene, p: PlayerState, readonly isSelf: boolean) {
     const key = fighterTexture(scene, p.color);
     this.shadow = scene.add.image(0, 0, 'soft').setTint(0x07021a).setDepth(5).setVisible(false);
