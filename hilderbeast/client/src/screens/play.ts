@@ -28,6 +28,7 @@ import {
   SPEEDS,
   TASK_R,
   TILE,
+  tasksNeeded,
 } from '../../../shared/src/constants';
 import { T_GOO, kindAt, roomAt } from '../../../shared/src/map';
 import { MAPS } from '../../../shared/src/maps';
@@ -135,7 +136,9 @@ export function playScreen(): Screen {
   const sideOf = (id: string): string | undefined => store.state?.round?.sides[id];
   const who = (id: string): string => (id === selfId() ? 'You' : nameOf(id));
   const escape = (): boolean => store.state?.round?.mode === 'escape';
-  const exitsOpen = (): boolean => live.tasks.length > 0 && live.tasks.every((p) => p >= 100);
+  const choresDone = (): number => live.tasks.filter((p) => p >= 100).length;
+  /** All but one of the chores will do: see `tasksNeeded`. */
+  const exitsOpen = (): boolean => live.tasks.length > 0 && choresDone() >= tasksNeeded(live.tasks.length);
 
   /** Text is only touched when it changes: this runs every frame. */
   function setText(node: HTMLElement, text: string): void {
@@ -209,8 +212,7 @@ export function playScreen(): Screen {
         break;
       case 'd': {
         sfx.done();
-        const doneNow = live.tasks.filter((p) => p >= 100).length;
-        say(`A chore is done: ${doneNow} of ${live.tasks.length}`);
+        say(`A chore is done: ${choresDone()} of ${tasksNeeded(live.tasks.length)}`);
         break;
       }
       case 'o':
@@ -627,7 +629,7 @@ export function playScreen(): Screen {
     setText(sides, `Cousins ${all.filter((x) => x === 'c').length} · Beasts ${all.filter((x) => x === 'b').length}${outs ? ` · Out ${outs}` : ''}${ghosts ? ` · Ghosts ${ghosts}` : ''}`);
     chores.hidden = !escape();
     if (escape()) {
-      setText(chores, exitsOpen() ? 'Exit open!' : `Chores ${live.tasks.filter((p) => p >= 100).length} of ${live.tasks.length}`);
+      setText(chores, exitsOpen() ? 'Exit open!' : `Chores ${choresDone()} of ${tasksNeeded(live.tasks.length)}`);
       chores.classList.toggle('open', exitsOpen());
     }
     watching.hidden = isSeated() && !out;

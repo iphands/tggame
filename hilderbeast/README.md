@@ -54,13 +54,15 @@ win too; with two players, that is how the Cousin wins.
 - **Ghosts can bump.** A ghost that touches the Beast gives her a shove, about a square's worth,
   and is thrown most of a room back the other way for it. It cannot bump again for 2.5 seconds
   after it lands, so nobody can lean on her. Everyone sees a "Boo!" where it happened.
-- Chores are spread through the house: one more than there are Cousins (3 to 7).
+- Chores are spread through the house: one more than there are Cousins (3 to 7). **All but one**
+  must be done to open the exit, and any of them will do, so the Beast cannot win by standing
+  guard over the last one.
 - Stand at a chore and hold the action (E) to work on it. One Cousin takes 8 seconds; each helper
   adds 60 %. Walk away whenever you like: the work done is kept.
 - **Working makes noise.** The Beasts hear a chore being worked on: at once, then every 3 seconds.
   They are shown roughly where, never exactly, and the workers are told they were heard.
 - There is one exit a round (each map has two spots it can be at, and one is picked by lot).
-  When every chore is done it opens. Touch it and you are out, at once. Whoever gets out is safe and watches the rest of the round.
+  When enough chores are done it opens. Touch it and you are out, at once. Whoever gets out is safe and watches the rest of the round.
 - The round goes on until nobody is left in the house: every Cousin has got out or been caught,
   or 6 minutes have passed. The Cousins win if at least one of them got out; the Beasts win if
   nobody did.

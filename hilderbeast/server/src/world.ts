@@ -53,6 +53,7 @@ import {
   TASK_WORK_MS,
   TICK_MS,
   TILE,
+  tasksNeeded,
   TOUCH_R,
 } from '../../shared/src/constants.js';
 import { SPIKES_UP, T_CREAK, T_GOO, T_SPIKE, kindAt, spikesAt, type GameMap, type Spot } from '../../shared/src/map.js';
@@ -497,6 +498,8 @@ export class World {
 
   private stepTasks(rng: Rng): void {
     for (const b of this.bodies) b.working = false;
+    // enough are done and the exit is open: the one left over is no longer worth anyone's time
+    if (this.exitsOpen) return;
     this.tasks.forEach((task, i) => {
       if (task.progress >= 1) return;
       const workers = this.bodies.filter((b) => this.atWork(b, task, TASK_R));
@@ -514,7 +517,7 @@ export class World {
       if (task.progress >= 1) {
         task.workers = 0;
         this.fx.push(['d', i]);
-        if (this.tasks.every((t) => t.progress >= 1)) {
+        if (this.tasks.filter((t) => t.progress >= 1).length >= tasksNeeded(this.tasks.length)) {
           this.exitsOpen = true;
           this.fx.push(['o']);
         }

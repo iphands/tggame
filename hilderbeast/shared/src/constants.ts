@@ -181,6 +181,13 @@ export const TASKS_MAX = 7;
 
 export const tasksFor = (cousins: number): number => Math.min(TASKS_MAX, Math.max(TASKS_MIN, cousins + 1));
 
+/**
+ * How many of a round's `laidOut` chores must be done to open the exit: all but one. The Beast
+ * cannot win by standing over the last chore, because there is always another that will do.
+ */
+export const TASKS_SPARE = 1;
+export const tasksNeeded = (laidOut: number): number => Math.max(1, laidOut - TASKS_SPARE);
+
 // ---- bots
 
 export const BOT_THINK_MS = 150;

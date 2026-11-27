@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BASE_SPEED, BEAST_BOOST_COOLDOWN_MS, BEAST_BOOST_MS, CATCH_COOLDOWN_MS, CONVERT_MS, ENERGY_MAX, ENERGY_START,
   DASH_COOLDOWN_MS, DASH_MS, PORTALS_ON, DASH_SPEED, F_BOOST, F_CONVERT, F_DASH, F_HURT, F_SLOW, GOO_SPEED, HURT_SPEED, SPIKE_CYCLE_MS, SPIKE_ENERGY, SPIKE_UP_AT_MS, SPIKE_WARN_AT_MS, NOISE_EVERY_MS, PILL_BACK_MS, PILL_ENERGY, PORTAL_COOLDOWN_MS, PORTAL_TRANSIT_MS, ROLE,
-  TASK_WORK_MS, TICK_MS, TILE,
+  TASK_WORK_MS, TICK_MS, TILE, tasksNeeded,
 } from '../shared/src/constants';
 import { parseMap, spikesAt } from '../shared/src/map';
 import { MAP } from '../shared/src/maps';
@@ -284,6 +284,30 @@ describe('chores and exits', () => {
     expect(other).toBe(c);
     expect(w.escaped).toEqual(['a']);
     expect(w.cousins().map((b) => b.id)).toEqual(['c']);
+  });
+  it('open the exit with one chore to spare, so no single chore can be guarded', () => {
+    const w = world(['beast', 'a', 'c'], 'escape', MAP, [0, 1, 2, 3]);
+    place(w, 'beast', MAP.den.x, MAP.den.y);
+    expect(tasksNeeded(4)).toBe(3);
+    const finish = (i: number): void => {
+      w.tasks[i].progress = 0.999;
+      place(w, 'a', w.tasks[i].x, w.tasks[i].y);
+      w.setInput('a', 0, 0, false, true);
+      steps(w, 100, seeded(3));
+    };
+    finish(0);
+    finish(2);
+    expect(w.exitsOpen).toBe(false);
+    // any third one will do: here the last in the list, leaving chore 1 undone
+    finish(3);
+    expect(w.exitsOpen).toBe(true);
+    expect(w.tasks[1].progress).toBe(0);
+    // and the one left over cannot be worked any more
+    place(w, 'c', w.tasks[1].x, w.tasks[1].y);
+    w.setInput('c', 0, 0, false, true);
+    steps(w, 1000);
+    expect(w.tasks[1].progress).toBe(0);
+    expect(tasksNeeded(1)).toBe(1);
   });
   it('are not for Beasts', () => {
     const w = escapeWorld();
