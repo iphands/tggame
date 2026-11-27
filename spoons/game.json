@@ -1,0 +1,9 @@
+{
+  "title": "Spoons",
+  "tagline": "Pass cards, collect four of a kind, grab a spoon. Slowpokes get heckled.",
+  "port": 8094,
+  "players": "3–8 players",
+  "accent": "#3ddc97",
+  "order": 5,
+  "phases": { "lobby": "Lobby open", "play": "Cards flying", "reveal": "Between rounds", "finale": "Game over" }
+}
