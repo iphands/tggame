@@ -84,6 +84,8 @@ export class Game extends Roster<Player> {
       for (const p of this.players.values()) {
         if (!p.bot && p.token === token) {
           p.connected = true;
+          // whatever the autopilot was doing with their bike, they take over with hands off the boost
+          this.world?.boost(p.id, false);
           return { id: p.id, token: p.token, resumed: true };
         }
       }

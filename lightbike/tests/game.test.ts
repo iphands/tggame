@@ -166,8 +166,10 @@ describe('coming and going', () => {
     g.drop(ids[1]);
     expect(g.players.get(ids[1])!.connected).toBe(false);
     expect(g.world!.bike(ids[1])!.alive).toBe(true);
+    g.world!.bike(ids[1])!.boosting = true; // the autopilot likes its boost
     const back = join(g, 'whoever', tokens[1]);
     expect(back).toMatchObject({ id: ids[1], resumed: true });
+    expect(g.world!.bike(ids[1])!.boosting).toBe(false);
     expect(g.players.get(ids[1])!.connected).toBe(true);
   });
 
