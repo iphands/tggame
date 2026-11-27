@@ -10,6 +10,7 @@ lists them all.
 | `mark_ii` | Last Survivor Run | 8091 |
 | `tele` | Doodle Telephone | 8092 |
 | `drawlink` | Drawlink | 8093 |
+| `spoons` | Spoons | 8094 |
 
 ## One container, one port
 

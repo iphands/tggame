@@ -199,6 +199,7 @@ p {
   gap: 18px;
 }
 .tagline {
+  text-align: center;
   font-size: 1.5em;
   color: var(--paper);
   transform: rotate(-1deg);
