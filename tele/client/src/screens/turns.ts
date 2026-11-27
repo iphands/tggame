@@ -7,7 +7,7 @@ import { h, tilt } from '@tggame/base/client/dom';
 import { toast } from '@tggame/base/client/fx';
 import { DrawPad } from '../pad';
 import { drawingCanvas, replay } from '../render';
-import { isHost, isSeated, refresh, saved, send, store } from '../store';
+import { handIn, isHost, isSeated, refresh, saved, send, store } from '../store';
 import { applyTextEdit } from '@tggame/base/client/textedit';
 import type { Screen } from './index';
 
@@ -55,7 +55,7 @@ export function pickScreen(): Screen {
             onclick: () => {
               sfx.done();
               store.editingTurn = -1;
-              send({ type: 'pick', index });
+              handIn({ type: 'pick', index });
             },
           },
           word,
@@ -73,7 +73,7 @@ export function pickScreen(): Screen {
           if (!text) return;
           sfx.done();
           store.editingTurn = -1;
-          send({ type: 'write', text });
+          handIn({ type: 'write', text });
         },
       },
       own,
@@ -150,7 +150,7 @@ export function drawScreen(): Screen {
         if (!hasInk(pad.drawing)) return;
         sfx.done();
         store.editingTurn = -1;
-        send({ type: 'draw', strokes: pad.drawing });
+        handIn({ type: 'draw', strokes: pad.drawing });
       },
     },
     'Done!',
@@ -248,7 +248,7 @@ export function guessScreen(): Screen {
           if (!text) return;
           sfx.done();
           store.editingTurn = -1;
-          send({ type: 'guess', text });
+          handIn({ type: 'guess', text });
         },
       },
       input,

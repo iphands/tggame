@@ -13,6 +13,31 @@ export const { store, wire, send, refresh, player, me, nameOf, isHost } = partyS
   editingTurn: -1,
 });
 
+/** What was last handed in, and the task it answered. */
+let handedIn: { task: string; msg: ClientMessage } | null = null;
+
+/**
+ * Hand in a turn (a pick, a word, a drawing, a guess). A socket that is dying takes what was
+ * just sent down with it, silently; so the page is kept, and `taskArrived` sends it again when a
+ * new connection is told the very task it was the answer to.
+ */
+export function handIn(msg: ClientMessage): void {
+  handedIn = { task: JSON.stringify(store.task), msg };
+  send(msg);
+}
+
+/**
+ * The server's word on our task. It only sends one when it changes, or to a fresh connection: so
+ * the task we already answered, arriving again, means a reconnect, and the answer goes again
+ * (handing in the same page twice does no harm).
+ */
+export function taskArrived(task: Task | null): void {
+  store.task = task;
+  if (!handedIn) return;
+  if (JSON.stringify(task) === handedIn.task) send(handedIn.msg);
+  else handedIn = null;
+}
+
 export const isSeated = (): boolean => !!store.state && store.state.seats.includes(store.state.selfId);
 
 /** Small persisted bits. */

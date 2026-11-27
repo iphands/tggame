@@ -9,7 +9,7 @@ import { askName } from '@tggame/base/client/rename';
 import { GameClient, type ConnectionStatus } from './net';
 import { heckleCatchUp, heckleSeen } from './heckle';
 import { makeScreen, screenKey, type Screen } from './screens/index';
-import { isHost, isSeated, me, saved, send, store, wire } from './store';
+import { isHost, isSeated, me, saved, send, store, taskArrived, wire } from './store';
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -55,7 +55,7 @@ function onMessage(msg: ServerMessage): void {
       heckleCatchUp();
       break;
     case 'task':
-      store.task = msg.task;
+      taskArrived(msg.task);
       break;
     case 'pages':
       if (msg.game !== store.pagesGame) {
