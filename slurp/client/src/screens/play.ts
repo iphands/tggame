@@ -17,6 +17,8 @@ type Float = { x: number; y: number; at: number; text: string };
 const INK = '#1f2440';
 /** Aim is sent at most this often. */
 const AIM_EVERY_MS = 33;
+/** How much grass the camera shows beyond the table's edge, in world units. */
+const EDGE_VIEW = 70;
 /** Minimap dot colours, by tier. */
 const DOT = ['#ff5d73', '#c98b4a', '#e9c46a', '#c0304a', '#2f9e44'];
 
@@ -48,13 +50,14 @@ export function playScreen(): Screen {
   let raf = 0;
   let last = performance.now();
   let lastAimAt = 0;
-  let sentX = NaN;
-  let sentY = NaN;
+  let sentX = Infinity;
+  let sentY = Infinity;
   let edible = 0;
   let shownCount = -1;
   let shownSecond = -1;
   let shownIcon = -1;
   let bannerTimer = 0;
+  let goTimer = 0;
   let camReady = false;
   let teamAt = 0;
 
@@ -146,7 +149,7 @@ export function playScreen(): Screen {
     let y: number;
     if (self.ready) {
       // the bigger the hole, the more of the table it gets to see
-      scale = Math.min(view.cw, view.ch) / (330 + 6 * self.r);
+      scale = Math.sqrt(view.cw * view.ch) / (1.15 * (400 + 6 * self.r));
       x = self.x;
       y = self.y;
     } else {
@@ -158,8 +161,11 @@ export function playScreen(): Screen {
       view.scale = scale;
       camReady = true;
     } else view.scale += (scale - view.scale) * Math.min(1, dt * 2.5);
-    view.x = x;
-    view.y = y;
+    // near an edge the camera stops short, so the screen shows table rather than grass
+    const halfW = view.cw / 2 / view.scale;
+    const halfH = view.ch / 2 / view.scale;
+    view.x = live.w + 2 * EDGE_VIEW > 2 * halfW ? Math.min(live.w + EDGE_VIEW - halfW, Math.max(halfW - EDGE_VIEW, x)) : live.w / 2;
+    view.y = live.h + 2 * EDGE_VIEW > 2 * halfH ? Math.min(live.h + EDGE_VIEW - halfH, Math.max(halfH - EDGE_VIEW, y)) : live.h / 2;
   }
 
   function draw(now: number, dt: number): void {
@@ -318,14 +324,14 @@ export function playScreen(): Screen {
     drawMap(x0, y0, x1, y1);
   }
 
-  /** The whole table in a corner, once it no longer fits on the screen. */
+  /** The whole table in the top right corner, once it no longer fits on the screen. */
   function drawMap(x0: number, y0: number, x1: number, y1: number): void {
     if (x0 <= 0 && y0 <= 0 && x1 >= live.w && y1 >= live.h) return;
-    const mw = Math.min(140, view.cw * 0.3);
+    const mw = Math.min(140, view.cw * 0.28);
     const k = mw / live.w;
     const mh = live.h * k;
-    const ox = view.cw - mw - 10;
-    const oy = view.ch - mh - 10;
+    const ox = view.cw - mw - 8;
+    const oy = 8;
     ctx.fillStyle = 'rgba(255,247,234,.88)';
     ctx.fillRect(ox, oy, mw, mh);
     for (const f of live.foods.values()) {
@@ -360,6 +366,8 @@ export function playScreen(): Screen {
       if (c > 0) sfx.count();
       else if (shownCount > 0) sfx.go();
       count.replaceChildren(c > 0 ? h('span', null, c) : shownCount > 0 ? h('span', null, 'Slurp!') : '');
+      clearTimeout(goTimer);
+      if (c === 0) goTimer = window.setTimeout(() => count.replaceChildren(), 850);
       shownCount = c;
     }
     // clock
@@ -446,6 +454,7 @@ export function playScreen(): Screen {
     destroy() {
       cancelAnimationFrame(raf);
       clearTimeout(bannerTimer);
+      clearTimeout(goTimer);
       input.destroy();
       if (live.onEvent === onEvent) live.onEvent = null;
     },
