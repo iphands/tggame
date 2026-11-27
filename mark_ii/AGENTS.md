@@ -221,3 +221,9 @@ body (it splices `selfId` into the JSON string).
 Use conventional commits with a scope: `feat(game): …`, `fix(server): …`,
 `feat(client): …`, `feat(lobby): …`, `test: …`, `perf(server): …`, `docs: …`.
 Keep each commit small and about one thing.
+
+## Shared code
+
+This game is one project in an npm workspace. Code it shares with the other games lives in
+`../base` and is imported as `@tggame/base/...`; read `../base/README.md` before copying code
+from another game or adding hooks to anything that runs per tick, frame or message.

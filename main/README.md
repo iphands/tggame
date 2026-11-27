@@ -55,8 +55,9 @@ The container image does the same with only port 8081 published: see `../README.
 
 ## Adding a game
 
-Nothing here needs editing. Give the new game the next free port from 8094 and put two files in
-its directory; it appears on the page within a few seconds.
+Nothing here needs editing. Give the new game the next free port, add its directory to
+`workspaces` in the root `package.json`, and put two files in its directory; it appears on the
+page within a few seconds.
 
 `game.json`:
 

@@ -12,6 +12,9 @@ lists them all.
 | `drawlink` | Drawlink | 8093 |
 | `spoons` | Spoons | 8094 |
 
+`base/` holds the code the games share (servers, clients, drawing, platformer core, styles); see
+`base/README.md`. The repo is one npm workspace: run `npm install` once, here or in any project.
+
 ## One container, one port
 
 ```sh
@@ -22,7 +25,8 @@ lists them all.
 Only port 8081 leaves the container. The landing page is at `/` and each game at
 `/play/<directory>/`, WebSockets included; the games' own ports stay inside.
 
-- `./build` caches per project: after a change to one game only that game is rebuilt. The
+- `./build` caches per project: dependencies install once, `base/` builds once, and after a
+  change to one game only that game is rebuilt (a change to `base/` rebuilds the games). The
   Dockerfile is generated from the directories that have a `package.json`; `./build --print`
   shows it.
 - `PORT=9000 ./run` publishes another port.
@@ -33,6 +37,13 @@ Only port 8081 leaves the container. The landing page is at `/` and each game at
 
 ## Without a container
 
-Each project runs by itself: `npm install`, then `npm run dev` or `npm run build && npm start`
-in its directory. To run the lot, build each one and then `npm run all` in `main`. See
-`main/README.md`, which also explains how a new game gets onto the landing page.
+```sh
+npm install                       # once, for every project
+cd tele && npm run dev            # one game, with hot reload
+npm run build                     # at the root: build everything
+npm test                          # at the root: every project's tests
+cd main && npm run all            # after a build: every game plus the landing page
+```
+
+See `main/README.md`, which also explains how a new game gets onto the landing page. A new game
+also needs adding to `workspaces` in the root `package.json`.

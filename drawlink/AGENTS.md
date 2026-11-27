@@ -76,3 +76,9 @@ node scripts/smoke.mjs ws://localhost:8193    # needs an empty lobby
 TypeScript strict, 2-space indent, single quotes, semicolons, JSDoc on non-obvious members,
 `// ---- section` dividers. Conventional commits scoped like the rest of the repo
 (`feat(drawlink): …`, `fix(drawlink): …`, `docs: …`), small logical units, tree green at every commit.
+
+## Shared code
+
+This game is one project in an npm workspace. Code it shares with the other games lives in
+`../base` and is imported as `@tggame/base/...`; read `../base/README.md` before copying code
+from another game or adding hooks to anything that runs per tick, frame or message.
