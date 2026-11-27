@@ -19,6 +19,9 @@ change that touches input, movement, timing or messages is judged at that distan
 - A netcode change is not done until it has been played (or driven in a headless browser) with
   `?lag=125&jitter=20`, and again with `&stall=300`. Numbers to watch: how far the drawn player is
   from where the server will have them, and how often a prediction had to be put back.
+- The pretend line's delay happens inside the page, where the server's own ping cannot see it.
+  To try a rule that rests on ping (spoons' scramble, drawlink's first guess) with `?lag=`, start
+  the private server with `TRUST_CLIENT_PING=1`. Never set that where strangers play.
 - Private servers only: `PORT=18xxx npx tsx server/src/index.ts`, with the client built to a
   scratch directory (`npx vite build --outDir <scratch>`, `STATIC_DIR=<scratch>`). Stop them by
   the pid that owns the port, never with `pkill -f`.
@@ -27,7 +30,9 @@ change that touches input, movement, timing or messages is judged at that distan
 
 - **Ping and clock** (`base/src/client/clock.ts`, `net.ts`, `server/http.ts`): the socket pings
   under the game's own messages; no game sees a `ping` or a `pong`. Read `clock.rtt`,
-  `clock.jitter` and `serverNow()`. Never estimate the server's clock from one message, and never
+  `clock.jitter` and `serverNow()`. On the server, `pingOf(ws)` is the round trip the server
+  measured itself (a WebSocket ping frame the page has no say in): rules rest on that one.
+  `shownPingOf(ws)` is what the page claims, fit only for showing. Never estimate the server's clock from one message, and never
   from when a message happened to arrive: a message that queued has the wrong time on it.
 - **Interpolation** (`base/src/platformer/interp.ts`): other players are drawn a little in the
   past, between two snapshots, by the server's sim time and never by arrival time. The delay

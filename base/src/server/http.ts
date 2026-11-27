@@ -154,6 +154,25 @@ export function createGameServer(opts: GameServerOptions) {
   // Ping/pong lives below the games (see `client/net.ts`): answered here, at once, with this
   // server's clock. The game's own listener also sees the ping and ignores it as unknown.
   wss.on('connection', (ws) => {
+    // The server's own measure of each line: a WebSocket ping frame, which the browser answers
+    // by itself. A page cannot stretch this one to look slower than it is.
+    let sentAt = 0;
+    const recent: number[] = [];
+    const beat = (): void => {
+      if (ws.readyState !== ws.OPEN) return;
+      sentAt = performance.now();
+      ws.ping();
+    };
+    const timer = setInterval(beat, SERVER_PING_MS);
+    ws.on('pong', () => {
+      if (!sentAt) return;
+      recent.push(performance.now() - sentAt);
+      sentAt = 0;
+      if (recent.length > 5) recent.shift();
+      measured.set(ws, Math.min(...recent)); // the quickest of the last few: the wire, not the queues
+    });
+    ws.on('close', () => clearInterval(timer));
+    beat();
     ws.on('message', (raw, isBinary) => {
       if (isBinary || !Buffer.isBuffer(raw) || raw.length > 96 || raw[0] !== 0x7b) return;
       const text = raw.toString();
@@ -179,7 +198,24 @@ export function createGameServer(opts: GameServerOptions) {
   return { server, wss, listen };
 }
 
+/** How often the server pings each socket itself. */
+const SERVER_PING_MS = 2000;
+/** What each page says its round trip is (for show). */
 const pings = new WeakMap<WebSocket, number>();
+/** What the server measured it to be. */
+const measured = new WeakMap<WebSocket, number>();
+/**
+ * `TRUST_CLIENT_PING=1` makes the server believe the page's own figure. That is for testing with
+ * the pretend bad line (`?lag=`), whose delay happens inside the page where the server cannot see
+ * it. Never set it where strangers play: a page could then claim any ping it liked.
+ */
+const TRUST_CLIENT_PING = process.env.TRUST_CLIENT_PING === '1';
 
-/** The round trip this socket's page last reported, in ms (its own measurement); 0 if none yet. */
-export const pingOf = (ws: WebSocket): number => pings.get(ws) ?? 0;
+/**
+ * This socket's round trip in ms, as the server measured it; 0 until the first answer. This is
+ * the number rules may rest on (who reached first, what a player could have seen).
+ */
+export const pingOf = (ws: WebSocket): number => (TRUST_CLIENT_PING ? pings.get(ws) : undefined) ?? measured.get(ws) ?? 0;
+
+/** The round trip the page itself reports, in ms: includes its own delays, so only fit for showing. */
+export const shownPingOf = (ws: WebSocket): number => pings.get(ws) ?? measured.get(ws) ?? 0;

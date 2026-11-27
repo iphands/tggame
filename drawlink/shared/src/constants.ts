@@ -15,6 +15,12 @@ export const MAX_AWARD = 120;
 export const AWARD_STEP = 10;
 /** …every time this long passes. At zero the round is over. */
 export const AWARD_STEP_MS = 10_000;
+/**
+ * A correct guess is judged by when it was sent, not by when it arrived: each guesser's round
+ * trip is taken off, up to this much, and a guess waits at most this long before it wins, in case
+ * one from a slower line turns out to have been first.
+ */
+export const GUESS_FAIR_CAP_MS = 300;
 export const ROUND_MS = (MAX_AWARD / AWARD_STEP) * AWARD_STEP_MS;
 /** How long the answer stays on screen before the next round. */
 export const BETWEEN_MS = 6_000;

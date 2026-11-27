@@ -1,7 +1,7 @@
 /** WebSocket entrypoint (the HTTP side is shared). Sends each player only what they may see. */
 import path from 'node:path';
 import { WebSocket } from 'ws';
-import { createGameServer } from '@tggame/base/server/http';
+import { createGameServer, pingOf } from '@tggame/base/server/http';
 import { Game } from './game.js';
 import { isClientMessage, type ClientMessage, type ServerMessage } from '../../shared/src/protocol.js';
 import { ABANDON_MS, MAX_PLAYERS, MAX_PAYLOAD_BYTES, TICK_MS } from '../../shared/src/constants.js';
@@ -38,6 +38,21 @@ const { wss, listen } = createGameServer({
 
 function send(ws: WebSocket, msg: ServerMessage): void {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
+}
+
+/** Tell the game each seat's round trip, so a guess is judged by when it was sent. */
+function notePings(): void {
+  for (const [ws, peer] of peers) if (peer.id) game.notePing(peer.id, pingOf(ws));
+}
+
+/** A correct guess is being held for a moment (see `Game.settleGuess`): look again the moment it is due. */
+function settleSoon(): void {
+  const due = game.guessDueAt();
+  if (due === null) return;
+  setTimeout(() => {
+    game.tick(Date.now());
+    sync();
+  }, Math.max(0, due - Date.now()) + 1);
 }
 
 function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
@@ -100,7 +115,9 @@ function handle(ws: WebSocket, peer: Peer, msg: ClientMessage): void {
       game.pass(id, now);
       break;
     case 'chat':
+      notePings();
       game.chat(id, msg.text, msg.to, now);
+      settleSoon();
       break;
     case 'boot':
       game.boot(id, msg.playerId, now);

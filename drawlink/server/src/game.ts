@@ -9,6 +9,7 @@ import {
   BOT_EUREKA,
   BOT_GUESS_MS,
   CHAT_GAP_MS,
+  GUESS_FAIR_CAP_MS,
   CHAT_KEEP,
   DEFAULT_ROUNDS,
   DRAWER_GRACE_MS,
@@ -84,6 +85,10 @@ export class Game extends Roster<Player> {
   private plans = new Map<string, { nextAt: number; eurekaAt: number | null }>();
   /** The time of the last action or tick; views are computed as of this moment. */
   private clock = 0;
+  /** Each human's round trip to the server in ms, capped. */
+  private lag = new Map<string, number>();
+  /** The earliest correct guess so far, not yet declared the winner (see `settleGuess`). */
+  private claim: { id: string; at: number } | null = null;
 
   constructor(rng: Rng = Math.random) {
     super(rng, MAX_PLAYERS, PLAYER_COLORS);
@@ -218,6 +223,8 @@ export class Game extends Roster<Player> {
       return;
     }
     if (this.phase !== 'draw') return;
+    this.settleGuess(now, now - this.startedAt >= ROUND_MS);
+    if (this.phase !== 'draw') return;
     if (now - this.startedAt >= ROUND_MS) {
       this.info(`Time's up! It was “${this.word}”.`);
       this.endRound(null, 0, now);
@@ -311,6 +318,51 @@ export class Game extends Roster<Player> {
     this.say(id, text, to, now);
   }
 
+  /** A player's round trip to the server, so their guess can be judged by when it was sent. */
+  notePing(id: string, rttMs: number): void {
+    if (Number.isFinite(rttMs) && rttMs >= 0) this.lag.set(id, Math.min(GUESS_FAIR_CAP_MS, rttMs));
+  }
+
+  /** When the held guess will be settled if nothing earlier turns up; null if none is held. */
+  guessDueAt(): number | null {
+    return this.claim && this.phase === 'draw' ? this.claim.at + this.guessWait() : null;
+  }
+
+  /** The slowest line among those who could still turn out to have guessed first. */
+  private guessWait(): number {
+    let wait = 0;
+    for (const q of this.players.values()) {
+      if (q.bot || !q.connected || q.spectator || q.id === this.drawerId || q.id === this.claim?.id) continue;
+      wait = Math.max(wait, this.lag.get(q.id) ?? 0);
+    }
+    return wait;
+  }
+
+  /**
+   * Declare the held guess the winner once nobody on a slower line could still have been first
+   * (word of theirs would have arrived by now), or at once with `all`.
+   */
+  private settleGuess(now: number, all = false): void {
+    const claim = this.claim;
+    if (!claim || this.phase !== 'draw') return;
+    if (!all && claim.at + this.guessWait() > now) return;
+    this.claim = null;
+    const p = this.players.get(claim.id);
+    if (!p) return;
+    const award = awardAt(claim.at - this.startedAt);
+    const drawer = this.players.get(this.drawerId!);
+    p.score += award;
+    if (drawer) drawer.score += award;
+    this.push({
+      kind: 'win',
+      text: `${p.name} got it: “${this.word}”! +${award} for ${p.name}${drawer ? ` and ${drawer.name}` : ''}.`,
+      fromId: claim.id,
+      from: p.name,
+      color: p.color,
+    });
+    this.endRound(claim.id, award, now);
+  }
+
   private say(id: string, text: string, to: string | undefined, now: number): void {
     const p = this.players.get(id);
     if (!p) return;
@@ -326,18 +378,10 @@ export class Game extends Roster<Player> {
       return;
     }
     if (live && !p.spectator && id !== this.drawerId && sameWord(text, this.word)) {
-      const award = awardAt(now - this.startedAt);
-      const drawer = this.players.get(this.drawerId!);
-      p.score += award;
-      if (drawer) drawer.score += award;
-      this.push({
-        kind: 'win',
-        text: `${p.name} got it: “${this.word}”! +${award} for ${p.name}${drawer ? ` and ${drawer.name}` : ''}.`,
-        fromId: id,
-        from: p.name,
-        color: p.color,
-      });
-      this.endRound(id, award, now);
+      // word of it took this player's line to get here: take that off, and it is when they sent it
+      const at = Math.max(this.startedAt, now - (p.bot ? 0 : (this.lag.get(id) ?? 0)));
+      if (!this.claim || at < this.claim.at) this.claim = { id, at };
+      this.settleGuess(now);
       return;
     }
     this.push({ kind: 'say', text, fromId: id, from: p.name, color: p.color });
@@ -462,6 +506,7 @@ export class Game extends Roster<Player> {
     this.drawerId = drawerId;
     this.word = this.deck.pop()!;
     this.startedAt = now;
+    this.claim = null;
     this.strokes = [];
     this.points = 0;
     this.ink = [];
@@ -480,6 +525,7 @@ export class Game extends Roster<Player> {
 
   private endRound(winnerId: string | null, award: number, now: number): void {
     this.result = { word: this.word, drawerId: this.drawerId!, winnerId, award };
+    this.claim = null;
     this.phase = 'between';
     this.betweenUntil = now + BETWEEN_MS;
     this.plans.clear();

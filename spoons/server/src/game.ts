@@ -83,7 +83,7 @@ export class Game extends Roster<Player> {
   round = 0;
 
   private seats = new Map<string, Seat>();
-  /** Each human's round trip to the server in ms, as their page measures it, capped. */
+  /** Each human's round trip to the server in ms, as the server measures it, capped. */
   private lag = new Map<string, number>();
   /** Seated players in passing order for this round. */
   private order: string[] = [];

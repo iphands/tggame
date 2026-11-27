@@ -62,6 +62,37 @@ describe('a round', () => {
     expect(score(g, ids[3])).toBe(0);
   });
 
+  it('the guess sent first wins, not the one on the quicker line', () => {
+    const { g, ids } = table(4);
+    g.start(ids[0], T0);
+    const word = wordOf(g);
+    const [near, far] = [ids[1], ids[2]];
+    g.notePing(near, 4);
+    g.notePing(far, 250);
+    // `near` sends at 9 990 ms; `far` sent at 9 900, but word of it takes 250 ms longer to arrive
+    g.chat(near, word, undefined, T0 + 9_994);
+    expect(g.phase).toBe('draw'); // held: `far` may yet have been first
+    expect(g.guessDueAt()).toBe(T0 + 9_990 + 250);
+    g.chat(far, word, undefined, T0 + 10_150);
+    expect(g.phase).toBe('between');
+    expect(g.viewFor(ids[3]).result).toMatchObject({ winnerId: far, award: 120 }); // sent before the ten-second step
+    expect(score(g, near)).toBe(0);
+  });
+
+  it('a held guess wins once nobody slower could still beat it, and is paid for when it was sent', () => {
+    const { g, ids } = table(4);
+    g.start(ids[0], T0);
+    const word = wordOf(g);
+    g.notePing(ids[1], 4);
+    g.notePing(ids[2], 250);
+    g.chat(ids[1], word, undefined, T0 + 9_994);
+    g.tick(T0 + 10_100);
+    expect(g.phase).toBe('draw');
+    g.tick(T0 + 10_241);
+    expect(g.phase).toBe('between');
+    expect(g.viewFor(ids[3]).result).toMatchObject({ winnerId: ids[1], award: 120 });
+  });
+
   it('moves to the next drawer after the pause, and ends after the last round', () => {
     const { g, ids } = table(3);
     g.configure(ids[0], 5);

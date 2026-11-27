@@ -49,6 +49,10 @@ node scripts/smoke.mjs ws://localhost:8193    # needs an empty lobby
 - **Hidden information.** While a round runs the word may leave `Game` only through `taskFor(drawer)`.
   `viewFor` carries it only as `result`, after the round. Chat lines the drawer writes are checked
   with `givesAway`. If you add a field to `StateView` or a chat kind, extend `tests/views.test.ts`.
+- **The guess sent first wins, not the one that arrived first.** Each guesser's round trip
+  (measured by the server, told to `Game.notePing`, capped at `GUESS_FAIR_CAP_MS`) is taken off
+  their correct guess, which is then held in `settleGuess` until nobody on a slower line could
+  still have been first; the award is for when it was sent. Never end a round on arrival order.
 - **`Game` is pure.** No sockets, timers, `Date.now()` or bare `Math.random()` in `game.ts`; time
   comes in as `now` on every action and on `tick`, randomness from the injected RNG.
 - **Never trust a client.** Ink goes through `sanitizeStroke` and the `DRAW_LIMITS`, strings through
