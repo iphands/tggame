@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BASE_SPEED, BEAST_BOOST_COOLDOWN_MS, BEAST_BOOST_MS, CATCH_COOLDOWN_MS, CONVERT_MS, ENERGY_MAX, ENERGY_START, ESCAPE_HOLD_MS,
+  BASE_SPEED, BEAST_BOOST_COOLDOWN_MS, BEAST_BOOST_MS, CATCH_COOLDOWN_MS, CONVERT_MS, ENERGY_MAX, ENERGY_START,
   DASH_COOLDOWN_MS, DASH_MS, DASH_SPEED, F_BOOST, F_CONVERT, F_DASH, NOISE_EVERY_MS, PILL_BACK_MS, PILL_ENERGY, PORTAL_COOLDOWN_MS, PORTAL_TRANSIT_MS, ROLE,
   TASK_WORK_MS, TICK_MS, TILE,
 } from '../shared/src/constants';
@@ -263,8 +263,7 @@ describe('chores and exits', () => {
     const w = escapeWorld();
     const exit = MAP.exits[0];
     const a = place(w, 'a', exit.x, exit.y);
-    w.setInput('a', 0, 0, false, true);
-    steps(w, ESCAPE_HOLD_MS * 2);
+    steps(w, 500);
     expect(a.out).toBe(false);
     w.tasks[0].progress = 1;
     w.tasks[1].progress = 0.999;
@@ -274,7 +273,7 @@ describe('chores and exits', () => {
     expect(w.exitsOpen).toBe(true);
     expect(w.fx).toContainEqual(['o']);
     expect(c.out).toBe(false);
-    steps(w, ESCAPE_HOLD_MS + 50);
+    // a touch is enough: nothing to hold
     expect(a.out).toBe(true);
     expect(w.escaped).toEqual(['a']);
     expect(w.cousins().map((b) => b.id)).toEqual(['c']);

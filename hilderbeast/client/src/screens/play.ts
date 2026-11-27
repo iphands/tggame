@@ -11,11 +11,11 @@ import {
   DREAD_STEPS,
   ENERGY_MAX,
   ENERGY_TO_START,
-  EXIT_R,
   F_BEAST,
   F_BOOST,
   F_CONVERT,
   F_DASH,
+  F_GHOST,
   F_HELD,
   F_OUT,
   F_PORTAL,
@@ -159,7 +159,7 @@ export function playScreen(): Screen {
         if (mine) {
           buzz(250);
           if (!reducedMotion()) shake = 1;
-          say('Caught! You are a Hilder Beast now', 2600, 'beast');
+          say(escape() ? 'Caught! You are a ghost now: roam and watch' : 'Caught! You are a Hilder Beast now', 3000, escape() ? 'news' : 'beast');
         } else if (e[1] === me) buzz(60);
         break;
       }
@@ -232,7 +232,10 @@ export function playScreen(): Screen {
     const moving = ctl.x !== 0 || ctl.y !== 0;
     // our own boost starts the moment the button goes down, not a round trip later
     let flags = latest[3];
-    if (flags & F_BEAST) {
+    const ghost = (flags & F_GHOST) !== 0;
+    if (ghost) {
+      // a ghost has no boosts: it only drifts
+    } else if (flags & F_BEAST) {
       const free = !(flags & (F_HELD | F_CONVERT | F_PORTAL));
       if (ctl.act && !actWas && free && (live.me?.[2] ?? 1) <= 0) dashUntil = now + Math.min(DASH_MS, netClock.rtt + 200);
       if (now < dashUntil && free) flags |= F_DASH;
@@ -255,7 +258,7 @@ export function playScreen(): Screen {
     const speed = speedOf(flags);
     // while the server holds the body (the den, a Beast door, turning) we only follow
     const steering = speed > 0;
-    const ahead = steering ? predictBody({ x: latest[1], y: latest[2] }, live.stampedAt, netClock.rtt, sticks, now, speed, MAP) : { x: latest[1], y: latest[2] };
+    const ahead = steering ? predictBody({ x: latest[1], y: latest[2] }, live.stampedAt, netClock.rtt, sticks, now, speed, MAP, ghost) : { x: latest[1], y: latest[2] };
     const off = Math.hypot(ahead.x - self.x, ahead.y - self.y);
     if (!self.ready || off > SNAP_UNITS) {
       self.x = ahead.x;
@@ -263,7 +266,7 @@ export function playScreen(): Screen {
       if (!self.ready) sticks.length = 0;
       self.ready = true;
     }
-    if (steering) moveBody(self, ctl.x * speed * dt, ctl.y * speed * dt, MAP);
+    if (steering) moveBody(self, ctl.x * speed * dt, ctl.y * speed * dt, MAP, ghost);
     // the server has the last word: close on the forecast, which is its word carried forward
     const pull = Math.min(1, dt * (steering ? 8 : 20));
     self.x += (ahead.x - self.x) * pull;
@@ -373,7 +376,8 @@ export function playScreen(): Screen {
     MAP.pills.forEach((p, i) => drawPill(ctx, p.x, p.y, now, ((live.pills >> i) & 1) === 1));
 
     const me = bodies.find((b) => b.id === s.selfId);
-    const lit = self.ready && !!me;
+    // a ghost sees the whole house: the dark is for the living
+    const lit = self.ready && !!me && !(me.flags & F_GHOST);
     const sorted = bodies.filter((b) => !(b.flags & (F_PORTAL | F_OUT))).sort((a, b) => a.y - b.y);
     // our own side is always sent, wall or no wall: those out of sight are drawn over the dark, as markers
     const unseen = lit ? sorted.filter((b) => b.id !== s.selfId && !sees(MAP, self.x, self.y, b.x, b.y, SIGHT_R * 0.9)) : [];
@@ -512,6 +516,7 @@ export function playScreen(): Screen {
     const flags = mine?.[3] ?? 0;
     const beast = (flags & F_BEAST) !== 0;
     const out = sideOf(s.selfId) === 'x';
+    const ghost = sideOf(s.selfId) === 'g';
 
     const cd = Math.ceil(countdownLeft(now, netClock.rtt / 2) / 1000);
     if (cd !== shownCount) {
@@ -527,7 +532,7 @@ export function playScreen(): Screen {
     else if (performance.now() < newsUntil) {
       words = news;
       kind = newsKind;
-    } else words = !mine ? '' : out ? 'You got out!' : beast ? (flags & F_HELD ? 'Hilder Beast · the Cousins get a head start' : 'Hilder Beast') : 'Cousin';
+    } else words = !mine ? '' : out ? 'You got out!' : ghost ? 'Ghost · roam and watch' : beast ? (flags & F_HELD ? 'Hilder Beast · the Cousins get a head start' : 'Hilder Beast') : 'Cousin';
     setText(role, words);
     if (role.className !== `role ${kind}`) role.className = `role ${kind}`;
 
@@ -558,7 +563,9 @@ export function playScreen(): Screen {
     hudAt = now;
     const round = s.round;
     const all = Object.values(round?.sides ?? {});
-    setText(sides, `Cousins ${all.filter((x) => x === 'c').length} · Beasts ${all.filter((x) => x === 'b').length}`);
+    const ghosts = all.filter((x) => x === 'g').length;
+    const outs = all.filter((x) => x === 'x').length;
+    setText(sides, `Cousins ${all.filter((x) => x === 'c').length} · Beasts ${all.filter((x) => x === 'b').length}${outs ? ` · Out ${outs}` : ''}${ghosts ? ` · Ghosts ${ghosts}` : ''}`);
     chores.hidden = !escape();
     if (escape()) {
       setText(chores, exitsOpen() ? 'Exits open!' : `Chores ${live.tasks.filter((p) => p >= 100).length} of ${live.tasks.length}`);
@@ -570,7 +577,7 @@ export function playScreen(): Screen {
     mini.hidden = !mine || out;
 
     // the two pads
-    const playing = !!mine && !out && s.phase === 'play';
+    const playing = !!mine && !out && !ghost && s.phase === 'play';
     boostPad.hidden = !playing;
     if (playing && live.me) {
       const [energy, boostWait, dashWait] = live.me;
@@ -579,8 +586,7 @@ export function playScreen(): Screen {
       let act = '';
       if (beast) act = 'DASH';
       else if (escape() && round && self.ready) {
-        if (exitsOpen() && MAP.exits.some((e) => Math.hypot(e.x - self.x, e.y - self.y) <= EXIT_R)) act = 'GET OUT';
-        else if (round.tasks.some((spot, i) => (live.tasks[i] ?? 0) < 100 && Math.hypot(MAP.tasks[spot].x - self.x, MAP.tasks[spot].y - self.y) <= TASK_R)) act = 'WORK';
+        if (round.tasks.some((spot, i) => (live.tasks[i] ?? 0) < 100 && Math.hypot(MAP.tasks[spot].x - self.x, MAP.tasks[spot].y - self.y) <= TASK_R)) act = 'WORK';
       }
       actPad.hidden = !act;
       setText(actText, act);

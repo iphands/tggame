@@ -39,6 +39,8 @@ export function predictBody(
   now: number,
   speed: number,
   map: GameMap,
+  /** A ghost: walls do not stop it. */
+  through = false,
 ): { x: number; y: number } {
   const p = { x: snap.x, y: snap.y };
   if (!sticks.length || speed <= 0) return p;
@@ -50,7 +52,7 @@ export function predictBody(
   while (t < now) {
     const until = i + 1 < sticks.length ? Math.min(now, sticks[i + 1].at) : now;
     const k = (speed * (until - t)) / 1000;
-    moveBody(p, sticks[i].x * k, sticks[i].y * k, map);
+    moveBody(p, sticks[i].x * k, sticks[i].y * k, map, through);
     t = until;
     i++;
   }

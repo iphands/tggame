@@ -6,7 +6,7 @@ import { MODE_NAMES, type Screen } from './index';
 
 const BLURB = {
   last: 'No chores, no way out. The last Cousin left uncaught wins.',
-  escape: 'Do the chores together to open the exits, then everyone gets out. Working makes noise.',
+  escape: 'One Beast all round. Do the chores together to open the exits, then get out. Working makes noise. Get caught and you are a ghost.',
 } as const;
 
 export function lobbyScreen(): Screen {
@@ -35,7 +35,7 @@ export function lobbyScreen(): Screen {
       h('li', null, h('span', null, h('b', null, 'Move'), ' with WASD or the arrows, or drag a thumb anywhere. Walls hide you: nobody sees round a corner.')),
       h('li', null, h('span', null, 'Cousins: hold ', h('b', null, 'Boost'), ' (Space) to run. It burns energy; ', h('b', null, 'pills'), ' give it back.')),
       h('li', null, h('span', null, 'Beast: ', h('b', null, 'touch'), ' a Cousin to catch them. ', h('b', null, 'Boost'), ' (Space) is a big burst, ', h('b', null, 'Dash'), ' (E) a quick small one. Swirls in the floor are your ', h('b', null, 'Beast doors'), '.')),
-      h('li', null, h('span', null, 'A caught Cousin ', h('b', null, 'becomes a Beast'), ' and joins the hunt.')),
+      h('li', null, h('span', null, 'In Last Cousin Standing a caught Cousin ', h('b', null, 'becomes a Beast'), '. In Escape they become a ', h('b', null, 'ghost'), ' who can only roam and watch.')),
     ),
   );
 

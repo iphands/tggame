@@ -299,7 +299,7 @@ export class Game extends Roster<Player> {
     const players: PlayerView[] = [...this.players.values()].map((p) => ({ id: p.id, name: p.name, color: p.color, bot: p.bot, connected: p.connected, spectator: p.spectator, watcher: p.watcher }));
     const world = this.world;
     const sides: Record<string, Side> = {};
-    if (world) for (const b of world.bodies) sides[b.id] = b.out ? 'x' : b.role === 'beast' ? 'b' : 'c';
+    if (world) for (const b of world.bodies) sides[b.id] = b.out ? 'x' : b.ghost ? 'g' : b.role === 'beast' ? 'b' : 'c';
     return {
       game: this.gameNo,
       phase: this.phase,
@@ -327,7 +327,9 @@ export class Game extends Roster<Player> {
   /** May `viewer` see `b`? Their own side always; the other side only in sight, with no wall between. */
   private visible(world: World, viewer: Body | undefined, b: Body): boolean {
     if (b.out) return false;
-    if (!viewer || viewer.out || this.phase === 'finale') return true;
+    // the dead see everything; the living never see the dead
+    if (!viewer || viewer.out || viewer.ghost || this.phase === 'finale') return true;
+    if (b.ghost) return false;
     if (viewer.role === b.role) return true;
     return b.portalMs <= 0 && sees(world.map, viewer.x, viewer.y, b.x, b.y, SIGHT_R);
   }
@@ -344,7 +346,7 @@ export class Game extends Roster<Player> {
       seen.add(b.id);
       bodies.push([b.id, Math.round(b.x * 10) / 10, Math.round(b.y * 10) / 10, world.flags(b), Math.round(Math.atan2(b.fy, b.fx) * 100)]);
     }
-    const all = !me || me.out;
+    const all = !me || me.out || me.ghost;
     const near = (i: number): boolean => !!me && sees(world.map, me.x, me.y, world.map.portals[i].x, world.map.portals[i].y, SIGHT_R);
     const fx: Fx[] = [];
     for (const e of frame.fx) {

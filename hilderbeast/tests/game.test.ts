@@ -255,6 +255,81 @@ describe('Escape', () => {
   });
 });
 
+describe('ghosts', () => {
+  it('are what a caught Cousin becomes in Escape: the Beast stays alone', () => {
+    const { g, ids, w } = started(4, 'escape');
+    const beast = w.beasts()[0];
+    const [a, b] = w.cousins();
+    run(g, HEAD_START_MS);
+    place(w, a.id, beast.x + 10, beast.y);
+    run(g, TICK_MS * 2);
+    expect(a.ghost).toBe(true);
+    expect(a.role).toBe('cousin');
+    expect(w.beasts()).toHaveLength(1);
+    expect(w.cousins()).toHaveLength(2);
+    expect(g.viewFor(ids[0]).round!.sides[a.id]).toBe('g');
+    expect(g.phase).toBe('play');
+    // cannot be caught again, and does not stop the Beast catching someone else behind it
+    run(g, 1000);
+    expect(w.catches).toHaveLength(1);
+    place(w, b.id, beast.x + 12, beast.y);
+    run(g, TICK_MS * 2);
+    expect(b.ghost).toBe(true);
+  });
+  it('see everyone and are seen by nobody living', () => {
+    const { g, w } = started(4, 'escape');
+    const beast = w.beasts()[0];
+    const [a, b] = w.cousins();
+    turn(g, a.id);
+    const seen = (id: string) => snap(g, id).bodies.map((s) => s[0]);
+    expect(seen(a.id)).toHaveLength(4);
+    expect(seen(b.id)).not.toContain(a.id);
+    place(w, a.id, beast.x + 40, beast.y);
+    expect(seen(beast.id)).not.toContain(a.id);
+    expect(snap(g, a.id).me![4]).toBe(0);
+    // another ghost does see them
+    turn(g, b.id);
+    expect(seen(b.id)).toContain(a.id);
+  });
+  it('drift through walls but not out of the house, and can do nothing', () => {
+    const { g, w } = started(3, 'escape');
+    const [a] = w.cousins();
+    for (const t of w.tasks) t.progress = 0;
+    turn(g, a.id);
+    place(w, a.id, MAP.cousinStarts[0].x, MAP.cousinStarts[0].y);
+    g.input(a.id, -1, 0, true, false);
+    run(g, 20_000);
+    // from the Hall, through every wall, to the inside of the west wall
+    expect(a.x).toBe(40);
+    const t = w.tasks[0];
+    place(w, a.id, t.x, t.y);
+    g.input(a.id, 0, 0, false, true);
+    run(g, 2000);
+    expect(t.progress).toBe(0);
+    const pill = MAP.pills[0];
+    a.energy = 0;
+    place(w, a.id, pill.x, pill.y);
+    run(g, 100);
+    expect(a.energy).toBe(0);
+  });
+  it('do not happen in Last Cousin Standing', () => {
+    const { g, w } = started(4);
+    const [a] = w.cousins();
+    turn(g, a.id);
+    expect(a.ghost).toBe(false);
+    expect(a.role).toBe('beast');
+  });
+  it('are not who takes over when the Beast leaves', () => {
+    const { g, w } = started(5, 'escape');
+    const [a] = w.cousins();
+    turn(g, a.id);
+    g.leave(w.firstBeast);
+    expect(w.beasts()).toHaveLength(1);
+    expect(w.beasts()[0].ghost).toBe(false);
+    expect(g.phase).toBe('play');
+  });
+});
+
 describe('only watching', () => {
   it('gives up the seat, is never dealt in, and sees the whole house', () => {
     const { g, ids } = table(3);

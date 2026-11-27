@@ -1,5 +1,5 @@
 /** The rules both sides must agree on: the server runs them, the client predicts its own body with them. */
-import { BASE_SPEED, BODY_R, F_BEAST, F_BOOST, F_CONVERT, DASH_SPEED, F_DASH, F_HELD, F_OUT, F_PORTAL, ROLE, TILE } from './constants.js';
+import { BASE_SPEED, BODY_R, F_BEAST, F_BOOST, F_CONVERT, DASH_SPEED, F_DASH, F_GHOST, F_HELD, GHOST_SPEED, F_OUT, F_PORTAL, ROLE, TILE } from './constants.js';
 import { wallAt, type GameMap } from './map.js';
 
 export type Point = { x: number; y: number };
@@ -14,6 +14,7 @@ export function unit(x: number, y: number): Point {
 /** World units a second for a body with these snapshot flags. Zero while it cannot steer itself. */
 export function speedOf(flags: number): number {
   if (flags & (F_CONVERT | F_PORTAL | F_HELD | F_OUT)) return 0;
+  if (flags & F_GHOST) return BASE_SPEED * GHOST_SPEED;
   const role = flags & F_BEAST ? ROLE.beast : ROLE.cousin;
   if (flags & F_DASH) return BASE_SPEED * role.speed * DASH_SPEED;
   return BASE_SPEED * role.speed * (flags & F_BOOST ? role.boost : 1);
@@ -24,11 +25,17 @@ const MAX_STEP = BODY_R * 0.5;
 
 /**
  * Move `p` by `(dx, dy)` world units through the house. Walls push a body back out along the
- * shortest way, so it slides along them and rounds corners instead of sticking.
+ * shortest way, so it slides along them and rounds corners instead of sticking. A ghost goes
+ * `through` them, and is only kept inside the house.
  */
-export function moveBody(p: Point, dx: number, dy: number, map: GameMap): void {
+export function moveBody(p: Point, dx: number, dy: number, map: GameMap, through = false): void {
   const dist = Math.hypot(dx, dy);
   if (dist < 1e-9) return;
+  if (through) {
+    p.x = Math.min(map.w - TILE, Math.max(TILE, p.x + dx));
+    p.y = Math.min(map.h - TILE, Math.max(TILE, p.y + dy));
+    return;
+  }
   const n = Math.ceil(dist / MAX_STEP);
   for (let i = 0; i < n; i++) {
     p.x += dx / n;

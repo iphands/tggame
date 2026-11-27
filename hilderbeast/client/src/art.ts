@@ -1,5 +1,5 @@
 /** Everything on the floor of the house, drawn in code. */
-import { BODY_R, F_BEAST, F_BOOST, F_CONVERT, F_DASH, F_HELD, F_WORK, TILE } from '../../shared/src/constants';
+import { BODY_R, F_BEAST, F_BOOST, F_CONVERT, F_DASH, F_GHOST, F_HELD, F_WORK, TILE } from '../../shared/src/constants';
 import { wallAt, type GameMap } from '../../shared/src/map';
 import { HILDER_BOX, hilderSprite } from './hilder';
 
@@ -182,8 +182,48 @@ export function drawBeast(c: Ctx, x: number, y: number, color: string, facing: n
   c.restore();
 }
 
+/** A caught Cousin's ghost: a pale sheet with a wavy hem, still wearing its bobble in the player's colour. */
+export function drawGhost(c: Ctx, x: number, y: number, color: string, facing: number, t: number): void {
+  const r = BODY_R * 1.15;
+  const lx = Math.cos(facing);
+  const ly = Math.sin(facing);
+  c.save();
+  c.translate(x, y + Math.sin(t / 420 + x) * 2.5);
+  c.globalAlpha = 0.72;
+  c.fillStyle = '#eef0ff';
+  c.strokeStyle = INK;
+  c.lineWidth = 2.5;
+  c.beginPath();
+  c.arc(0, -r * 0.1, r, Math.PI, 0);
+  c.lineTo(r, r * 0.95);
+  // the hem ripples
+  for (let i = 0; i < 4; i++) {
+    const x0 = r - (i * r) / 2;
+    c.quadraticCurveTo(x0 - r / 4, r * (0.55 + 0.12 * Math.sin(t / 160 + i)), x0 - r / 2, r * 0.95);
+  }
+  c.closePath();
+  c.fill();
+  c.stroke();
+  c.fillStyle = color;
+  c.beginPath();
+  c.arc(0, -r * 1.2, r * 0.24, 0, Math.PI * 2);
+  c.fill();
+  c.stroke();
+  c.fillStyle = INK;
+  for (const side of [-1, 1]) {
+    c.beginPath();
+    c.ellipse(side * r * 0.36 + lx * r * 0.15, -r * 0.15 + ly * r * 0.15, r * 0.14, r * 0.22, 0, 0, Math.PI * 2);
+    c.fill();
+  }
+  c.beginPath();
+  c.ellipse(lx * r * 0.15, r * 0.3 + ly * r * 0.1, r * 0.13, r * 0.17, 0, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
+}
+
 /** Whichever the flags say this body is. A Cousin turning into a Beast flickers between the two. */
 export function drawBody(c: Ctx, x: number, y: number, color: string, facing: number, flags: number, t: number): void {
+  if (flags & F_GHOST) return drawGhost(c, x, y, color, facing, t);
   const turning = flags & F_CONVERT && Math.floor(t / 110) % 2 === 0;
   if (flags & F_BEAST && !turning) drawBeast(c, x, y, color, facing, flags, t);
   else drawCousin(c, x, y, color, facing, flags & ~F_BOOST, t);

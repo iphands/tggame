@@ -16,12 +16,12 @@ import {
   ENERGY_MAX,
   ENERGY_START,
   ENERGY_TO_START,
-  ESCAPE_HOLD_MS,
   EXIT_R,
   F_BEAST,
   F_BOOST,
   F_CONVERT,
   F_DASH,
+  F_GHOST,
   F_HELD,
   F_OUT,
   F_PORTAL,
@@ -82,12 +82,12 @@ export type Body = {
   portalWaitMs: number;
   /** Time left held in the den. */
   heldMs: number;
-  /** The chore (index into the round's list) or exit being worked at. */
+  /** Working at a chore right now. */
   working: boolean;
-  /** How long this Cousin has held the action at an open exit. */
-  escapeMs: number;
   /** Got out: no longer in the house. */
   out: boolean;
+  /** Caught in Escape: still a Cousin by side, but a ghost. Roams through walls, touches nothing, and only watches. */
+  ghost: boolean;
 };
 
 export type Pill = Spot & { on: boolean; backMs: number };
@@ -152,8 +152,8 @@ export class World {
         portalWaitMs: 0,
         heldMs: beast ? HEAD_START_MS : 0,
         working: false,
-        escapeMs: 0,
         out: false,
+        ghost: false,
       });
     }
     this.pills = map.pills.map((p) => ({ ...p, on: true, backMs: 0 }));
@@ -166,7 +166,7 @@ export class World {
 
   /** Cousins still in the house. */
   cousins(): Body[] {
-    return this.bodies.filter((b) => b.role === 'cousin' && !b.out);
+    return this.bodies.filter((b) => b.role === 'cousin' && !b.out && !b.ghost);
   }
 
   beasts(): Body[] {
@@ -192,7 +192,8 @@ export class World {
     this.sidesRev++;
     if (this.beasts().length === 0) {
       const left = this.cousins();
-      if (left.length > 1) this.convert(left[Math.floor(rng() * left.length)], '');
+      // whatever the mode, somebody has to be the Beast
+      if (left.length > 1) this.turn(left[Math.floor(rng() * left.length)], '');
     }
   }
 
@@ -237,6 +238,15 @@ export class World {
       return;
     }
     if (b.heldMs > 0) return;
+
+    if (b.ghost) {
+      // a ghost only drifts: no boosts, no doors, and walls are nothing to it
+      if (b.ix !== 0 || b.iy !== 0) {
+        const speed = speedOf(F_GHOST);
+        moveBody(b, b.ix * speed * dtS, b.iy * speed * dtS, this.map, true);
+      }
+      return;
+    }
 
     if (b.role === 'beast') this.stepBeast(b);
     else this.stepCousinBoost(b, dtS);
@@ -291,7 +301,7 @@ export class World {
       let bestD = TOUCH_R;
       // `<` keeps the earlier seat on a tie, so the outcome never depends on chance
       for (const c of this.bodies) {
-        if (c.role !== 'cousin' || c.out) continue;
+        if (c.role !== 'cousin' || c.out || c.ghost) continue;
         const d = Math.hypot(c.x - beast.x, c.y - beast.y);
         if (d < bestD && sees(this.map, beast.x, beast.y, c.x, c.y)) {
           best = c;
@@ -304,8 +314,23 @@ export class World {
     }
   }
 
-  /** A Cousin becomes a Beast: frozen for a moment, then hunting. */
+  /**
+   * A Cousin has been caught. In Last Cousin Standing they become a Beast; in Escape there is only
+   * ever the one Beast, and they become a ghost.
+   */
   private convert(c: Body, by: string): void {
+    if (c.role !== 'cousin' || c.out || c.ghost) return;
+    if (this.mode !== 'escape') return this.turn(c, by);
+    c.ghost = true;
+    c.boosting = false;
+    c.working = false;
+    this.sidesRev++;
+    this.catches.push({ by, who: c.id, atMs: Math.round(this.timeMs) });
+    this.fx.push(['c', by, c.id, Math.round(c.x), Math.round(c.y)]);
+  }
+
+  /** A Cousin becomes a Beast: frozen for a moment, then hunting. */
+  private turn(c: Body, by: string): void {
     if (c.role !== 'cousin') return;
     c.role = 'beast';
     c.convertMs = CONVERT_MS;
@@ -316,7 +341,6 @@ export class World {
     c.dashWaitMs = 0;
     c.catchWaitMs = 0;
     c.working = false;
-    c.escapeMs = 0;
     this.sidesRev++;
     this.catches.push({ by, who: c.id, atMs: Math.round(this.timeMs) });
     this.fx.push(['c', by, c.id, Math.round(c.x), Math.round(c.y)]);
@@ -347,7 +371,7 @@ export class World {
       }
       // the first Cousin in seat order takes it; a full Cousin leaves it for someone else
       for (const b of this.bodies) {
-        if (b.role !== 'cousin' || b.out || b.energy >= ENERGY_MAX) continue;
+        if (b.role !== 'cousin' || b.out || b.ghost || b.energy >= ENERGY_MAX) continue;
         if (Math.hypot(pill.x - b.x, pill.y - b.y) > PILL_R) continue;
         b.energy = Math.min(ENERGY_MAX, b.energy + PILL_ENERGY);
         pill.on = false;
@@ -360,7 +384,7 @@ export class World {
 
   /** A Cousin works by standing still with the action held. */
   private atWork(b: Body, spot: Spot, r: number): boolean {
-    return b.role === 'cousin' && this.free(b) && b.actHeld && b.ix === 0 && b.iy === 0 && Math.hypot(spot.x - b.x, spot.y - b.y) <= r;
+    return b.role === 'cousin' && !b.ghost && this.free(b) && b.actHeld && b.ix === 0 && b.iy === 0 && Math.hypot(spot.x - b.x, spot.y - b.y) <= r;
   }
 
   private stepTasks(rng: Rng): void {
@@ -390,23 +414,18 @@ export class World {
     });
   }
 
+  /** A Cousin who touches an open exit is out, there and then. */
   private stepExits(): void {
     if (!this.exitsOpen) return;
     for (const b of this.bodies) {
-      if (b.role !== 'cousin' || b.out) continue;
-      if (this.map.exits.some((e) => this.atWork(b, e, EXIT_R))) {
-        b.working = true;
-        b.escapeMs += TICK_MS;
-        if (b.escapeMs >= ESCAPE_HOLD_MS) {
-          b.out = true;
-          b.working = false;
-          this.escaped.push(b.id);
-          this.sidesRev++;
-          this.fx.push(['x', b.id]);
-        }
-      } else {
-        b.escapeMs = 0;
-      }
+      if (b.role !== 'cousin' || b.out || b.ghost) continue;
+      if (!this.map.exits.some((e) => Math.hypot(e.x - b.x, e.y - b.y) <= EXIT_R)) continue;
+      b.out = true;
+      b.working = false;
+      b.boosting = false;
+      this.escaped.push(b.id);
+      this.sidesRev++;
+      this.fx.push(['x', b.id]);
     }
   }
 
@@ -422,6 +441,7 @@ export class World {
     if (b.working) f |= F_WORK;
     if (b.heldMs > 0) f |= F_HELD;
     if (b.out) f |= F_OUT;
+    if (b.ghost) f |= F_GHOST;
     return f;
   }
 
@@ -431,7 +451,7 @@ export class World {
    * its den or still turning is no threat yet and does not count.
    */
   dread(b: Body): number {
-    if (b.role !== 'cousin' || b.out) return 0;
+    if (b.role !== 'cousin' || b.out || b.ghost) return 0;
     let near = DREAD_R;
     for (const o of this.bodies) {
       if (o.role !== 'beast' || o.heldMs > 0 || o.convertMs > 0) continue;

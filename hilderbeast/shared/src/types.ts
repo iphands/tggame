@@ -11,8 +11,8 @@ export type Mode = (typeof MODES)[number];
 export type Settings = { mode: Mode };
 
 export type Role = 'cousin' | 'beast';
-/** What a player is right now: `c` a Cousin, `b` a Beast, `x` a Cousin who got out. */
-export type Side = 'c' | 'b' | 'x';
+/** What a player is right now: `c` a Cousin, `b` a Beast, `x` a Cousin who got out, `g` a caught Cousin's ghost (Escape only). */
+export type Side = 'c' | 'b' | 'x' | 'g';
 
 export type PlayerView = {
   id: string;

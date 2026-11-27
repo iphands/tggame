@@ -90,6 +90,11 @@ export const DASH_COOLDOWN_MS = 4000;
 /** A caught Cousin stands frozen and harmless for this long, then is a Beast. */
 export const CONVERT_MS = 2500;
 
+// ---- ghosts
+
+/** A ghost drifts a little faster than anyone walks, and straight through walls. */
+export const GHOST_SPEED = 1.3;
+
 // ---- Beast doors
 
 export const PORTAL_R = 15;
@@ -121,9 +126,8 @@ export const NOISE_EVERY_MS = 3000;
 export const NOISE_BLUR = 110;
 /** How long a noise stays on a Beast's screen. */
 export const NOISE_SHOW_MS = 4000;
-export const EXIT_R = 46;
-/** Hold the action this long at an open exit to get out. */
-export const ESCAPE_HOLD_MS = 1500;
+/** A Cousin who touches an open exit is out, at once: nothing to hold. */
+export const EXIT_R = BODY_R + 14;
 /** Chores in a round: one more than there are Cousins, within these bounds. */
 export const TASKS_MIN = 3;
 export const TASKS_MAX = 7;
@@ -138,6 +142,8 @@ export const BOT_THINK_MS = 150;
 
 export const F_BEAST = 1;
 export const F_BOOST = 2;
+/** Caught in Escape: a ghost, out of the game but free to roam the house and watch. */
+export const F_GHOST = 4;
 /** A Beast in its dash. */
 export const F_DASH = 8;
 /** Just caught: frozen while it turns into a Beast. */

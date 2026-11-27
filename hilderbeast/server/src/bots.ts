@@ -3,7 +3,7 @@
  * from bodies in its line of sight, and otherwise goes by the map. Also drives a human's body
  * while they are disconnected.
  */
-import { ENERGY_MAX, EXIT_R, PORTAL_R, SIGHT_R, TASK_R, TILE } from '../../shared/src/constants.js';
+import { ENERGY_MAX, PORTAL_R, SIGHT_R, TASK_R, TILE } from '../../shared/src/constants.js';
 import type { Spot } from '../../shared/src/map.js';
 import { sees } from '../../shared/src/sim.js';
 import { FAR, stepsAt, stepsFrom, towards } from './path.js';
@@ -46,8 +46,19 @@ export class Bots {
     let mind = this.minds.get(b.id);
     if (!mind) this.minds.set(b.id, (mind = { goal: null, seen: null, seenMs: 0, heard: null, flee: null, fleeMs: 0 }));
     if (b.out) return;
+    if (b.ghost) return this.haunt(world, b, mind, rng);
     if (b.role === 'beast') this.beast(world, b, mind, rng, dtMs);
     else this.cousin(world, b, mind, rng, dtMs);
+  }
+
+  /** A ghost bot drifts from room to room, straight through the walls. */
+  private haunt(world: World, b: Body, mind: Mind, rng: Rng): void {
+    if (!mind.goal || Math.hypot(mind.goal.x - b.x, mind.goal.y - b.y) < TILE) {
+      const spots = [...world.map.pills, ...world.map.tasks];
+      mind.goal = spots[Math.floor(rng() * spots.length)];
+    }
+    const d = Math.hypot(mind.goal.x - b.x, mind.goal.y - b.y) || 1;
+    world.setInput(b.id, ((mind.goal.x - b.x) / d) * 0.6, ((mind.goal.y - b.y) / d) * 0.6, false, false);
   }
 
   private go(world: World, b: Body, to: Spot, boost = false, act = false): void {
@@ -159,7 +170,7 @@ export class Bots {
     if (world.mode === 'escape') {
       if (world.exitsOpen) {
         const exit = nearest(map.exits);
-        if (exit) return this.work(world, b, exit, EXIT_R);
+        if (exit) return this.go(world, b, exit, true);
       }
       if (b.energy >= 40 || !world.pills.some((p) => p.on)) {
         const task = nearest(world.tasks.filter((t) => t.progress < 1));
@@ -178,7 +189,7 @@ export class Bots {
     this.go(world, b, mind.goal);
   }
 
-  /** Walk to a chore or exit, then stand and hold the action. */
+  /** Walk to a chore, then stand and hold the action. */
   private work(world: World, b: Body, at: Spot, r: number): void {
     if (Math.hypot(at.x - b.x, at.y - b.y) <= r - PORTAL_R) world.setInput(b.id, 0, 0, false, true);
     else this.go(world, b, at);
