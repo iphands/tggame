@@ -5,6 +5,7 @@ import { sanitizeName } from '@tggame/base/shared/text';
 import type { ServerMessage } from '../../shared/src/protocol';
 import { isMuted, setMuted, sfx, unlockAudio } from './audio';
 import { cardEl, spoonEl } from './cards';
+import { clock } from '@tggame/base/client/clock';
 import { h } from '@tggame/base/client/dom';
 import { askName } from '@tggame/base/client/rename';
 import { GameClient, type ConnectionStatus } from './net';
@@ -59,7 +60,7 @@ function onMessage(msg: ServerMessage): void {
   switch (msg.type) {
     case 'welcome':
       saved.setToken(msg.token);
-      store.clockOffset = msg.now - Date.now();
+      clock.seed(msg.now, Date.now());
       break;
     case 'task':
       store.task = msg.task;

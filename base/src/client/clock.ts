@@ -47,10 +47,20 @@ export class ClockSync {
     this.smoothedRtt += (sample.rtt - this.smoothedRtt) * 0.2;
   }
 
+  /**
+   * A rough first guess (the server's clock as read from its welcome, round trip unknown), used
+   * only until a real pair comes back.
+   */
+  seed(serverNowMs: number, now: number): void {
+    if (this.synced) return;
+    this.target = this.current = serverNowMs - now;
+    this.slewedAt = now;
+  }
+
   /** Forget everything: the next pair is taken at its word (after a hidden tab, a reconnect). */
   reset(): void {
     this.samples = [];
-    this.synced = false;
+    this.synced = false; // the offset itself stays as the best guess until the next pair
   }
 
   /** Server clock minus the local one, at local time `now`. */

@@ -1,4 +1,5 @@
 import { askName } from '@tggame/base/client/rename';
+import { clock } from '@tggame/base/client/clock';
 import '@fontsource/patrick-hand/400.css';
 import '@fontsource/chewy/400.css';
 import { NAME_MAX } from '../../shared/src/constants';
@@ -49,7 +50,7 @@ function onMessage(msg: ServerMessage): void {
   switch (msg.type) {
     case 'welcome':
       saved.setToken(msg.token);
-      store.clockOffset = msg.now - Date.now();
+      clock.seed(msg.now, Date.now());
       // the server replays the recent chat to a fresh socket
       store.chat = [];
       store.chatEpoch++;
