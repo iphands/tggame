@@ -49,6 +49,12 @@ Phones on the same Wi-Fi join at `http://<your-ip>:5179`.
 - **Podium.** The finale hands out a few prizes nobody asked for: sharpest cut-offs, longest
   line, closest shaves, own worst enemy, wall inspector, first to find trouble.
 
+## Just watching
+
+A screen can watch without playing: press **Just watch** on the join screen, or in the lobby.
+For a TV, open the game with `?watch=1` on the end of the address: it goes straight in as "TV"
+and never takes a seat, in this game or the next. `?watch=0` undoes it. The watching screen follows the riders, as anyone waiting for a bike does.
+
 ## How it works
 
 The server owns the simulation: 60 fixed ticks a second, snapshots 30 times a second. The floor

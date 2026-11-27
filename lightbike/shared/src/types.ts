@@ -31,6 +31,8 @@ export type PlayerView = {
   connected: boolean;
   /** No bike right now: they arrived mid-match (or the floor is full) and ride from the next round. */
   spectator: boolean;
+  /** Here only to watch (a TV in the room): never given a seat. */
+  watcher: boolean;
   score: number;
 };
 

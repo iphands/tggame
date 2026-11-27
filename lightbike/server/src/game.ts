@@ -41,6 +41,8 @@ type Player = {
   token: string;
   connected: boolean;
   spectator: boolean;
+  /** Only ever watches: never seated, whatever the phase. */
+  watcher: boolean;
 };
 
 export type JoinResult = { id: string; token: string; resumed: boolean } | 'full';
@@ -79,23 +81,20 @@ export class Game extends Roster<Player> {
 
   // ---- joining and leaving
 
-  join(rawName: unknown, token: string | undefined): JoinResult {
+  join(rawName: unknown, token: string | undefined, watch = false): JoinResult {
     if (token) {
       for (const p of this.players.values()) {
         if (!p.bot && p.token === token) {
           p.connected = true;
           // whatever the autopilot was doing with their bike, they take over with hands off the boost
           this.world?.boost(p.id, false);
+          this.watch(p.id, watch);
           return { id: p.id, token: p.token, resumed: true };
         }
       }
     }
     if (this.players.size >= MAX_PEOPLE) return 'full';
-    if (this.phase === 'lobby' && this.participants().length >= MAX_PLAYERS) {
-      // a human always beats a bot to a seat
-      const bot = [...this.players.values()].reverse().find((p) => p.bot);
-      if (bot) this.players.delete(bot.id);
-    }
+    this.bumpBot(watch);
     const player: Player = {
       id: `p${this.nextId++}`,
       name: this.uniqueName(sanitizeName(rawName) || 'Rider'),
@@ -104,7 +103,8 @@ export class Game extends Roster<Player> {
       token: randomBytes(16).toString('hex'),
       connected: true,
       // mid-match arrivals watch until the next round
-      spectator: this.phase !== 'lobby' || this.participants().length >= MAX_PLAYERS,
+      spectator: this.unseated(watch, this.phase === 'lobby'),
+      watcher: watch,
     };
     this.players.set(player.id, player);
     return { id: player.id, token: player.token, resumed: false };
@@ -129,7 +129,7 @@ export class Game extends Roster<Player> {
   addBot(by: string): void {
     if (!this.canAddBot(by)) return;
     const id = `b${this.nextId++}`;
-    this.players.set(id, { id, name: this.botName(BOT_NAMES, 'Bikebot'), color: this.freeColor(), bot: true, token: '', connected: true, spectator: false });
+    this.players.set(id, { id, name: this.botName(BOT_NAMES, 'Bikebot'), color: this.freeColor(), bot: true, token: '', connected: true, spectator: false, watcher: false });
   }
 
   /** Nobody is left: clear the table (bots included) so the next visitor finds an open lobby. */
@@ -235,14 +235,7 @@ export class Game extends Roster<Player> {
 
   private layRound(): void {
     // whoever has been watching gets a bike now
-    let seated = this.participants().length;
-    for (const p of this.players.values()) {
-      if (seated >= MAX_PLAYERS) break;
-      if (p.spectator) {
-        p.spectator = false;
-        seated++;
-      }
-    }
+    this.promote();
     const ids = this.participants().map((p) => p.id);
     if (ids.length < MIN_PLAYERS) return this.finish();
     for (const id of ids) if (!this.stats.has(id)) this.stats.set(id, freshStats(id));
@@ -299,8 +292,7 @@ export class Game extends Roster<Player> {
     this.result = null;
     this.decided = false;
     for (const p of [...this.players.values()]) if (!p.connected) this.players.delete(p.id);
-    let n = 0;
-    for (const p of this.players.values()) p.spectator = ++n > MAX_PLAYERS;
+    this.reseat();
   }
 
   // ---- what goes over the wire
@@ -313,6 +305,7 @@ export class Game extends Roster<Player> {
       bot: p.bot,
       connected: p.connected,
       spectator: p.spectator,
+      watcher: p.watcher,
       score: this.stats.get(p.id)?.score ?? 0,
     }));
     return {

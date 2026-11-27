@@ -6,7 +6,7 @@ describe('isClientMessage', () => {
   it('accepts every message a client may send', () => {
     for (const m of [
       { type: 'join' },
-      { type: 'join', name: 'Ada', token: 'abc' },
+{ type: 'join', name: 'TV', watch: true }, { type: 'watch', on: true }, { type: 'watch', on: false },       { type: 'join', name: 'Ada', token: 'abc' },
       { type: 'leave' }, { type: 'rename', name: 'Mo' },
       { type: 'addBot' },
       { type: 'removeBot' },
@@ -33,7 +33,7 @@ describe('isClientMessage', () => {
       { type: 7 },
       { type: 'fly' },
       { type: 'join', name: 5 },
-      { type: 'join', token: 'x'.repeat(65) },
+{ type: 'join', watch: 1 }, { type: 'watch' }, { type: 'watch', on: 1 },       { type: 'join', token: 'x'.repeat(65) },
       { type: 'settings', pace: 'ludicrous' },
       { type: 'settings', length: 9 },
       { type: 'settings', boost: 'yes' },

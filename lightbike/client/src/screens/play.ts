@@ -496,7 +496,7 @@ export function playScreen(): Screen {
 
     // who is watching what
     const seated = isSeated();
-    const text = !seated ? 'Watching. You ride from the next round.' : !me && live.seq >= 0 && live.stampedAt ? `${outLine || 'You are out.'}${view.follow && watching ? ` Watching ${nameOf(watching)}.` : ''}` : '';
+    const text = !seated ? (player(store.state?.selfId)?.watcher ? 'Watching' : 'Watching. You ride from the next round.') : !me && live.seq >= 0 && live.stampedAt ? `${outLine || 'You are out.'}${view.follow && watching ? ` Watching ${nameOf(watching)}.` : ''}` : '';
     if (status.textContent !== text) status.textContent = text;
     status.hidden = !text;
 

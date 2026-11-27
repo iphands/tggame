@@ -2,7 +2,8 @@ import { LENGTHS, MAX_PLAYERS, MIN_PLAYERS, PACES, TARGETS } from '../../../shar
 import type { Settings } from '../../../shared/src/types';
 import { sfx } from '../audio';
 import { h, tilt } from '@tggame/base/client/dom';
-import { isHost, nameOf, send, store } from '../store';
+import { isHost, nameOf, send, store, watching } from '../store';
+import { watchRow } from '@tggame/base/party/watchRow';
 import type { Screen } from './index';
 
 const PACE_BLURB = { chill: 'time to think', normal: 'a fair lick', spicy: 'blink and you turn late', silly: 'good luck' } as const;
@@ -36,10 +37,12 @@ export function lobbyScreen(): Screen {
   );
   const summary = h('p', { class: 'share' });
 
+  const tv = watchRow(watching, (on) => send({ type: 'watch', on }));
+
   const el = h(
     'section',
     { class: 'screen lobby' },
-    h('div', { class: 'sheet' }, h('h2', null, "Who's riding?"), notes, status, settings, summary, hostRow, start, share),
+    h('div', { class: 'sheet' }, h('h2', null, "Who's riding?"), notes, status, settings, summary, hostRow, start, tv.els, share),
     h(
       'ol',
       { class: 'howto' },
@@ -56,6 +59,7 @@ export function lobbyScreen(): Screen {
     el,
     update() {
       const s = store.state!;
+      tv.update(s.players, s.selfId);
       const seated = s.players.filter((p) => !p.spectator);
       notes.replaceChildren(
         ...seated.map((p) =>

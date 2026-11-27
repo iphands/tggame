@@ -6,7 +6,9 @@ import type { BikeSnap, Fx, Length, Pace, StateView, TrailInit } from './types.j
 // ---- client → server
 
 export type ClientMessage =
-  | { type: 'join'; name?: string; token?: string }
+  | { type: 'join'; name?: string; token?: string; watch?: boolean }
+  /** Only watch from now on (`on`), or ask for a seat again. */
+  | { type: 'watch'; on: boolean }
   | { type: 'leave' }
   | { type: 'rename'; name: string }
   | { type: 'addBot' }
@@ -62,8 +64,11 @@ export function isClientMessage(x: unknown): x is ClientMessage {
   if (typeof m.type !== 'string') return false;
   if (NO_ARGS.has(m.type)) return true;
   switch (m.type) {
+    case 'watch':
+      return typeof m.on === 'boolean';
     case 'join':
-      return optional(m.name, 'string') && (m.token === undefined || (typeof m.token === 'string' && m.token.length <= 64));
+      return optional(m.name, 'string') && (m.token === undefined || (typeof m.token === 'string' && m.token.length <= 64)) &&
+        (m.watch === undefined || typeof m.watch === 'boolean');
     case 'rename':
       return typeof m.name === 'string' && m.name.length <= 64;
     case 'settings':
