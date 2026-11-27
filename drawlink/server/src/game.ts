@@ -24,6 +24,7 @@ import { awardAt, hintAt } from '../../shared/src/round.js';
 import { WORDS } from '../../shared/src/words.js';
 import type { InkEvent } from '../../shared/src/protocol.js';
 import type { ChatLine, Drawing, Phase, PlayerView, ResultView, Settings, StateView, Task } from '../../shared/src/types.js';
+import { Roster, shuffle } from '@tggame/base/party/roster';
 import { BOT_NAMES, botGuess, type Rng } from './bots.js';
 
 /** Players plus spectators a server will hold on to. */
@@ -49,9 +50,7 @@ type StoredLine = ChatLine & { only?: string[] };
 
 export type JoinResult = { id: string; token: string; resumed: boolean } | 'full' | 'booted';
 
-export class Game {
-  /** Everyone at the table, in arrival order; that is also the drawing order. */
-  readonly players = new Map<string, Player>();
+export class Game extends Roster<Player> {
   phase: Phase = 'lobby';
   /** Bumped each time a game starts. */
   gameNo = 0;
@@ -85,9 +84,10 @@ export class Game {
   private plans = new Map<string, { nextAt: number; eurekaAt: number | null }>();
   /** The time of the last action or tick; views are computed as of this moment. */
   private clock = 0;
-  private nextId = 1;
 
-  constructor(private readonly rng: Rng = Math.random) {}
+  constructor(rng: Rng = Math.random) {
+    super(rng, MAX_PLAYERS, PLAYER_COLORS);
+  }
 
   // ---- joining and leaving
 
@@ -148,14 +148,11 @@ export class Game {
   }
 
   addBot(by: string): void {
-    if (this.phase !== 'lobby' || by !== this.hostId() || this.participants().length >= MAX_PLAYERS) return;
-    const taken = new Set([...this.players.values()].map((p) => p.name));
-    const free = BOT_NAMES.filter((n) => !taken.has(n));
-    const base = free.length ? free[Math.floor(this.rng() * free.length)] : 'Guessbot';
+    if (!this.canAddBot(by)) return;
     const id = `b${this.nextId++}`;
     this.players.set(id, {
       id,
-      name: this.uniqueName(base),
+      name: this.botName(BOT_NAMES, 'Guessbot'),
       color: this.freeColor(),
       bot: true,
       token: '',
@@ -165,18 +162,6 @@ export class Game {
       goneAt: 0,
       lastChatAt: 0,
     });
-  }
-
-  removeBot(by: string): void {
-    if (this.phase !== 'lobby' || by !== this.hostId()) return;
-    const bot = [...this.players.values()].reverse().find((p) => p.bot);
-    if (bot) this.players.delete(bot.id);
-  }
-
-  /** The first connected human: seated players first, then anyone. Null when nobody is here. */
-  hostId(): string | null {
-    const humans = [...this.players.values()].filter((p) => !p.bot && p.connected);
-    return (humans.find((p) => !p.spectator) ?? humans[0])?.id ?? null;
   }
 
   // ---- game flow
@@ -210,16 +195,6 @@ export class Game {
     if (!next) return;
     this.info(`${this.nameOf(id)} passed on “${this.word}”.`);
     this.beginTurn(next, now);
-  }
-
-  /** Back to the lobby after the finale. */
-  again(by: string): void {
-    if (this.phase === 'finale' && by === this.hostId()) this.toLobby();
-  }
-
-  /** Host bails out of a running game. */
-  abort(by: string): void {
-    if (this.phase !== 'lobby' && by === this.hostId()) this.toLobby();
   }
 
   /** Nobody is left: clear the table (bots and bans included) so the next visitor finds an open lobby. */
@@ -405,18 +380,6 @@ export class Game {
     return out;
   }
 
-  humansConnected(): number {
-    let n = 0;
-    for (const p of this.players.values()) if (!p.bot && p.connected) n++;
-    return n;
-  }
-
-  botCount(): number {
-    let n = 0;
-    for (const p of this.players.values()) if (p.bot) n++;
-    return n;
-  }
-
   // ---- what a player may see
 
   viewFor(id: string): StateView {
@@ -463,10 +426,6 @@ export class Game {
   }
 
   // ---- internals
-
-  private participants(): Player[] {
-    return [...this.players.values()].filter((p) => !p.spectator);
-  }
 
   private nameOf(id: string | null): string {
     return (id && this.players.get(id)?.name) || 'someone';
@@ -564,7 +523,7 @@ export class Game {
     }
   }
 
-  private toLobby(): void {
+  protected toLobby(): void {
     this.phase = 'lobby';
     this.round = 0;
     this.drawerId = null;
@@ -602,25 +561,4 @@ export class Game {
     if (this.lines.length > CHAT_KEEP) this.lines.splice(0, this.lines.length - CHAT_KEEP);
   }
 
-  private uniqueName(base: string): string {
-    const taken = new Set([...this.players.values()].map((p) => p.name.toLowerCase()));
-    if (!taken.has(base.toLowerCase())) return base;
-    for (let i = 2; ; i++) {
-      const candidate = `${base.slice(0, 13)} ${i}`;
-      if (!taken.has(candidate.toLowerCase())) return candidate;
-    }
-  }
-
-  private freeColor(): string {
-    const used = new Set([...this.players.values()].map((p) => p.color));
-    return PLAYER_COLORS.find((c) => !used.has(c)) ?? PLAYER_COLORS[this.players.size % PLAYER_COLORS.length];
-  }
-}
-
-function shuffle<T>(list: T[], rng: Rng): T[] {
-  for (let i = list.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [list[i], list[j]] = [list[j], list[i]];
-  }
-  return list;
 }
