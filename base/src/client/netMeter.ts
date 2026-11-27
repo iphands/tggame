@@ -65,6 +65,34 @@ export function startNetMeter(stats: () => NetStats, heading = ''): void {
   setInterval(draw, 1000);
 }
 
+/** A round trip this long is felt: the badge shows from here. */
+const SLOW_MS = 150;
+const BAD_MS = 300;
+
+let badge: HTMLElement | null = null;
+
+/**
+ * The slow-line badge: a small "ping 260 ms" at the top of the page, there only while the round
+ * trip is long enough to feel. A player on a slow line should know it is the line, and that the
+ * game knows too. Every game gets it from the socket; nothing shows on a good connection.
+ */
+export function showLineBadge(rttMs: number): void {
+  if (typeof document === 'undefined' || box) return; // the full meter already says it
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.style.cssText =
+      'position:fixed;top:2px;left:50%;transform:translateX(-50%);z-index:9998;padding:1px 7px;' +
+      'border-radius:8px;background:rgba(0,0,0,0.55);font:10px/1.4 ui-monospace,monospace;' +
+      'pointer-events:none;display:none';
+    document.body.append(badge);
+  }
+  const slow = rttMs >= SLOW_MS;
+  badge.style.display = slow ? 'block' : 'none';
+  if (!slow) return;
+  badge.style.color = rttMs >= BAD_MS ? '#ff8f8f' : '#ffd166';
+  badge.textContent = `ping ${rttMs.toFixed(0)} ms`;
+}
+
 /** One round trip measured, for the sparkline. */
 export function reportRtt(ms: number): void {
   rtts.push(ms);

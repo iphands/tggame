@@ -2,7 +2,7 @@
 
 import { clock } from './clock.js';
 import { LagLine, lagSettings, type LagSettings } from './lag.js';
-import { netMeterEnabled, reportRtt, startNetMeter, type NetStats } from './netMeter.js';
+import { netMeterEnabled, reportRtt, showLineBadge, startNetMeter, type NetStats } from './netMeter.js';
 
 /** Pings sent quickly when the socket opens (or the tab comes back), to settle the clock at once. */
 const PING_BURST = 5;
@@ -245,6 +245,7 @@ export class SocketClient<C extends { type: string }, S extends { type: string }
     const now = Date.now();
     clock.add({ rtt, offset: msg.now + rtt / 2 - now }, now);
     reportRtt(rtt);
+    showLineBadge(clock.rtt);
   }
 
   /**
