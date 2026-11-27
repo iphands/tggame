@@ -1,6 +1,7 @@
 import './prefs';
 import Phaser from 'phaser';
 import { GameClient } from './net';
+import { watchPref } from '@tggame/base/client/watch';
 import { store, onSnapshot, resetPrediction } from './store';
 import { initTouchControls, isTouchDevice, setTouchControlsVisible } from '@tggame/base/platformer/controls';
 import { initLobbyDom, renderLobby, showScreen } from './lobby';
@@ -49,7 +50,15 @@ document.addEventListener('visibilitychange', () => {
 // `?debug` puts what this page knows on `window.arena`, for poking at from the console
 if (new URLSearchParams(location.search).has('debug')) (window as unknown as { arena: typeof store }).arena = store;
 
-function join(name: string): void {
+/** Remembered between visits, and settable with `?watch=1` (a TV then goes straight in). */
+const watching = watchPref('lsa');
+
+function join(name: string, watch = false): void {
+  // giving up a fighter to watch is leaving: do not leave it standing there for a reconnect
+  if (watch && !store.watching) store.client?.send({ type: 'leave' });
+  watching.set(watch);
+  store.watching = watch;
+  store.selfId = null;
   store.name = name;
   store.joined = true;
   try {
@@ -64,7 +73,9 @@ function join(name: string): void {
     name,
     // the seat token is kept for this tab only: a reload or a reconnect is the same fighter, and a
     // second tab is a second player
+    watch: watching.on,
     token: () => {
+      if (watching.on()) return undefined;
       try {
         return sessionStorage.getItem('lsa-seat') ?? undefined;
       } catch {
@@ -72,7 +83,8 @@ function join(name: string): void {
       }
     },
     onWelcome: (id, token) => {
-      store.selfId = id;
+      store.selfId = id || null;
+      if (!token) return;
       try {
         sessionStorage.setItem('lsa-seat', token);
       } catch {
@@ -99,6 +111,16 @@ function join(name: string): void {
 }
 
 initLobbyDom(join);
+// a TV sent here with ?watch=1 needs nobody to press anything
+if (watching.straightIn) {
+  let name = 'TV';
+  try {
+    name = localStorage.getItem('lsa-name') || name;
+  } catch {
+    /* private mode */
+  }
+  join(name, true);
+}
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,

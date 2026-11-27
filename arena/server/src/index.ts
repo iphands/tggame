@@ -32,6 +32,14 @@ function send(ws: WebSocket, msg: ServerMessage): void {
 
 function handle(ws: WebSocket, peer: { id: string | null }, msg: ClientMessage): void {
   if (msg.type === 'join') {
+    if (msg.watch) {
+      // a screen that only watches is not a player: no fighter, no seat, and every socket is sent
+      // the snapshots anyway
+      if (peer.id) game.leave(peer.id);
+      peer.id = null;
+      send(ws, { type: 'welcome', selfId: '', token: '', capacity: MATCH.capacity, serverTimeMs: Date.now() });
+      return;
+    }
     const joined = game.join(msg.name, msg.token);
     if (peer.id && peer.id !== joined?.id) game.leave(peer.id); // one identity per socket
     if (!joined) {

@@ -7,6 +7,7 @@ describe('client message validation', () => {
     for (const m of [
       { type: 'join', name: 'A' },
       { type: 'join' },
+      { type: 'join', name: 'TV', watch: true },
       { type: 'input', left: true, right: false, jump: false },
       { type: 'shoot' },
       { type: 'release' },
@@ -30,6 +31,7 @@ describe('client message validation', () => {
       {},
       { type: 'nope' }, { type: 'rename' }, { type: 'rename', name: 5 },
       { type: 'join', name: 5 },
+      { type: 'join', watch: 1 },
       { type: 'input', left: 1, right: false, jump: false },
       { type: 'pickLevel', dir: 2 },
       { type: 'toString' },

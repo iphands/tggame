@@ -242,6 +242,19 @@ body {
 
 /* ---------------------------------------------------------------- lobby */
 
+/* a screen that only watches has nobody at it to press these */
+body.watching .lobby-buttons,
+body.watching .arena-pick .btn,
+body.watching #name-btn,
+body.watching #restart-btn {
+  display: none;
+}
+
+.watch-toggle {
+  align-self: center;
+}
+
+
 .lobby-main {
   position: absolute;
   left: 3%;

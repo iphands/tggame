@@ -13,6 +13,8 @@ export const store = {
   selfId: null as string | null,
   name: '',
   joined: false,
+  /** This screen only watches (a TV): it has no fighter of its own. */
+  watching: false,
   client: null as GameClient | null,
   /** Most recent snapshot (HUD / phase decisions). */
   snapshot: null as SnapshotMessage | null,

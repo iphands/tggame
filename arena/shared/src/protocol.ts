@@ -12,7 +12,7 @@ import type {
 
 export type ClientMessage =
   /** `token` is the seat token of an earlier welcome: a dropped player gets their fighter back with it. */
-  | { type: 'join'; name?: string; token?: string }
+  | { type: 'join'; name?: string; token?: string; /** A screen that only watches (a TV): it gets no fighter and is sent what everybody is. */ watch?: boolean }
   /**
    * Held buttons. With `seq` and `tick` the server does it on that very tick (the client has
    * already done it there in its prediction); without them it is done as it arrives.
@@ -97,6 +97,7 @@ export type SelfState = {
 export type SnapshotMessage = { type: 'snapshot'; selfId: string; you: SelfState | null } & SnapshotBody;
 
 export type ServerMessage =
+  /** `selfId` and `token` are empty for a screen that only watches. */
   | { type: 'welcome'; selfId: string; token: string; capacity: number; serverTimeMs: number }
   /** Somebody changed their name. Sent once, so nothing has to watch for it in every snapshot. */
   | { type: 'renamed'; id: string; name: string }
@@ -118,7 +119,7 @@ export function isClientMessage(v: unknown): v is ClientMessage {
   if (!isCount(m.seq) || !isCount(m.tick)) return false;
   switch (m.type) {
     case 'join':
-      return (m.name === undefined || typeof m.name === 'string') && (m.token === undefined || (typeof m.token === 'string' && m.token.length <= 64));
+      return (m.name === undefined || typeof m.name === 'string') && (m.token === undefined || (typeof m.token === 'string' && m.token.length <= 64)) && (m.watch === undefined || typeof m.watch === 'boolean');
     case 'input':
       return typeof m.left === 'boolean' && typeof m.right === 'boolean' && typeof m.jump === 'boolean';
     case 'pickLevel':

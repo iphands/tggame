@@ -133,6 +133,9 @@ Pick the next arena in the lobby with ◀ ▶. Arenas rotate after every round.
 - The round starts on its own 10 s after 2 or more players are in, or right
   away at 10 players.
 - Players who join mid-round watch it and play the next one.
+- A screen can watch without playing: press **WATCH (TV)** on the join screen, or **JUST WATCH** in
+  the lobby. For a TV, open the game with `?watch=1` on the end of the address: it goes straight
+  in, has no fighter, takes no place and is not counted as a player. `?watch=0` undoes it.
 - Bots play by the same rules as humans: same inputs, no cheats. They chase,
   stomp, grab crates, shoot and recover back to the stage, and they
   avoid all piling onto one target. A human joining a full arena replaces a

@@ -4,6 +4,7 @@ import { ARENA, MATCH, PHYS } from '../../../shared/src/constants';
 import { levelAt } from '../../../shared/src/levels';
 import type { SnapshotMessage } from '../../../shared/src/protocol';
 import type { FeedEntry, PlayerState } from '../../../shared/src/types';
+import { store } from '../store';
 import { fighterTexture } from '../art/sprites';
 import { hexNum } from '@tggame/base/platformer/art/color';
 import { dmgColor, setTextIf, TEXT_RES } from './fighters';
@@ -151,6 +152,7 @@ export class Hud {
       else if (me.life === 'out') status = 'Out of lives: spectating';
       else if (me.life === 'waiting') status = 'You joined mid-round: you play next round';
     }
+    if (!me && store.watching && snap.phase === 'playing') status = 'Watching';
     setTextIf(this.status, status);
     this.status.setVisible(!!status);
 
