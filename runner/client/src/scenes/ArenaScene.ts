@@ -356,7 +356,7 @@ export class ArenaScene extends Phaser.Scene {
     const t = performance.now();
     if (firing && t - this.lastFireSent >= 70) {
       this.lastFireSent = t;
-      client.send({ type: 'shoot' });
+      client.send({ type: 'shoot', ...(edge === null ? {} : store.predictor.stamp(edge)) });
       this.showOwnShot(edge);
     }
   }

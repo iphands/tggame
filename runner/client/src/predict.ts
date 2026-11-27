@@ -139,12 +139,20 @@ export class Predictor {
    * instant (`SnapshotBuffer.simTime`). Returns the stamp to send with it.
    */
   command(input: Input | null, simEdge: number): Stamp {
+    const stamp = this.stamp(simEdge);
+    this.pending.push({ ...stamp, input: input ? { ...input } : null });
+    return stamp;
+  }
+
+  /**
+   * A stamp for something that does not move us by itself (pulling the trigger): the server does
+   * it on the tick we are drawn at, but there is nothing to replay here.
+   */
+  stamp(simEdge: number): Stamp {
     // the next tick the prediction has yet to run: that is where this button lands, here and there
     const tick = Math.max(this.lastTick, this.simTick + 1, Math.floor((simEdge + this.leadMs) / TICK_MS) + 1);
     this.lastTick = tick;
-    const cmd: Cmd = { seq: ++this.seq, tick, input: input ? { ...input } : null };
-    this.pending.push(cmd);
-    return { seq: cmd.seq, tick };
+    return { seq: ++this.seq, tick };
   }
 
   /** The newest snapshot is the new ground truth. After a stall only the last one need be given. */

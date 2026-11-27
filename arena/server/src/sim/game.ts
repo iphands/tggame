@@ -27,7 +27,9 @@ const MAX_LEAD_TICKS = 20;
 /** Stamped commands waiting for their tick, per player; beyond this the line is flooding. */
 const MAX_QUEUED = 32;
 
-type Queued = Stamp & { input: Input | null };
+/** What a stamped command does when its tick comes: hold these buttons, or one of the one-shot acts. */
+type Act = Input | 'drop' | 'shoot' | 'release';
+type Queued = Stamp & { act: Act };
 /** What the server keeps about a human's stamped commands. */
 type Line = { queue: Queued[]; ack: number; slack: number | null };
 
@@ -193,7 +195,7 @@ export class Game {
     else applyInput(p, input);
   }
 
-  private enqueue(id: string, stamp: Stamp, input: Input | null): void {
+  private enqueue(id: string, stamp: Stamp, act: Act): void {
     let line = this.lines.get(id);
     if (!line) this.lines.set(id, (line = { queue: [], ack: 0, slack: null }));
     const next = this.tick + 1;
@@ -202,7 +204,7 @@ export class Game {
     const last = line.queue[line.queue.length - 1];
     // never before the one ahead of it, never in the past, never far in the future
     const tick = Math.max(last ? last.tick : 0, Math.min(Math.max(stamp.tick, next), next + MAX_LEAD_TICKS));
-    line.queue.push({ seq: stamp.seq, tick, input });
+    line.queue.push({ seq: stamp.seq, tick, act });
     if (line.queue.length > MAX_QUEUED) for (const q of line.queue) q.tick = next;
   }
 
@@ -214,8 +216,13 @@ export class Game {
         const q = line.queue.shift()!;
         line.ack = q.seq;
         if (!p) continue;
-        if (q.input) applyInput(p, q.input);
-        else if (this.w.phase === 'playing' || this.w.phase === 'ended') tryDrop(this.w, p);
+        const playing = this.w.phase === 'playing';
+        if (typeof q.act === 'object') applyInput(p, q.act);
+        else if (q.act === 'drop') {
+          if (playing || this.w.phase === 'ended') tryDrop(this.w, p);
+        } else if (q.act === 'shoot') {
+          if (playing) pressFire(this.w, p);
+        } else if (playing) releaseFire(this.w, p);
       }
     }
   }
@@ -252,21 +259,26 @@ export class Game {
     };
   }
 
-  shoot(id: string): void {
+  /** Pull the trigger. Stamped, it fires on its tick: from where the shooter drew themself. */
+  shoot(id: string, stamp?: Stamp): void {
     const p = this.w.players.get(id);
-    if (p && this.w.phase === 'playing') pressFire(this.w, p);
+    if (!p) return;
+    if (stamp && !p.bot) this.enqueue(id, stamp, 'shoot');
+    else if (this.w.phase === 'playing') pressFire(this.w, p);
   }
 
   /** Fire button released (ends a bomb wind-up early: a shorter throw). */
-  release(id: string): void {
+  release(id: string, stamp?: Stamp): void {
     const p = this.w.players.get(id);
-    if (p && this.w.phase === 'playing') releaseFire(this.w, p);
+    if (!p) return;
+    if (stamp && !p.bot) this.enqueue(id, stamp, 'release');
+    else if (this.w.phase === 'playing') releaseFire(this.w, p);
   }
 
   drop(id: string, stamp?: Stamp): void {
     const p = this.w.players.get(id);
     if (!p) return;
-    if (stamp && !p.bot) this.enqueue(id, stamp, null);
+    if (stamp && !p.bot) this.enqueue(id, stamp, 'drop');
     else if (this.w.phase === 'playing' || this.w.phase === 'ended') tryDrop(this.w, p);
   }
 

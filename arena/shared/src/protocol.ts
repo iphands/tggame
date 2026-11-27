@@ -17,9 +17,9 @@ export type ClientMessage =
    * already done it there in its prediction); without them it is done as it arrives.
    */
   | { type: 'input'; left: boolean; right: boolean; jump: boolean; seq?: number; tick?: number }
-  | { type: 'shoot' }
+  | { type: 'shoot'; seq?: number; tick?: number }
   /** Fire button let go: throws a bomb that is still winding up. */
-  | { type: 'release' }
+  | { type: 'release'; seq?: number; tick?: number }
   | { type: 'drop'; seq?: number; tick?: number }
   | { type: 'restart' }
   | { type: 'leave' }

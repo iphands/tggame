@@ -201,6 +201,19 @@ describe('stamped commands on the server', () => {
     expect(g.selfState(a)!.ack).toBe(2);
   });
 
+  it('a stamped shot fires on its tick, not when it arrives', () => {
+    const g = newGame();
+    const [a, b] = startMatch(g, ['A', 'B']);
+    park(g, b);
+    place(g, a, 640, 300);
+    run(g, 800);
+    g.shoot(a, { seq: 1, tick: g.tick + 4 });
+    run(g, 3 * TICK_MS);
+    expect(g.w.projectiles.length).toBe(0);
+    run(g, TICK_MS);
+    expect(g.w.projectiles.length).toBe(1);
+  });
+
   it('will not hold a command for a far-off tick', () => {
     const g = newGame();
     const [a] = startMatch(g, ['A', 'B']);

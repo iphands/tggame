@@ -51,10 +51,10 @@ function handle(ws: WebSocket, peer: { id: string | null }, msg: ClientMessage):
       game.setInput(id, msg, stampOf(msg));
       break;
     case 'shoot':
-      game.shoot(id);
+      game.shoot(id, stampOf(msg));
       break;
     case 'release':
-      game.release(id);
+      game.release(id, stampOf(msg));
       break;
     case 'drop':
       game.drop(id, stampOf(msg));
