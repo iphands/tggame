@@ -28,8 +28,8 @@ Environment: `PORT` (8081), `GAMES_DIR` (`..`, the directory that holds the game
 | Port | What |
 |---|---|
 | 8081 | this landing page |
-| 8090 | `mark_i`: Last Survivor Arena |
-| 8091 | `mark_ii`: Last Survivor Run |
+| 8090 | `arena`: Last Survivor Arena |
+| 8091 | `runner`: Last Survivor Run |
 | 8092 | `tele`: Doodle Telephone |
 | 8093 | `drawlink`: Drawlink |
 | 8094 | `spoons`: Spoons |

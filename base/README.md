@@ -8,7 +8,7 @@ a game.
 | `src/server/http.ts` | static client, `/health`, placeholder page, WebSocket server setup | all games |
 | `src/client/` | `dom`, `fx` (confetti, toast), `textedit`, `storage`, `audio` engine, `net` (`SocketClient`, `wsUrl`) | party games; `net` and `textedit` also the platformers |
 | `src/party/` | client `store`, server `roster` (host, bots, names, colours), `draw/` (page, pens, stroke checks, fill, paint) | `tele`, `drawlink`, `spoons` |
-| `src/platformer/` | art (`color`, `themes`), `controls`, `quality`, `particles`, `audio`, `perfMeter`, `interp`, `levels` core, physics constants, wire types | `mark_i`, `mark_ii` |
+| `src/platformer/` | art (`color`, `themes`), `controls`, `quality`, `particles`, `audio`, `perfMeter`, `interp`, `levels` core, physics constants, wire types | `arena`, `runner` |
 | `src/shared/` | `text` (names, lines, word comparison), `rng` | server and browser |
 | `src/testing/` | `seeded` RNG for tests | game tests |
 | `css/` | `party.css`, `party-sketch.css`, `party-ranking.css`, `platformer.css` | imported at the top of each game's `styles.css` |

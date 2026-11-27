@@ -6,7 +6,7 @@ dodge the blocks, shoot the boxes out of your way and **break the gates
 together**. Fall behind the left edge of the screen and you lose a life.
 First across the finish line wins.
 
-It is a fork of [Last Survivor Arena](../mark_i) (same engine, artwork and
+It is a fork of [Last Survivor Arena](../arena) (same engine, artwork and
 controls), turned from a brawler into a race.
 
 Phones and desktops play together. The game is built for phones first

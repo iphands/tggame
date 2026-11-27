@@ -6,8 +6,8 @@ lists them all.
 | Directory | What | Port |
 |---|---|---|
 | `main` | Game Night, the landing page | 8081 |
-| `mark_i` | Last Survivor Arena | 8090 |
-| `mark_ii` | Last Survivor Run | 8091 |
+| `arena` | Last Survivor Arena | 8090 |
+| `runner` | Last Survivor Run | 8091 |
 | `tele` | Doodle Telephone | 8092 |
 | `drawlink` | Drawlink | 8093 |
 | `spoons` | Spoons | 8094 |

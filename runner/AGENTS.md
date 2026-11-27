@@ -5,8 +5,8 @@ multiplayer 2D side-scrolling co-op runner: Phaser 3 client, Node + `ws` server,
 TypeScript everywhere. The server is authoritative. Clients send input and
 render snapshots.
 
-> The git root is the parent directory (`../`). This project lives in `mark_ii/`,
-> and every command below runs from here. It is a fork of `../mark_i/` (the
+> The git root is the parent directory (`../`). This project lives in `runner/`,
+> and every command below runs from here. It is a fork of `../arena/` (the
 > brawler, ports 8090/5173); the two are separate projects and share no code.
 > `../demo/` is unrelated.
 

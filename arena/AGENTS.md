@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repo. **Last Survivor Arena** is a
 multiplayer 2D arena platformer: Phaser 3 client, Node + `ws` server, TypeScript
 everywhere. The server is authoritative. Clients send input and render snapshots.
 
-> The git root is the parent directory (`../`). This project lives in `mark_i/`,
+> The git root is the parent directory (`../`). This project lives in `arena/`,
 > and every command below runs from here. `../demo/` is unrelated.
 
 ## Commands

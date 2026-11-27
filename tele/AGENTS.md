@@ -1,6 +1,6 @@
 # AGENTS.md: Doodle Telephone (`tele/`)
 
-Turn-based telephone-drawing party game. Sibling of `mark_i` / `mark_ii` in the same repo; shares
+Turn-based telephone-drawing party game. Sibling of `arena` / `runner` in the same repo; shares
 their tooling and conventions but no code. Read `README.md` for the rules and protocol.
 
 ## Commands

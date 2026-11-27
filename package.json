@@ -5,8 +5,8 @@
   "workspaces": [
     "base",
     "main",
-    "mark_i",
-    "mark_ii",
+    "arena",
+    "runner",
     "tele",
     "drawlink",
     "spoons"
