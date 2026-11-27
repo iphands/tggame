@@ -38,6 +38,8 @@ Only port 8081 leaves the container. The landing page is at `/` and each game at
 - `./publish` pushes the built image to Docker Hub as `iphands/tggame`. Tags name the kind of
   machine it was built on: `latest-arm64` or `latest-x64`, plus the commit (`<commit>-arm64`).
   `latest` is whichever was pushed last. Log in first.
+- `nginx/tggame.conf` is the nginx site that puts the container on the internet under HTTPS. It
+  must pass WebSocket upgrades through, or the landing page loads but no game can be joined.
 - The scripts use `docker` when it is installed and `podman` otherwise (`ENGINE=podman` to choose).
 
 ## Without a container
