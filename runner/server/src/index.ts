@@ -8,6 +8,8 @@ import { isClientMessage, stampOf, type ClientMessage, type ServerMessage } from
 import { MATCH, SNAP_EVERY_TICKS, TICK_MS } from '../../shared/src/constants.js';
 
 const PORT = Number(process.env.PORT ?? 8091);
+/** A socket with this much still unsent is skipped until it catches up (a snapshot is a few kB). */
+const BACKED_UP_BYTES = 48 * 1024;
 /** Max messages a socket may send per second before extras are dropped. */
 const MSG_BUDGET_PER_SEC = 240;
 
@@ -135,6 +137,9 @@ function broadcast(): void {
   const tail = body.slice(1);
   for (const [ws, peer] of peers) {
     if (ws.readyState !== WebSocket.OPEN) continue;
+    // a line that has not taken the last ones yet gets none it would only read late: the next
+    // snapshot it can take says everything this one does, and newer
+    if (ws.bufferedAmount > BACKED_UP_BYTES) continue;
     const you = JSON.stringify(game.selfState(peer.id));
     ws.send(`{"type":"snapshot","selfId":${JSON.stringify(peer.id ?? '')},"you":${you},${tail}`);
   }

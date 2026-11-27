@@ -39,6 +39,13 @@ try {
   /* unsupported */
 }
 
+// A hidden tab is not a player: the game loop stops, so nothing would ever tell the server a key
+// came up. Let go of everything; and on the way back, do not replay the effects that piled up.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') store.client?.releaseAll();
+  else store.fxQueue.length = 0;
+});
+
 // `?debug` puts what this page knows on `window.arena`, for poking at from the console
 if (new URLSearchParams(location.search).has('debug')) (window as unknown as { arena: typeof store }).arena = store;
 

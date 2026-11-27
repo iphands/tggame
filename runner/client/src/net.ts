@@ -47,6 +47,15 @@ export class GameClient extends SocketClient<ClientMessage, ServerMessage> {
   }
 
   /**
+   * Let go of everything (the tab was hidden: its keys can no longer be seen coming up, and the
+   * server would run our runner on with the last thing it heard).
+   */
+  releaseAll(): void {
+    this.lastInput = '';
+    this.send({ type: 'input', left: false, right: false, jump: false });
+  }
+
+  /**
    * Send held-button state when it changes, plus a heartbeat every 400 ms so
    * a held key survives server-side resets (new round) and dropped messages.
    */
