@@ -17,6 +17,8 @@ export type PlayerView = {
   connected: boolean;
   /** No seat (the table is full): watching and chatting only. */
   spectator: boolean;
+  /** Here only to watch (a TV in the room): never given a seat. */
+  watcher: boolean;
   score: number;
   /** Votes to boot this player so far. */
   boots: number;

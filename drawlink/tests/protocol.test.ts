@@ -5,7 +5,7 @@ import { defaultWsUrl } from '../client/src/net';
 describe('isClientMessage', () => {
   it('accepts every well-formed message', () => {
     const ok: unknown[] = [
-      { type: 'join' }, { type: 'join', name: 'Mo', token: 'abc' }, { type: 'leave' }, { type: 'rename', name: 'Mo' },
+      { type: 'join' }, { type: 'join', name: 'TV', watch: true }, { type: 'watch', on: true }, { type: 'watch', on: false }, { type: 'join', name: 'Mo', token: 'abc' }, { type: 'leave' }, { type: 'rename', name: 'Mo' },
       { type: 'addBot' }, { type: 'removeBot' }, { type: 'start' },
       { type: 'settings' }, { type: 'settings', rounds: 5 }, { type: 'settings', hints: false },
       { type: 'ink', i: 0, c: 1, w: 5, p: [1, 2] }, { type: 'ink', i: 1, c: 1, w: 5, p: [1, 2], f: 1 }, { type: 'undo' }, { type: 'clear' }, { type: 'pass' },
@@ -18,7 +18,7 @@ describe('isClientMessage', () => {
   it('rejects junk', () => {
     const bad: unknown[] = [
       null, 3, 'join', [], {}, { type: 7 }, { type: 'hack' },
-      { type: 'join', name: 5 }, { type: 'join', token: 'x'.repeat(65) },
+      { type: 'join', name: 5 }, { type: 'join', watch: 1 }, { type: 'watch' }, { type: 'watch', on: 1 }, { type: 'join', token: 'x'.repeat(65) },
       { type: 'settings', rounds: '5' }, { type: 'settings', hints: 1 },
       { type: 'ink' }, { type: 'ink', i: -1, c: 0, w: 5, p: [] }, { type: 'ink', i: 0.5, c: 0, w: 5, p: [] },
       { type: 'ink', i: 0, c: 0, w: 5, p: 'x' }, { type: 'ink', i: 0, c: '0', w: 5, p: [] }, { type: 'ink', i: 0, c: 0, w: 5, p: [1, 2], f: 2 },

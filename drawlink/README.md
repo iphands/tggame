@@ -61,6 +61,12 @@ Around the table:
 - **Guessbots** never draw. They blurt wrong guesses and now and then get one right.
 - **Abandoned games.** If every human is gone for 90 seconds the table is cleared.
 
+## Just watching
+
+A screen can watch without playing: press **Just watch** on the join screen, or in the lobby.
+For a TV, open the game with `?watch=1` on the end of the address: it goes straight in as "TV"
+and never takes a seat, in this game or the next. `?watch=0` undoes it. The watching screen sees the drawing and the chat, never the word, and cannot guess.
+
 ## How it is built
 
 ```

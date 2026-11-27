@@ -1,5 +1,6 @@
 import type { ClientMessage } from '../../shared/src/protocol';
 import type { ChatLine, Drawing, PlayerView, StateView, Task } from '../../shared/src/types';
+import { watchPref } from '@tggame/base/client/watch';
 import { partyStore } from '@tggame/base/party/store';
 import { serverNow } from '@tggame/base/client/clock';
 import { savedBits } from '@tggame/base/client/storage';
@@ -29,3 +30,6 @@ export const canvasChanged = (c: CanvasChange): void => canvasListener(c);
 
 /** Small persisted bits. */
 export const saved = savedBits('dl');
+
+/** Is this screen only watching (a TV)? Remembered, and settable with `?watch=1`. */
+export const watching = watchPref('dl');
