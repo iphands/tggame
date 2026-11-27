@@ -1,0 +1,9 @@
+{
+  "title": "Lightbikes",
+  "tagline": "Leave a line. Dodge a line. Be the last line. Neon bikes, sharp corners and walls that close in.",
+  "port": 8096,
+  "players": "2–8 players, bots welcome",
+  "accent": "#3de0e0",
+  "order": 7,
+  "phases": { "lobby": "Lobby open", "countdown": "Engines on", "play": "Riding", "cleared": "Between rounds", "finale": "Game over" }
+}
