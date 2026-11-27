@@ -290,10 +290,12 @@ input[type='text'] {
   font-size: 1.05em;
   line-height: 1.05;
   color: var(--ink);
-  background: rgba(244, 236, 216, 0.55);
+  background: rgba(244, 236, 216, 0.5);
   border: var(--line);
   border-radius: 50%;
-  box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.45);
+  /* mostly see-through: the floor under a pad is still part of the house */
+  opacity: 0.4;
+  transition: opacity 0.1s;
   pointer-events: auto;
   touch-action: none;
   cursor: pointer;
@@ -328,9 +330,12 @@ input[type='text'] {
 }
 .pad.off {
   filter: grayscale(0.8) brightness(0.8);
+  opacity: 0.25;
 }
+/* solid for the moment it is pressed, so the press is felt */
 .pad:active {
   scale: 0.94;
+  opacity: 0.8;
 }
 .stick {
   position: absolute;
