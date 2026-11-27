@@ -3,8 +3,8 @@
  * plus fire / drop actions) — they get no special powers.
  */
 import { COMBAT, PHYS } from '../../../shared/src/constants.js';
-import { isSolid } from './platforms.js';
-import type { BotBrain, Player, Plat, World } from './model.js';
+import { isSolid } from '../../../shared/src/sim/platforms.js';
+import type { BotBrain, Player, Plat, World } from '../../../shared/src/sim/model.js';
 
 const W = PHYS.playerW;
 const H = PHYS.playerH;

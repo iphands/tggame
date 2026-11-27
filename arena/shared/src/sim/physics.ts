@@ -1,5 +1,5 @@
 /** Player movement: gravity, running, jumping, landing, drop-through, body push. */
-import { PHYS } from '../../../shared/src/constants.js';
+import { PHYS } from '../constants.js';
 import { findLanding, isSolid } from './platforms.js';
 import type { Input, Player, World } from './model.js';
 

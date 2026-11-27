@@ -1,5 +1,5 @@
 import { Game } from '../../server/src/sim/game.js';
-import type { Player } from '../../server/src/sim/model.js';
+import type { Player } from '../../shared/src/sim/model.js';
 import { LEVELS } from '../../shared/src/levels.js';
 import { MATCH, PHYS, TICK_MS } from '../../shared/src/constants.js';
 

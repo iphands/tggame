@@ -1,6 +1,6 @@
 /** Server-side simulation state. Everything here is internal to the server. */
-import { MATCH, PHYS } from '../../../shared/src/constants.js';
-import type { LevelDef, PlatformDef, PlatformKind } from '../../../shared/src/levels.js';
+import { MATCH, PHYS } from '../constants.js';
+import type { LevelDef, PlatformDef, PlatformKind } from '../levels.js';
 import type {
   FeedEntry,
   Fx,
@@ -10,7 +10,7 @@ import type {
   Phase,
   ProjectileState,
   WeaponKind,
-} from '../../../shared/src/types.js';
+} from '../types.js';
 
 export type Input = { left: boolean; right: boolean; jump: boolean };
 

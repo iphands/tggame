@@ -12,9 +12,9 @@ import type { HitHow, Phase, ResultRow } from '../../../shared/src/types.js';
 import { makeBrain, thinkBot } from './bots.js';
 import { fire, pressFire, releaseFire, updateCharges, updateProjectiles, updateStomps } from './combat.js';
 import { scheduleFirstCrate, updateCrates } from './items.js';
-import { createPlayer, resetBody, resetForRound, type Input, type Player, type World } from './model.js';
-import { applyInput, separateBodies, stepPlayer, tryDrop } from './physics.js';
-import { buildPlats, updatePlats } from './platforms.js';
+import { createPlayer, resetBody, resetForRound, type Input, type Player, type World } from '../../../shared/src/sim/model.js';
+import { applyInput, separateBodies, stepPlayer, tryDrop } from '../../../shared/src/sim/physics.js';
+import { buildPlats, updatePlats } from '../../../shared/src/sim/platforms.js';
 import { makeRng } from '@tggame/base/shared/rng';
 
 export type GameOptions = { seed?: number };

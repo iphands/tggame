@@ -34,11 +34,11 @@ shared/src/types.ts      snapshot entity types (PlayerState, PlatformState, Fx, 
 shared/src/protocol.ts   ClientMessage / ServerMessage / SnapshotBody + isClientMessage()
 server/src/index.ts      HTTP static + /health, WebSocket dispatch, message budget, 60 Hz loop, 30 Hz broadcast
 server/src/sim/game.ts   Game: roster/bots, phases, stocks/KOs/respawn, results, snapshot()
-server/src/sim/model.ts  internal Player/Plat/Projectile/Crate/World types + reset helpers
-server/src/sim/physics.ts   applyInput, stepPlayer (gravity, jumps, ice, bounce, landing), tryDrop, separateBodies
+shared/src/sim/model.ts  internal Player/Plat/Projectile/Crate/World types + reset helpers
+shared/src/sim/physics.ts   applyInput, stepPlayer (gravity, jumps, ice, bounce, landing), tryDrop, separateBodies
 server/src/sim/combat.ts    applyHit/knockback, stomp, fire (pistol/boomstick/bombs), projectiles, explode
 server/src/sim/items.ts     crate spawn timer, falling/riding, pickup, grantItem
-server/src/sim/platforms.ts buildPlats, updatePlats (motion + crumble), findLanding
+shared/src/sim/platforms.ts buildPlats, updatePlats (motion + crumble), findLanding
 server/src/sim/bots.ts      thinkBot: targeting, edge safety, gap jumps, recovery, attacks
 server/src/sim/rng.ts       seedable PRNG (all sim randomness goes through World.rng)
 client/src/main.ts       bootstrap (Phaser config, join flow, touch + audio unlock)

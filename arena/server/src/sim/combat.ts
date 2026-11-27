@@ -1,8 +1,8 @@
 /** Attacks, projectiles, knockback. */
 import { ARENA, COMBAT, PHYS } from '../../../shared/src/constants.js';
 import type { HitHow } from '../../../shared/src/types.js';
-import { findLanding } from './platforms.js';
-import type { Player, Projectile, World } from './model.js';
+import { findLanding } from '../../../shared/src/sim/platforms.js';
+import type { Player, Projectile, World } from '../../../shared/src/sim/model.js';
 
 const W = PHYS.playerW;
 const H = PHYS.playerH;
