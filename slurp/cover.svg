@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="grass" cx=".5" cy="0" r="1.1"><stop offset="0" stop-color="#74c069"/><stop offset=".6" stop-color="#4f9d4a"/><stop offset="1" stop-color="#2f6f33"/></radialGradient>
+    <radialGradient id="pit" cx=".5" cy=".62" r=".6"><stop offset="0" stop-color="#05040c"/><stop offset="1" stop-color="#2b2350"/></radialGradient>
+    <pattern id="gingham" width="120" height="120" patternUnits="userSpaceOnUse">
+      <rect width="120" height="120" fill="#fff7ea"/>
+      <rect width="60" height="120" fill="#ff5d73" fill-opacity=".2"/>
+      <rect width="120" height="60" fill="#ff5d73" fill-opacity=".2"/>
+    </pattern>
+    <clipPath id="pie"><circle r="62"/></clipPath>
+    <clipPath id="melon"><circle r="88"/></clipPath>
+  </defs>
+  <rect width="800" height="500" fill="url(#grass)"/>
+  <g transform="rotate(-4 400 250)">
+    <rect x="52" y="62" width="720" height="400" rx="26" fill="#143218" fill-opacity=".3"/>
+    <rect x="40" y="46" width="720" height="400" rx="26" fill="url(#gingham)" stroke="#1f2440" stroke-width="7"/>
+    <rect x="56" y="62" width="688" height="368" rx="16" fill="none" stroke="#1f2440" stroke-opacity=".35" stroke-width="3" stroke-dasharray="14 11"/>
+    <!-- the hole, mid-lunch -->
+    <circle cx="250" cy="260" r="118" fill="#1f2440"/>
+    <circle cx="250" cy="260" r="112" fill="#ffd23f"/>
+    <circle cx="250" cy="260" r="92" fill="#1f2440"/>
+    <circle cx="250" cy="260" r="88" fill="url(#pit)"/>
+    <!-- a cookie on its way down -->
+    <g transform="translate(292 236) rotate(24) scale(.8)" stroke="#1f2440" stroke-linejoin="round">
+      <circle r="34" fill="#e3aa62" stroke-width="5"/>
+      <g fill="#5b3a24" stroke="none"><circle cx="-13" cy="-10" r="6"/><circle cx="12" cy="-14" r="5"/><circle cx="2" cy="4" r="6"/><circle cx="-15" cy="14" r="4.5"/><circle cx="17" cy="12" r="5.5"/></g>
+    </g>
+    <!-- berries -->
+    <g stroke="#1f2440" stroke-width="4" stroke-linejoin="round">
+      <g transform="translate(420 150)"><circle r="19" fill="#ff5d73"/><path d="M-11-14Q0-4 11-14Q0-24-11-14z" fill="#3ddc97"/></g>
+      <g transform="translate(455 205) rotate(20)"><circle r="19" fill="#ff5d73"/><path d="M-11-14Q0-4 11-14Q0-24-11-14z" fill="#3ddc97"/></g>
+      <g transform="translate(398 215) rotate(-25)"><circle r="19" fill="#ff5d73"/><path d="M-11-14Q0-4 11-14Q0-24-11-14z" fill="#3ddc97"/></g>
+      <g transform="translate(130 120) rotate(15)"><circle r="19" fill="#ff5d73"/><path d="M-11-14Q0-4 11-14Q0-24-11-14z" fill="#3ddc97"/></g>
+      <g transform="translate(120 390) rotate(-10)"><circle r="19" fill="#ff5d73"/><path d="M-11-14Q0-4 11-14Q0-24-11-14z" fill="#3ddc97"/></g>
+    </g>
+    <!-- a pie -->
+    <g transform="translate(470 350)">
+      <circle r="80" fill="#e2a868" stroke="#1f2440" stroke-width="6"/>
+      <circle r="62" fill="#c0304a" stroke="#1f2440" stroke-width="4"/>
+      <g clip-path="url(#pie)" stroke="#f0c486" stroke-width="11"><path d="M-110-80L50 80M-60-80L100 80M-10-80L150 80M-160-80L0 80M110-80L-50 80M60-80L-100 80M10-80L-150 80M160-80L0 80"/></g>
+    </g>
+    <!-- a melon too big to swallow (yet) -->
+    <g transform="translate(640 200)">
+      <circle r="88" fill="#46b356"/>
+      <g clip-path="url(#melon)" fill="none" stroke="#237a3a" stroke-width="12" stroke-linecap="round"><path d="M-58-90C-80-30-80 30-58 90M-29-90C-44-30-44 30-29 90M0-90V90M29-90C44-30 44 30 29 90M58-90C80-30 80 30 58 90"/></g>
+      <circle r="88" fill="none" stroke="#1f2440" stroke-width="7"/>
+      <path d="M-55-38A66 66 0 0 1-18-63" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="10" stroke-linecap="round"/>
+      <circle r="100" fill="none" stroke="#ff5d73" stroke-width="6" stroke-dasharray="20 15"/>
+    </g>
+  </g>
+  <g transform="rotate(-4 400 60)">
+    <rect x="262" y="22" width="276" height="76" rx="20" fill="#0c143c" fill-opacity=".35" transform="translate(6 7)"/>
+    <rect x="262" y="22" width="276" height="76" rx="20" fill="#ffd23f" stroke="#1f2440" stroke-width="6"/>
+    <text x="400" y="80" font-family="'Chewy','Comic Sans MS',cursive" font-size="60" text-anchor="middle" fill="#1f2440">Slurp!</text>
+  </g>
+</svg>

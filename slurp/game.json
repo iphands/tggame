@@ -1,0 +1,9 @@
+{
+  "title": "Slurp",
+  "tagline": "Everyone steers a hungry hole. Eat small, grow big, clear the picnic together before time runs out.",
+  "port": 8095,
+  "players": "1–8 players, co-op",
+  "accent": "#ff5d73",
+  "order": 6,
+  "phases": { "lobby": "Lobby open", "countdown": "Picnic laid", "play": "Slurping", "cleared": "Between courses", "finale": "Game over" }
+}

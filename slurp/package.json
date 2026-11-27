@@ -1,0 +1,41 @@
+{
+  "name": "slurp",
+  "version": "0.1.0",
+  "description": "Slurp: a co-op party game. Everyone drags a hungry hole around one picnic table and clears it before the clock runs out.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "icons": "node scripts/make-icons.mjs",
+    "predev": "npm run base && npm run icons",
+    "dev": "concurrently -n base,server,client -c gray,blue,green \"npm:dev:base\" \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "tsx watch server/src/index.ts",
+    "dev:client": "vite",
+    "prebuild": "npm run base && npm run icons",
+    "build": "tsc -p tsconfig.server.json && vite build",
+    "start": "node dist/server/src/index.js",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.server.json --noEmit",
+    "base": "npm run -s build --prefix ../base",
+    "pretest": "npm run base",
+    "pretypecheck": "npm run base",
+    "dev:base": "npm run dev --prefix ../base"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@tggame/base": "*",
+    "ws": "^8.23.0"
+  },
+  "devDependencies": {
+    "@fontsource/chewy": "^5.0.0",
+    "@fontsource/patrick-hand": "^5.0.0",
+    "@types/node": "^22.20.5",
+    "@types/ws": "^8.18.2",
+    "concurrently": "^9.2.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.6",
+    "vitest": "^2.1.9"
+  }
+}

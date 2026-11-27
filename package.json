@@ -9,7 +9,8 @@
     "runner",
     "tele",
     "drawlink",
-    "spoons"
+    "spoons",
+    "slurp"
   ],
   "scripts": {
     "build": "npm run build -w @tggame/base && npm run build --workspaces --if-present",

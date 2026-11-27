@@ -11,6 +11,7 @@ lists them all.
 | `tele` | Doodle Telephone | 8092 |
 | `drawlink` | Drawlink | 8093 |
 | `spoons` | Spoons | 8094 |
+| `slurp` | Slurp | 8095 |
 
 `base/` holds the code the games share (servers, clients, drawing, platformer core, styles); see
 `base/README.md`. The repo is one npm workspace: run `npm install` once, here or in any project.
