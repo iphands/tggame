@@ -17,6 +17,8 @@ export type PlayerView = {
   connected: boolean;
   /** Joined mid-game: watching until the next one. */
   spectator: boolean;
+  /** Here only to watch (a TV in the room): never given a seat. */
+  watcher: boolean;
   /** Has handed in this turn's page. */
   done: boolean;
 };

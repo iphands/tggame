@@ -1,7 +1,8 @@
 import { MAX_PLAYERS, MIN_PLAYERS } from '../../../shared/src/constants';
 import { sfx } from '../audio';
 import { h, tilt } from '@tggame/base/client/dom';
-import { isHost, nameOf, send, store } from '../store';
+import { isHost, nameOf, send, store, watching } from '../store';
+import { watchRow } from '@tggame/base/party/watchRow';
 import type { Order } from '../../../shared/src/types';
 import type { Screen } from './index';
 
@@ -28,6 +29,8 @@ export function lobbyScreen(): Screen {
   const settings = h('div', { class: 'settings' }, h('span', { class: 'setting' }, h('span', null, 'Passing order'), orderBtns));
   const summary = h('p', { class: 'share order-note' });
 
+  const tv = watchRow(watching, (on) => send({ type: 'watch', on }));
+
   const el = h(
     'section',
     { class: 'screen lobby' },
@@ -41,6 +44,7 @@ export function lobbyScreen(): Screen {
       summary,
       hostRow,
       start,
+      tv.els,
       share,
     ),
     h(
@@ -57,6 +61,7 @@ export function lobbyScreen(): Screen {
     el,
     update() {
       const s = store.state!;
+      tv.update(s.players, s.selfId);
       const seated = s.players.filter((p) => !p.spectator);
       notes.replaceChildren(
         ...seated.map((p) =>

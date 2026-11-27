@@ -25,6 +25,8 @@ type Player = {
   token: string;
   connected: boolean;
   spectator: boolean;
+  /** Only ever watches: never seated, whatever the phase. */
+  watcher: boolean;
 };
 
 export type JoinResult = { id: string; token: string; resumed: boolean };
@@ -60,22 +62,19 @@ export class Game extends Roster<Player> {
 
   // ---- joining and leaving
 
-  join(rawName: unknown, token?: string): JoinResult | null {
+  join(rawName: unknown, token?: string, watch = false): JoinResult | null {
     if (token) {
       for (const p of this.players.values()) {
         if (!p.bot && p.token === token) {
           p.connected = true;
+          this.watch(p.id, watch);
           return { id: p.id, token: p.token, resumed: true };
         }
       }
     }
     if (this.players.size >= MAX_PEOPLE) return null;
     const inLobby = this.phase === 'lobby';
-    if (inLobby && this.participants().length >= MAX_PLAYERS) {
-      // a human always beats a bot to a seat
-      const bot = [...this.players.values()].reverse().find((p) => p.bot);
-      if (bot) this.players.delete(bot.id);
-    }
+    this.bumpBot(watch);
     const player: Player = {
       id: `p${this.nextId++}`,
       name: this.uniqueName(sanitizeName(rawName) || 'Doodler'),
@@ -83,7 +82,8 @@ export class Game extends Roster<Player> {
       bot: false,
       token: randomBytes(16).toString('hex'),
       connected: true,
-      spectator: !inLobby || this.participants().length >= MAX_PLAYERS,
+      spectator: this.unseated(watch, inLobby),
+      watcher: watch,
     };
     this.players.set(player.id, player);
     return { id: player.id, token: player.token, resumed: false };
@@ -97,7 +97,7 @@ export class Game extends Roster<Player> {
       this.players.delete(id);
       // bots do not wait around in an empty lobby
       if (this.phase === 'lobby' && this.humansConnected() === 0) this.players.clear();
-      this.promoteSpectators();
+      if (this.phase === 'lobby') this.promote();
     } else {
       p.connected = false;
     }
@@ -114,6 +114,7 @@ export class Game extends Roster<Player> {
       token: '',
       connected: true,
       spectator: false,
+      watcher: false,
     });
   }
 
@@ -277,6 +278,7 @@ export class Game extends Roster<Player> {
         bot: p.bot,
         connected: p.connected,
         spectator: p.spectator,
+        watcher: p.watcher,
         done: inTurn && s >= 0 && this.pending[s] !== null,
       };
     });
@@ -395,20 +397,7 @@ export class Game extends Roster<Player> {
     this.quietDown();
     this.hearts.clear();
     for (const p of [...this.players.values()]) if (!p.connected) this.players.delete(p.id);
-    let n = 0;
-    for (const p of this.players.values()) p.spectator = ++n > MAX_PLAYERS;
-  }
-
-  private promoteSpectators(): void {
-    if (this.phase !== 'lobby') return;
-    let n = this.participants().length;
-    for (const p of this.players.values()) {
-      if (n >= MAX_PLAYERS) break;
-      if (p.spectator) {
-        p.spectator = false;
-        n++;
-      }
-    }
+    this.reseat();
   }
 
 }

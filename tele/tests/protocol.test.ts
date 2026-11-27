@@ -5,7 +5,7 @@ import { defaultWsUrl } from '../client/src/net';
 describe('isClientMessage', () => {
   it('accepts every well-formed message', () => {
     const ok: unknown[] = [
-      { type: 'join' }, { type: 'join', name: 'Mo', token: 'abc' }, { type: 'leave' }, { type: 'rename', name: 'Mo' },
+      { type: 'join' }, { type: 'join', name: 'TV', watch: true }, { type: 'watch', on: true }, { type: 'watch', on: false }, { type: 'join', name: 'Mo', token: 'abc' }, { type: 'leave' }, { type: 'rename', name: 'Mo' },
       { type: 'addBot' }, { type: 'removeBot' }, { type: 'start' },
       { type: 'pick', index: 2 }, { type: 'write', text: 'my cat Bob' }, { type: 'draw', strokes: [] }, { type: 'guess', text: 'cat' },
       { type: 'skip', playerId: 'p3' }, { type: 'next' }, { type: 'heart', book: 0, page: 4 },
@@ -17,7 +17,7 @@ describe('isClientMessage', () => {
   it('rejects junk', () => {
     const bad: unknown[] = [
       null, 3, 'join', [], {}, { type: 7 }, { type: 'hack' },
-      { type: 'join', name: 5 }, { type: 'join', token: 'x'.repeat(65) },
+      { type: 'join', name: 5 }, { type: 'join', watch: 1 }, { type: 'watch' }, { type: 'watch', on: 1 }, { type: 'join', token: 'x'.repeat(65) },
       { type: 'pick' }, { type: 'pick', index: -1 }, { type: 'pick', index: 1.5 }, { type: 'pick', index: '1' },
       { type: 'draw' }, { type: 'draw', strokes: 'x' },
       { type: 'guess' }, { type: 'write' }, { type: 'write', text: 7 }, { type: 'write', text: 'x'.repeat(401) }, { type: 'guess', text: 'x'.repeat(401) },

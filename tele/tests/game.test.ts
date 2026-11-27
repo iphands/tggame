@@ -322,3 +322,35 @@ describe('reveal and finale', () => {
     expect(g.seats).toEqual([ids[0], ids[1], watcher]);
   });
 });
+
+describe('only watching', () => {
+  it('a screen that joins to watch has no seat, costs no bot theirs, and is never dealt in', () => {
+    const { g, ids } = table(1);
+    for (let i = 0; i < 20; i++) g.addBot(ids[0]);
+    const tv = g.join('TV', undefined, true) as { id: string };
+    expect(g.players.size).toBe(MAX_PLAYERS + 1);
+    const me = () => g.viewFor(tv.id).players.find((p) => p.id === tv.id)!;
+    expect(me()).toMatchObject({ spectator: true, watcher: true });
+    g.start(ids[0]);
+    expect(g.phase).not.toBe('lobby');
+    expect(me()).toMatchObject({ spectator: true, watcher: true });
+    // still only watching in the next lobby, and the host is still a player
+    g.abort(ids[0]);
+    expect(g.phase).toBe('lobby');
+    expect(me()).toMatchObject({ spectator: true, watcher: true });
+    expect(g.hostId()).toBe(ids[0]);
+    // a seat comes back when asked for, once there is one
+    g.watch(tv.id, false);
+    expect(me()).toMatchObject({ spectator: true, watcher: false });
+    g.watch(tv.id, true);
+    g.removeBot(ids[0]);
+    g.watch(tv.id, false);
+    expect(me()).toMatchObject({ spectator: false, watcher: false });
+  });
+  it('is said again by a screen that comes back with its token', () => {
+    const { g } = table(2);
+    const a = g.join('Mo', undefined) as { id: string; token: string };
+    g.join('Mo', a.token, true);
+    expect(g.viewFor(a.id).players.find((p) => p.id === a.id)).toMatchObject({ spectator: true, watcher: true });
+  });
+});

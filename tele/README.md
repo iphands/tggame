@@ -60,6 +60,12 @@ Good to know:
 - **Joining late.** You watch the current game and are dealt in for the next one.
 - **Abandoned games.** If every human is gone for 90 seconds the table is cleared.
 
+## Just watching
+
+A screen can watch without playing: press **Just watch** on the join screen, or in the lobby.
+For a TV, open the game with `?watch=1` on the end of the address: it goes straight in as "TV"
+and never takes a seat, in this game or the next. `?watch=0` undoes it. The watching screen sees who is still busy, and then every sketchbook as it unravels.
+
 ## How it is built
 
 ```

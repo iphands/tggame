@@ -1,5 +1,6 @@
 import type { ClientMessage } from '../../shared/src/protocol';
 import type { Page, PlayerView, StateView, Task } from '../../shared/src/types';
+import { watchPref } from '@tggame/base/client/watch';
 import { partyStore } from '@tggame/base/party/store';
 import { getItem, setItem, savedBits } from '@tggame/base/client/storage';
 
@@ -42,3 +43,6 @@ export const isSeated = (): boolean => !!store.state && store.state.seats.includ
 
 /** Small persisted bits. */
 export const saved = { ...savedBits('dt'), draft: () => getItem('dt-draft'), setDraft: (v: string | null) => setItem('dt-draft', v) };
+
+/** Is this screen only watching (a TV)? Remembered, and settable with `?watch=1`. */
+export const watching = watchPref('dt');
