@@ -36,8 +36,9 @@ loop come from `slurp/`. Shared code is imported from `@tggame/base`. Read `READ
   Beast is in `DREAD_STEPS` coarse steps, through walls. Keep it coarse and keep position out of it.
 - **A ghost is a Cousin with `ghost` set** (Escape only). It is skipped by everything that acts on
   Cousins (`World.cousins()` leaves it out), is sent the whole house, and is never sent to the living.
-- **A watcher has no body.** `Game.watch` marks a player who only watches: never seated, sent
-  the whole house. Keep watchers out of anything that counts or seats players.
+- **A watcher has no body.** `Roster.watch` (in `base`, the same in every game) marks a player
+  who only watches: never seated, sent the whole house. `Game.unseat` takes their body out of a
+  round that is on. Keep watchers out of anything that counts or seats players.
 - **A catch holds the round.** `Game` stops stepping the world for `CUTSCENE_MS` after a catch by
   a Beast and says so in every snapshot (`hold`); the client shows the cutscene and stops
   predicting. The round is judged when the hold ends, so the last catch is seen before the result.

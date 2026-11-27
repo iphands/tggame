@@ -42,6 +42,13 @@ change that touches input, movement, timing or messages is judged at that distan
 - **Stamped commands and prediction** (arena, runner: `client/src/predict.ts`, `Game.enqueue`):
   the pattern for any game with a body the player steers. Copy it, do not reinvent it.
 
+- **Screens that only watch** (`base/src/party/roster.ts`, `client/watch.ts`, `party/watchRow.ts`):
+  a TV in the room joins with `watch: true` (from **Just watch**, or `?watch=1` in the address)
+  and is a `watcher`: a spectator who is never given a seat until they ask for one. The join says
+  it again on every reconnect. Seat players only through `unseated`, `promote` and `reseat`, so a
+  watcher is never dealt in, never costs a bot its seat and never counts toward the players a
+  game needs. A game that can take a body out mid-game overrides `unseat` (hilderbeast does).
+
 ### Rules
 
 1. **The server owns the result; the client owns the feel.** Positions, hits, scores and who won
