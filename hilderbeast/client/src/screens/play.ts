@@ -60,9 +60,6 @@ export function playScreen(): Screen {
   const sides = h('div', { class: 'sides' });
   const role = h('div', { class: 'role' });
   const chores = h('div', { class: 'chores' });
-  const line = h('div', { class: 'line' });
-  const count = h('div', { class: 'count' });
-  const banner = h('div', { class: 'banner', hidden: true });
   /** A red edge to the screen that closes in as a Beast nears a Cousin. */
   const dreadEl = h('div', { class: 'dread' });
   const watching = h('div', { class: 'watching', hidden: true });
@@ -72,7 +69,7 @@ export function playScreen(): Screen {
   const actText = h('span', null, 'CATCH');
   const actPad = h('button', { class: 'pad act', type: 'button' }, actFill, actText, h('small', null, 'E'));
   const mini = h('canvas', { class: 'minimap', width: MAP.cols * MINI, height: MAP.lines * MINI });
-  const hud = h('div', { class: 'hud' }, dreadEl, sides, clock, role, chores, line, count, banner, watching, mini, boostPad, actPad);
+  const hud = h('div', { class: 'hud' }, dreadEl, sides, clock, role, chores, watching, mini, boostPad, actPad);
   const el = h('section', { class: 'screen play' }, canvas, hud);
 
   const input = createInput(el, boostPad, actPad);
@@ -94,9 +91,10 @@ export function playScreen(): Screen {
   let boostWas = false;
   let shownSecond = -1;
   let shownCount = -1;
-  let goTimer = 0;
-  let lineUntil = 0;
-  let bannerUntil = 0;
+  /** The news showing in the one line of words at the top, what kind it is, and until when. */
+  let news = '';
+  let newsKind = 'news';
+  let newsUntil = 0;
   let heartAt = 0;
   let heartStep = 0;
   /** How near a Beast feels, 0 to 1: eased toward what the server says, so the red creeps rather than steps. */
@@ -135,19 +133,15 @@ export function playScreen(): Screen {
     if (node.textContent !== text) node.textContent = text;
   }
 
-  function say(text: string, ms = 3500): void {
-    line.textContent = text;
-    line.classList.remove('in');
-    void line.offsetWidth;
-    line.classList.add('in');
-    lineUntil = performance.now() + ms;
-  }
-
-  function announce(text: string, kind: string, ms = 2600): void {
-    banner.textContent = text;
-    banner.className = `banner ${kind}`;
-    banner.hidden = false;
-    bannerUntil = performance.now() + ms;
+  /**
+   * Put a piece of news in the line of words at the top. There is only the one line: news takes
+   * the place of whatever was there, and when it has had its time the line goes back to saying
+   * what you are. Nothing is ever written over the middle of the screen.
+   */
+  function say(text: string, ms = 3500, kind = 'news'): void {
+    news = text;
+    newsKind = kind;
+    newsUntil = performance.now() + ms;
   }
 
   // ---- things that happen in the house
@@ -163,7 +157,7 @@ export function playScreen(): Screen {
         if (mine) {
           buzz(250);
           if (!reducedMotion()) shake = 1;
-          announce('Caught! You are a Hilder Beast now', 'beast', 2400);
+          say('Caught! You are a Hilder Beast now', 2600, 'beast');
         } else if (e[1] === me) buzz(60);
         break;
       }
@@ -202,7 +196,7 @@ export function playScreen(): Screen {
       }
       case 'o':
         sfx.doors();
-        announce(sideOf(me) === 'b' ? 'The exits are open. Guard them!' : 'The exits are open. Get out!', 'open', 3500);
+        say(sideOf(me) === 'b' ? 'The exits are open. Guard them!' : 'The exits are open. Get out!', 4000, 'open');
         break;
       case 'x':
         say(`${who(e[1])} got out!`);
@@ -513,23 +507,23 @@ export function playScreen(): Screen {
     const beast = (flags & F_BEAST) !== 0;
     const out = sideOf(s.selfId) === 'x';
 
-    // countdown, with what you are
     const cd = Math.ceil(countdownLeft(now, netClock.rtt / 2) / 1000);
     if (cd !== shownCount) {
-      if (cd > 0) {
-        count.replaceChildren(h('span', null, String(cd)));
-        sfx.count();
-        if (mine) announce(beast ? 'You are the Hilder Beast' : 'You are a Cousin. Run!', beast ? 'beast' : 'cousin', 3200);
-      } else if (shownCount > 0) {
-        count.replaceChildren(h('span', null, beast ? 'Wait…' : 'Run!'));
-        sfx.go();
-        clearTimeout(goTimer);
-        goTimer = window.setTimeout(() => count.replaceChildren(), 900);
-      }
+      if (cd > 0) sfx.count();
+      else if (shownCount > 0) sfx.go();
       shownCount = cd;
     }
-    if (!banner.hidden && now > bannerUntil) banner.hidden = true;
-    if (line.classList.contains('in') && now > lineUntil) line.classList.remove('in');
+
+    // the one line of words: the countdown, then news while it is fresh, otherwise what you are
+    let words: string;
+    let kind = beast ? 'beast' : 'cousin';
+    if (cd > 0) words = !mine ? `Starting in ${cd}` : beast ? `You are the Hilder Beast · ${cd}` : `You are a Cousin · run in ${cd}`;
+    else if (performance.now() < newsUntil) {
+      words = news;
+      kind = newsKind;
+    } else words = !mine ? '' : out ? 'You got out!' : beast ? (flags & F_HELD ? 'Hilder Beast · the Cousins get a head start' : 'Hilder Beast') : 'Cousin';
+    setText(role, words);
+    if (role.className !== `role ${kind}`) role.className = `role ${kind}`;
 
     const ms = clockLeft(now, netClock.rtt / 2);
     const second = Math.ceil(ms / 1000);
@@ -559,10 +553,11 @@ export function playScreen(): Screen {
     const round = s.round;
     const all = Object.values(round?.sides ?? {});
     setText(sides, `Cousins ${all.filter((x) => x === 'c').length} · Beasts ${all.filter((x) => x === 'b').length}`);
-    setText(role, !mine ? '' : out ? 'You got out!' : beast ? (flags & F_HELD ? 'Hilder Beast: the Cousins get a head start' : 'You are a Hilder Beast') : 'You are a Cousin');
-    role.className = `role ${beast ? 'beast' : 'cousin'}`;
     chores.hidden = !escape();
-    if (escape()) setText(chores, exitsOpen() ? 'Exits open!' : `Chores ${live.tasks.filter((p) => p >= 100).length} of ${live.tasks.length}`);
+    if (escape()) {
+      setText(chores, exitsOpen() ? 'Exits open!' : `Chores ${live.tasks.filter((p) => p >= 100).length} of ${live.tasks.length}`);
+      chores.classList.toggle('open', exitsOpen());
+    }
     watching.hidden = isSeated() && !out;
     setText(watching, out ? 'You are out and safe. Watching the rest.' : 'Watching. You are in the next round.');
 
@@ -634,7 +629,6 @@ export function playScreen(): Screen {
     update() {},
     destroy() {
       cancelAnimationFrame(raf);
-      clearTimeout(goTimer);
       input.destroy();
       if (live.onEvent === onEvent) live.onEvent = null;
     },

@@ -214,11 +214,16 @@ input[type='text'] {
   right: calc(10px + env(safe-area-inset-right));
   color: var(--sun);
 }
+/* the one line of words, under the clock: news and what you are take turns in it */
 .role {
-  top: 58px;
+  top: 56px;
   left: 50%;
   translate: -50% 0;
+  max-width: 94%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 0.95em;
+  border: 2px solid transparent;
 }
 .role.beast {
   color: var(--beast);
@@ -226,68 +231,25 @@ input[type='text'] {
 .role.cousin {
   color: var(--mint);
 }
+.role.news {
+  color: var(--ink);
+  background: var(--sun);
+  border-color: var(--ink);
+}
+.role.open {
+  color: var(--ink);
+  background: var(--mint);
+  border-color: var(--ink);
+}
 .role:empty {
   display: none;
 }
-/* one line of news, under the role */
-.line {
-  position: absolute;
-  top: 92px;
-  left: 50%;
-  translate: -50% 0;
-  max-width: 92%;
-  padding: 2px 14px;
-  text-align: center;
+/* stays in its corner for as long as the exits are open */
+.chores.open {
   color: var(--ink);
-  background: var(--sun);
-  border: 2px solid var(--ink);
-  border-radius: var(--wobble);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.line.in {
-  opacity: 1;
-}
-.banner {
-  position: absolute;
-  left: 50%;
-  top: 30%;
-  translate: -50% -50%;
-  width: max-content;
-  max-width: 92%;
-  padding: 6px 22px;
-  text-align: center;
-  font-family: var(--display);
-  font-size: min(2.2em, 7vw);
-  color: var(--ink);
-  background: var(--paper);
-  border: var(--line);
-  border-radius: var(--wobble);
-  box-shadow: var(--shadow);
-  animation: bump 0.4s;
-}
-.banner.beast {
-  color: #fff;
-  background: #5b3f8f;
-}
-.banner.cousin,
-.banner.open {
   background: var(--mint);
-}
-.count {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding-top: 18vh;
-  font-family: var(--display);
-  font-size: min(26vw, 26vh);
-  color: var(--paper);
-  -webkit-text-stroke: 4px var(--ink);
-  text-shadow: 6px 8px 0 rgba(0, 0, 0, 0.4);
-}
-.count span {
-  animation: count-in 0.9s ease-out both;
+  border: 2px solid var(--ink);
+  animation: throb 0.6s ease-in-out infinite alternate;
 }
 .watching {
   position: absolute;
@@ -397,31 +359,6 @@ input[type='text'] {
     scale: 1.08;
   }
 }
-@keyframes bump {
-  from {
-    scale: 0.6;
-    opacity: 0;
-  }
-  60% {
-    scale: 1.08;
-    opacity: 1;
-  }
-}
-@keyframes count-in {
-  from {
-    scale: 1.8;
-    opacity: 0;
-  }
-  30% {
-    scale: 1;
-    opacity: 1;
-  }
-  to {
-    scale: 0.9;
-    opacity: 0.2;
-  }
-}
-
 /* ---- the end */
 
 .finale .sheet {
@@ -522,11 +459,16 @@ input[type='text'] {
   .chores {
     font-size: 0.85em;
   }
+  /* beside the minimap, under the chores: still at the top, and off the floor */
   .role {
-    top: 128px;
-  }
-  .line {
-    top: 160px;
+    top: 100px;
+    left: auto;
+    right: calc(10px + env(safe-area-inset-right));
+    translate: none;
+    max-width: calc(100% - 150px);
+    white-space: normal;
+    text-align: right;
+    border-radius: 14px;
   }
 }
 /* a mouse and keys need no pads in the way: shrink them to meters */
