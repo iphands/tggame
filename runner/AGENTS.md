@@ -44,13 +44,13 @@ shared/src/types.ts      snapshot entity types (PlayerState, Fx, FeedEntry, Resu
 shared/src/protocol.ts   ClientMessage / ServerMessage / SnapshotBody + isClientMessage()
 server/src/index.ts      HTTP static + /health, WebSocket dispatch, message budget, 60 Hz loop, 30 Hz broadcast
 server/src/sim/game.ts   Game: roster/bots, phases, lives/respawn, finish + ranking, results, snapshot()
-server/src/sim/model.ts  internal Player/Plat/Projectile/Crate/World types + reset helpers, isRacing(), activeGate()
-server/src/sim/scroll.ts    updateScroll (base pace, leader drag, gate hold + decay), armGate, breakGate
-server/src/sim/physics.ts   applyInput, stepPlayer (gravity, jumps, ice, bounce, landing, box sides, head bumps), tryDrop, separateBodies, resolveSolids
+shared/src/sim/model.ts  internal Player/Plat/Projectile/Crate/World types + reset helpers, isRacing(), activeGate()
+shared/src/sim/scroll.ts    updateScroll (base pace, leader drag, gate hold + decay), armGate, breakGate
+shared/src/sim/physics.ts   applyInput, stepPlayer (gravity, jumps, ice, bounce, landing, box sides, head bumps), tryDrop, separateBodies, resolveSolids
 server/src/sim/boxes.ts     damageBox (+ stack collapse), damageGate, isBreakable
 server/src/sim/combat.ts    applyHit (shove), stomp, fire, projectiles vs runners/boxes/gates, railgun, explode
 server/src/sim/items.ts     crate spawn timer (ahead of the pack), falling/riding, pickup, grantItem
-server/src/sim/platforms.ts buildPlats (platforms, then one Plat per box), updatePlats (motion + crumble), findLanding
+shared/src/sim/platforms.ts buildPlats (platforms, then one Plat per box), updatePlats (motion + crumble), findLanding
 server/src/sim/bots.ts      thinkBot: run right, jump pits/blocks, shoot boxes and gates, stuck detector
 server/src/sim/rng.ts       seedable PRNG (all sim randomness goes through World.rng)
 client/src/main.ts       bootstrap (Phaser config, join flow, touch + audio unlock)

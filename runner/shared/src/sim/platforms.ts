@@ -1,6 +1,6 @@
 /** Platform runtime: motion and crumbling. */
-import { PHYS } from '../../../shared/src/constants.js';
-import { platformPos, type LevelDef } from '../../../shared/src/levels.js';
+import { PHYS } from '../constants.js';
+import { platformPos, type LevelDef } from '../levels.js';
 import type { Plat, World } from './model.js';
 
 /** Level platforms (same order as level.platforms) followed by one solid plat per box. */

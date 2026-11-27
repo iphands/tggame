@@ -1,5 +1,5 @@
 /** Player movement: gravity, running, jumping, landing, drop-through, body push. */
-import { ARENA, BOX, ITEMS, PHYS, RUN } from '../../../shared/src/constants.js';
+import { ARENA, BOX, ITEMS, PHYS, RUN } from '../constants.js';
 import { findLanding, isSolid } from './platforms.js';
 import { activeGate, type Input, type Player, type World } from './model.js';
 

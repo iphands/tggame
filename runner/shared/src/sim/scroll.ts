@@ -1,5 +1,5 @@
 /** The scrolling screen: creeps forward, chases the leader, waits at gates. */
-import { ARENA, BOX, RUN } from '../../../shared/src/constants.js';
+import { ARENA, BOX, RUN } from '../constants.js';
 import { activeGate, centerX, isRacing, type World } from './model.js';
 
 /** Racers still in the round (running or waiting to respawn). */

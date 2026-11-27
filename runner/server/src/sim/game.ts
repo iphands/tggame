@@ -13,11 +13,11 @@ import type { FeedEntry, Phase, Records, ResultRow } from '../../../shared/src/t
 import { makeBrain, thinkBot } from './bots.js';
 import { fire, updateCharges, updateProjectiles, updateStomps } from './combat.js';
 import { scheduleFirstCrate, updateCrates } from './items.js';
-import { activeGate, centerX, createPlayer, isRacing, resetBody, resetForRound, type Input, type Player, type World } from './model.js';
-import { applyInput, resolveSolids, separateBodies, stepPlayer, tryDrop, updatePace } from './physics.js';
-import { buildPlats, solidIndices, updatePlats } from './platforms.js';
+import { activeGate, centerX, createPlayer, isRacing, resetBody, resetForRound, type Input, type Player, type World } from '../../../shared/src/sim/model.js';
+import { applyInput, resolveSolids, separateBodies, stepPlayer, tryDrop, updatePace } from '../../../shared/src/sim/physics.js';
+import { buildPlats, solidIndices, updatePlats } from '../../../shared/src/sim/platforms.js';
 import { makeRng } from '@tggame/base/shared/rng';
-import { armGate, updateScroll } from './scroll.js';
+import { armGate, updateScroll } from '../../../shared/src/sim/scroll.js';
 
 /** `levels` swaps the course list (tests use small static worlds). */
 export type GameOptions = {

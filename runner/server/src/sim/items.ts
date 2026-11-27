@@ -1,9 +1,9 @@
 /** Item crates: they drop from the sky just ahead of the pack, land on platforms, and grant power-ups on touch. */
 import { ARENA, COMBAT, ITEMS, PHYS, RUN } from '../../../shared/src/constants.js';
 import type { ItemKind } from '../../../shared/src/types.js';
-import { findLanding, isSolid } from './platforms.js';
+import { findLanding, isSolid } from '../../../shared/src/sim/platforms.js';
 import { randRange } from '@tggame/base/shared/rng';
-import { activeGate, centerX, type Crate, type Player, type World } from './model.js';
+import { activeGate, centerX, type Crate, type Player, type World } from '../../../shared/src/sim/model.js';
 
 const ITEM_WEIGHTS: [ItemKind, number][] = [
   ['boomstick', 3],

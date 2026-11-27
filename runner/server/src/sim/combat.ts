@@ -2,8 +2,8 @@
 import { ARENA, BOX, COMBAT, PHYS, RUN } from '../../../shared/src/constants.js';
 import type { HitHow } from '../../../shared/src/types.js';
 import { damageBox, damageGate, isBreakable, type ShotKind } from './boxes.js';
-import { findLanding, isSolid } from './platforms.js';
-import { activeGate, type Player, type Projectile, type World } from './model.js';
+import { findLanding, isSolid } from '../../../shared/src/sim/platforms.js';
+import { activeGate, type Player, type Projectile, type World } from '../../../shared/src/sim/model.js';
 
 const W = PHYS.playerW;
 const H = PHYS.playerH;

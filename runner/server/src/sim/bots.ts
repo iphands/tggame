@@ -5,8 +5,8 @@
  */
 import { PHYS } from '../../../shared/src/constants.js';
 import { isBreakable } from './boxes.js';
-import { isSolid } from './platforms.js';
-import { activeGate, type BotBrain, type Player, type Plat, type World } from './model.js';
+import { isSolid } from '../../../shared/src/sim/platforms.js';
+import { activeGate, type BotBrain, type Player, type Plat, type World } from '../../../shared/src/sim/model.js';
 
 const W = PHYS.playerW;
 const H = PHYS.playerH;

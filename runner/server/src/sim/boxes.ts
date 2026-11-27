@@ -1,9 +1,9 @@
 /** Damage to boxes and gates. */
 import { BOX, RUN } from '../../../shared/src/constants.js';
 import { armEveryone } from './items.js';
-import { isSolid } from './platforms.js';
-import { breakGate, scrollLimit } from './scroll.js';
-import { activeGate, type Plat, type Player, type World } from './model.js';
+import { isSolid } from '../../../shared/src/sim/platforms.js';
+import { breakGate, scrollLimit } from '../../../shared/src/sim/scroll.js';
+import { activeGate, type Plat, type Player, type World } from '../../../shared/src/sim/model.js';
 
 export type ShotKind = keyof typeof BOX.dmg;
 
