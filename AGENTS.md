@@ -48,6 +48,8 @@ change that touches input, movement, timing or messages is judged at that distan
   it again on every reconnect. Seat players only through `unseated`, `promote` and `reseat`, so a
   watcher is never dealt in, never costs a bot its seat and never counts toward the players a
   game needs. A game that can take a body out mid-game overrides `unseat` (hilderbeast does).
+  Arena and runner have no roster: there a watching socket joins nothing at all (`server/src/index.ts`)
+  and is sent the snapshots every socket is sent, with an empty `selfId`.
 
 ### Rules
 
