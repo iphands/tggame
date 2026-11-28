@@ -99,6 +99,15 @@ describe('a floor of bots', () => {
     });
   }
 
+  it('rides a full floor of sixteen, on every floor, down to one', () => {
+    for (let no = 0; no < ARENA_NAMES.length; no++) {
+      const { lasted, world } = botsOnly(no, 16, no + 1, 240);
+      expect(lasted).toHaveLength(16);
+      expect(lasted.filter((s) => s < 3).length, `${ARENA_NAMES[no]}: ${lasted.map((s) => s.toFixed(1))}`).toBeLessThan(5);
+      expect(world.alive, ARENA_NAMES[no]).toBeLessThanOrEqual(1);
+    }
+  });
+
   it('always comes down to one, before or as the rim closes in', () => {
     for (let seed = 1; seed <= 4; seed++) {
       const { world } = botsOnly(seed, 4, seed, 240);

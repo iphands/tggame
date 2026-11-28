@@ -1,6 +1,6 @@
 # Lightbikes
 
-A neon party game for 2 to 8 riders, one screen each. Every bike leaves a line of light behind
+A neon party game for 2 to 16 riders, one screen each. Every bike leaves a line of light behind
 it and never stops. Touch a line or a wall and you are out; the last line standing takes the
 round. Bots happily make up the numbers.
 

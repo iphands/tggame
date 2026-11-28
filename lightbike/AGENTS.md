@@ -43,7 +43,7 @@ rules.
 - **Others are drawn at the server's "now"**, not interpolated behind it: in a game about near
   misses, a rival drawn 75 ms late is a rival you crash into. `live.ts` puts them where the
   snapshot says and `play.ts` rides them on.
-- **Every floor works for 2 to 8.** `tests/arenas.test.ts` checks every floor and rider count:
+- **Every floor works for 2 to 16.** `tests/arenas.test.ts` checks every floor and rider count:
   blocks on the floor, spawns clear for ten cells, nobody walled off. New floors go in `PLANS`.
 - **Bots play by the rules.** They only queue turns and press the same two buttons. They treat
   the two cells in front of every other bike as taken; that one rule removed most head-ons.

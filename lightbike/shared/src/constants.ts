@@ -6,7 +6,7 @@ export const TICK_MS = 1000 / TICK_HZ;
 export const SNAP_EVERY_TICKS = 2;
 
 export const MIN_PLAYERS = 2;
-export const MAX_PLAYERS = 8;
+export const MAX_PLAYERS = 16;
 export const NAME_MAX = 16;
 export const MAX_PAYLOAD_BYTES = 2048;
 /** A table nobody is connected to goes back to an empty lobby after this long. */
@@ -88,6 +88,6 @@ export const FLAG_BUST = 4;
 export const FLAG_SLIP = 8;
 
 /** Bright enough to glow on a dark floor. */
-export const PLAYER_COLORS = ['#3de0e0', '#ff6bcb', '#ffc23d', '#3ddc84', '#ff5d5d', '#4da3ff', '#c77dff', '#ff8c42', '#a3e635', '#f5f6fa'] as const;
+export const PLAYER_COLORS = ['#3de0e0', '#ff6bcb', '#ffc23d', '#3ddc84', '#ff5d5d', '#4da3ff', '#c77dff', '#ff8c42', '#a3e635', '#f5f6fa', '#ff3d9a', '#7df9ff', '#ffe66d', '#9d7bff', '#2ec4b6', '#ffb3c6'] as const;
 
-export const BOT_NAMES = ['Skid', 'Wheelie', 'Sprocket', 'Kickstand', 'Vroomhilda', 'Sir Skidsalot', 'Two-Stroke', 'Dynamo', 'Handlebar', 'Backfire'] as const;
+export const BOT_NAMES = ['Skid', 'Wheelie', 'Sprocket', 'Kickstand', 'Vroomhilda', 'Sir Skidsalot', 'Two-Stroke', 'Dynamo', 'Handlebar', 'Backfire', 'Clutch', 'Piston', 'Burnout', 'Sidecar', 'Throttle', 'Tailpipe', 'Gasket', 'Hubcap'] as const;
