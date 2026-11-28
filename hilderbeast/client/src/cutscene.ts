@@ -26,6 +26,8 @@ export const SAYINGS = [
   'Yall dont even know who came in',
   'What?!',
   'Look yall need to find my three towels I brought',
+  'Now wait a minute',
+  'Go to Hawii-aahh',
 ];
 
 /** When, in the 3 seconds, she bites, and when the Cousin turns. */
