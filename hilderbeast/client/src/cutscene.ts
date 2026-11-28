@@ -35,6 +35,7 @@ export const SAYINGS = [
   'Wow, what a woman',
   "And I don't need to be sittin there",
   "That's whachu need to do",
+  "I'm gone add you my prayer list Arlene",
 ];
 
 /** When, in the 3 seconds, she bites, and when the Cousin turns. */
