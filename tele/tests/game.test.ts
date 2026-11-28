@@ -354,3 +354,15 @@ describe('only watching', () => {
     expect(g.viewFor(a.id).players.find((p) => p.id === a.id)).toMatchObject({ spectator: true, watcher: true });
   });
 });
+
+describe('a full table', () => {
+  it('of sixteen plays a whole game: every book goes round everybody', () => {
+    const { g, ids } = table(MAX_PLAYERS);
+    expect(new Set(g.viewFor(ids[0]).players.map((p) => p.color)).size).toBe(MAX_PLAYERS);
+    g.start(ids[0]);
+    expect(g.phase).not.toBe('lobby');
+    playToReveal(g, ids);
+    expect(g.phase).toBe('reveal');
+    expect(g.viewFor(ids[0]).seats).toHaveLength(MAX_PLAYERS);
+  });
+});

@@ -5,7 +5,7 @@ import type { Drawing, Stroke } from '../../shared/src/types.js';
 
 export type Rng = () => number;
 
-export const BOT_NAMES = ['Scribbles', 'Inky', 'Smudge', 'Sketchy', 'Crayon', 'Blot', 'Squiggle', 'Doodlebot', 'Fineliner', 'Splotch'];
+export const BOT_NAMES = ['Scribbles', 'Inky', 'Smudge', 'Sketchy', 'Crayon', 'Blot', 'Squiggle', 'Doodlebot', 'Fineliner', 'Splotch', 'Stencil', 'Charcoal', 'Pastel', 'Highlighter', 'Etch', 'Dabble', 'Chalky', 'Quill'];
 
 const pick = <T>(rng: Rng, list: readonly T[]): T => list[Math.floor(rng() * list.length)];
 const between = (rng: Rng, lo: number, hi: number): number => lo + rng() * (hi - lo);

@@ -2,7 +2,7 @@
 import { STROKE_LIMITS } from '@tggame/base/party/draw/kit';
 
 export const MIN_PLAYERS = 3;
-export const MAX_PLAYERS = 12;
+export const MAX_PLAYERS = 16;
 /** Words dealt to each player at the start; they secretly pick one. */
 export const CARD_SIZE = 4;
 export { NAME_MAX } from '@tggame/base/shared/text';
@@ -40,6 +40,12 @@ export const PLAYER_COLORS = [
   '#a0c4ff',
   '#ffadad',
   '#d0f4de',
+  '#ff6b6b',
+  '#8ecae6',
+  '#e9c46a',
+  '#f9c6e8',
+  '#d0a3ff',
+  '#90e0ef',
 ] as const;
 
 /** Bot think time (ms) is drawn uniformly from this range by the server. */

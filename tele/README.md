@@ -1,6 +1,6 @@
 # Doodle Telephone
 
-The telephone game with doodles, for 3 to 12 players on their own phones or laptops.
+The telephone game with doodles, for 3 to 16 players on their own phones or laptops.
 Pick a secret word, draw it, pass it on. The next player sees **only your drawing** and
 writes what they think it is; the next sees **only that guess** and draws it; and so on:
 
