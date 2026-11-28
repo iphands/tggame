@@ -16,6 +16,7 @@ import {
   GRAB_CAP_MS,
   GRAB_FAIR_CAP_MS,
   HAND_SIZE,
+  decksFor,
   HECKLE_BUTTON_MIN_MS,
   HECKLE_COOLDOWN_MS,
   HECKLE_MAX_LEVEL,
@@ -335,7 +336,7 @@ export class Game extends Roster<Player> {
     // the passing order starts at the dealer, so the last seat feeds the discard pile
     const at = this.order.indexOf(this.dealerId);
     this.order = [...this.order.slice(at), ...this.order.slice(0, at)];
-    this.deck = shuffle(fullDeck(), this.rng);
+    this.deck = shuffle(fullDeck(decksFor(this.order.length)), this.rng);
     this.discard = [];
     this.seats.clear();
     for (const id of this.order) {

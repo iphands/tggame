@@ -1,10 +1,14 @@
 /** Every tunable number and palette lives here. Dependency-free (shared by client and server). */
 
 export const MIN_PLAYERS = 3;
-/** Eight hands of four leave twenty cards to keep the deck flowing. */
-export const MAX_PLAYERS = 8;
+/** Up to eight play with one deck; a bigger table shuffles in a second (`decksFor`). */
+export const MAX_PLAYERS = 12;
 export { NAME_MAX } from '@tggame/base/shared/text';
 export const HAND_SIZE = 4;
+/** Cards a deal must leave over, to keep the deck flowing: eight hands of four leave twenty of one deck. */
+export const SPARE_CARDS = 20;
+/** How many 52-card decks are shuffled together for this many players: one up to eight, then more. */
+export const decksFor = (players: number): number => Math.max(1, Math.ceil((players * HAND_SIZE + SPARE_CARDS) / 52));
 
 // ---- the round
 
@@ -51,7 +55,11 @@ export const BOT_REACT_MS = { min: 700, max: 2_500 };
 export const BOT_FOOLED = 0.15;
 
 /** Sticky-note colours handed to players in join order. */
-export const PLAYER_COLORS = ['#ffd23f', '#ff8fab', '#7bdff2', '#b8f2a6', '#ffb26b', '#cdb4ff', '#f7a072', '#9be7c4', '#ffe08a', '#a0c4ff'] as const;
+export const PLAYER_COLORS = [
+  '#ffd23f', '#ff8fab', '#7bdff2', '#b8f2a6', '#ffb26b', '#cdb4ff', '#f7a072', '#9be7c4', '#ffe08a', '#a0c4ff',
+  '#ff6b6b', '#c3f0ca', '#f9c6e8', '#8ecae6', '#e9c46a', '#d0a3ff', '#ffadad', '#a8dadc', '#fdffb6', '#bdb2ff',
+  '#ffc8a2', '#90e0ef', '#e5989b', '#b5e48c',
+] as const;
 
 /** How often the server checks the clock (deals, heckles, bots). */
 export const TICK_MS = 100;

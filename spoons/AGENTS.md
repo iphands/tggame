@@ -1,6 +1,6 @@
 # AGENTS.md: Spoons (`spoons/`)
 
-Real-time card-passing party game, 3 to 8 players. Started as a copy of `drawlink/` and shares
+Real-time card-passing party game, 3 to 12 players. Started as a copy of `drawlink/` and shares
 its tooling, look and conventions, but no code. Read `README.md` for the rules and protocol.
 
 ## Commands
@@ -30,7 +30,7 @@ node scripts/smoke.mjs ws://localhost:8194    # needs an empty lobby, takes ~30 
 | Path | Role |
 |---|---|
 | `shared/src/constants.ts` | every tunable number and palette |
-| `shared/src/cards.ts` | the deck, `isCard`, `fourOfAKind` |
+| `shared/src/cards.ts` | the deck (several shuffled together past 8 players, so cards can repeat), `isCard`, `fourOfAKind` |
 | `shared/src/heckles.ts` | the heckle and fumble lines, by level; `pickHeckle` |
 | `shared/src/protocol.ts` | message unions + `isClientMessage` |
 | `shared/src/types.ts` | `StateView`, `Task`, `Shout`, `ResultView` |

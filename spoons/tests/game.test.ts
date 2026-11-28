@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Game } from '../server/src/game';
-import { DEAL_MS, FALSE_GRAB_LOCK_MS, GRAB_CAP_MS, MAX_PLAYERS, REVEAL_MS } from '../shared/src/constants';
+import { DEAL_MS, FALSE_GRAB_LOCK_MS, GRAB_CAP_MS, MAX_PLAYERS, REVEAL_MS, decksFor } from '../shared/src/constants';
 import { T0, cardsOf, join, playRound, playToQuad, seeded, started, table } from './helpers';
 
 const view = (g: Game, id: string) => g.viewFor(id);
@@ -22,7 +22,7 @@ describe('lobby', () => {
   });
   it('caps the table and gives a human a bot seat', () => {
     const { g, ids } = table(1);
-    for (let i = 0; i < 20; i++) g.addBot(ids[0]);
+    for (let i = 0; i < MAX_PLAYERS + 5; i++) g.addBot(ids[0]);
     expect(g.players.size).toBe(MAX_PLAYERS);
     const late = join(g, 'Late');
     expect(g.players.size).toBe(MAX_PLAYERS);
@@ -208,6 +208,22 @@ describe('grabbing', () => {
 });
 
 describe('rounds', () => {
+  it('seats a full table of twelve, with a second deck past eight players', () => {
+    expect(MAX_PLAYERS).toBe(12);
+    expect([3, 8, 9, 12].map(decksFor)).toEqual([1, 1, 2, 2]);
+    const { g, ids } = table(MAX_PLAYERS);
+    g.start(ids[0], T0);
+    const r = view(g, ids[0]).round!;
+    expect(r.order).toHaveLength(12);
+    expect(r.spoons).toBe(11);
+    expect(new Set(view(g, ids[0]).players.map((p) => p.color)).size).toBe(12);
+    g.tick(T0 + DEAL_MS);
+    const end = playRound(g, ids, T0 + DEAL_MS, ids[5]);
+    g.tick(end + 1_000); // any grab still being judged has landed
+    expect(g.phase).toBe('reveal');
+    expect(view(g, ids[0]).result!.grabs).toHaveLength(11);
+    expect(view(g, ids[0]).result!.loserIds).toHaveLength(1);
+  });
   it('everyone plays every round, the deal moves on, and the game ends after the set number', () => {
     const { g, ids } = table(4);
     g.configure(ids[0], 5);
@@ -306,7 +322,7 @@ describe('bots and absent players', () => {
 describe('only watching', () => {
   it('a screen that joins to watch has no seat, costs no bot theirs, and is never dealt in', () => {
     const { g, ids } = table(1);
-    for (let i = 0; i < 20; i++) g.addBot(ids[0]);
+    for (let i = 0; i < MAX_PLAYERS + 5; i++) g.addBot(ids[0]);
     const tv = g.join('TV', undefined, T0, true) as { id: string };
     expect(g.players.size).toBe(MAX_PLAYERS + 1);
     const me = () => g.viewFor(tv.id).players.find((p) => p.id === tv.id)!;

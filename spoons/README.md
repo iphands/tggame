@@ -1,6 +1,6 @@
 # Spoons
 
-The card-passing party game for 3 to 8 players on their own phones or laptops. Cards fly round
+The card-passing party game for 3 to 12 players on their own phones or laptops. Cards fly round
 the table one at a time; collect **four of a kind** and grab a spoon. There is one spoon fewer
 than players, so somebody always ends up without. Nobody is ever eliminated: everyone plays every
 round, and whoever was left spoonless least often wins.
@@ -32,7 +32,9 @@ origin; `?ws=ws://host:port` overrides it.
 
 1. **Lobby.** Everyone who opens the page lands at the same table (one game per server). The first
    player is the host: they add or remove Spoonbots, pick the number of rounds (5, 8 or 12) and deal.
-2. **The deal.** Four cards each, and `players − 1` spoons in the middle. Three seconds to look at
+2. **The deal.** Four cards each, and `players − 1` spoons in the middle. Up to eight play with
+   one deck; a bigger table shuffles in a second deck, so a hand
+   can hold two of the same card. Three seconds to look at
    your hand, then cards start moving. The deal moves one seat on every round.
 3. **Passing.** The dealer picks up from the deck; everyone else picks up what the player before
    them passed. A card is picked up for you the moment your hand is free, so you always hold four

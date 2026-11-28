@@ -3,7 +3,10 @@ import { rankOf, type Card } from '../../shared/src/cards.js';
 
 export type Rng = () => number;
 
-export const BOT_NAMES = ['Ladle', 'Teaspoon', 'Spork', 'Dessert', 'Soupy', 'Stirling', 'Runcible', 'Scoop', 'Dollop', 'Whisk', 'Tongs', 'Gravy'];
+export const BOT_NAMES = [
+  'Ladle', 'Teaspoon', 'Spork', 'Dessert', 'Soupy', 'Stirling', 'Runcible', 'Scoop', 'Dollop', 'Whisk', 'Tongs', 'Gravy',
+  'Spatula', 'Skewer', 'Butter', 'Saucy', 'Melon Baller', 'Slotted', 'Tablespoon', 'Mustard', 'Sugar', 'Stew', 'Grits', 'Custard',
+];
 
 /**
  * Which of these cards to pass on: one of the rank held least, so sets grow.

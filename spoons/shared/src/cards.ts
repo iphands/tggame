@@ -1,12 +1,15 @@
-/** A standard deck. A card is two characters: rank then suit, e.g. `QH`, `TD` (ten of diamonds). */
+/**
+ * A standard deck. A card is two characters: rank then suit, e.g. `QH`, `TD` (ten of diamonds).
+ * A big table plays with several decks shuffled together, so one hand can hold two of the same card.
+ */
 export type Card = string;
 
 export const RANKS = 'A23456789TJQK';
 export const SUITS = 'SHDC';
 
-export function fullDeck(): Card[] {
+export function fullDeck(decks = 1): Card[] {
   const out: Card[] = [];
-  for (const r of RANKS) for (const s of SUITS) out.push(r + s);
+  for (let d = 0; d < decks; d++) for (const r of RANKS) for (const s of SUITS) out.push(r + s);
   return out;
 }
 
