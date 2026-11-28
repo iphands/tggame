@@ -28,6 +28,9 @@ export const SAYINGS = [
   'Look yall need to find my three towels I brought',
   'Now wait a minute',
   'Go to Hawii-aahh',
+  "It's gone be too much",
+  "Look I'm tryin to get a glass of whater",
+  "Y'all leave me alone",
 ];
 
 /** When, in the 3 seconds, she bites, and when the Cousin turns. */
