@@ -208,20 +208,20 @@ describe('grabbing', () => {
 });
 
 describe('rounds', () => {
-  it('seats a full table of twelve, with a second deck past eight players', () => {
-    expect(MAX_PLAYERS).toBe(12);
-    expect([3, 8, 9, 12].map(decksFor)).toEqual([1, 1, 2, 2]);
+  it('seats a full table of sixteen, with a second deck past eight players', () => {
+    expect(MAX_PLAYERS).toBe(16);
+    expect([3, 8, 9, 16].map(decksFor)).toEqual([1, 1, 2, 2]);
     const { g, ids } = table(MAX_PLAYERS);
     g.start(ids[0], T0);
     const r = view(g, ids[0]).round!;
-    expect(r.order).toHaveLength(12);
-    expect(r.spoons).toBe(11);
-    expect(new Set(view(g, ids[0]).players.map((p) => p.color)).size).toBe(12);
+    expect(r.order).toHaveLength(16);
+    expect(r.spoons).toBe(15);
+    expect(new Set(view(g, ids[0]).players.map((p) => p.color)).size).toBe(16);
     g.tick(T0 + DEAL_MS);
     const end = playRound(g, ids, T0 + DEAL_MS, ids[5]);
     g.tick(end + 1_000); // any grab still being judged has landed
     expect(g.phase).toBe('reveal');
-    expect(view(g, ids[0]).result!.grabs).toHaveLength(11);
+    expect(view(g, ids[0]).result!.grabs).toHaveLength(15);
     expect(view(g, ids[0]).result!.loserIds).toHaveLength(1);
   });
   it('everyone plays every round, the deal moves on, and the game ends after the set number', () => {

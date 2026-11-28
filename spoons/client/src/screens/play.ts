@@ -185,6 +185,7 @@ export function playScreen(): Screen {
     const key = `${r.round}:${r.spoons}:${r.spoonsLeft}`;
     if (key !== spoonsKey) {
       spoonsKey = key;
+      spoonsEl.classList.toggle('many', r.spoons > 10);
       spoonsEl.replaceChildren(
         ...Array.from({ length: r.spoons }, (_, i) => {
           const slot = h('span', { class: `spoon-slot${i >= r.spoonsLeft ? ' gone' : ''}`, style: `--tilt:${tilt(`${r.round}/${i}`, 24)}deg` });

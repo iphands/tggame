@@ -2,7 +2,7 @@
 
 export const MIN_PLAYERS = 3;
 /** Up to eight play with one deck; a bigger table shuffles in a second (`decksFor`). */
-export const MAX_PLAYERS = 12;
+export const MAX_PLAYERS = 16;
 export { NAME_MAX } from '@tggame/base/shared/text';
 export const HAND_SIZE = 4;
 /** Cards a deal must leave over, to keep the deck flowing: eight hands of four leave twenty of one deck. */

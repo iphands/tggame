@@ -365,6 +365,11 @@ input[type='text'] {
   height: clamp(60px, 19vw, 100px);
   rotate: var(--tilt, 0deg);
 }
+/* a big table's pile: smaller spoons, so it stays in the middle and off the cards */
+.spoons.many .spoon-slot {
+  width: clamp(15px, 4.8vw, 25px);
+  height: clamp(42px, 13vw, 70px);
+}
 /* a taken spoon just is not there any more: no fanfare */
 .spoon-slot.gone {
   visibility: hidden;
@@ -618,6 +623,10 @@ input[type='text'] {
   .spoon-slot {
     height: clamp(40px, 18vh, 70px);
     width: clamp(15px, 6.5vh, 26px);
+  }
+  .spoons.many .spoon-slot {
+    height: clamp(30px, 13vh, 50px);
+    width: clamp(11px, 4.7vh, 19px);
   }
   .hand .card {
     --w: clamp(40px, 15vh, 70px);

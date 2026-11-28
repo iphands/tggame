@@ -1,6 +1,6 @@
 # AGENTS.md: Spoons (`spoons/`)
 
-Real-time card-passing party game, 3 to 12 players. Started as a copy of `drawlink/` and shares
+Real-time card-passing party game, 3 to 16 players. Started as a copy of `drawlink/` and shares
 its tooling, look and conventions, but no code. Read `README.md` for the rules and protocol.
 
 ## Commands

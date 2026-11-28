@@ -1,6 +1,6 @@
 # Spoons
 
-The card-passing party game for 3 to 12 players on their own phones or laptops. Cards fly round
+The card-passing party game for 3 to 16 players on their own phones or laptops. Cards fly round
 the table one at a time; collect **four of a kind** and grab a spoon. There is one spoon fewer
 than players, so somebody always ends up without. Nobody is ever eliminated: everyone plays every
 round, and whoever was left spoonless least often wins.
