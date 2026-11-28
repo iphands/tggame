@@ -35,10 +35,12 @@ describe('lobby', () => {
     expect(g.world!.holes.length).toBe(1);
   });
 
-  it('seats at most eight; a human takes a bot seat', () => {
+  it('seats at most sixteen; a human takes a bot seat', () => {
     const { g, ids } = table(1);
-    for (let i = 0; i < 10; i++) g.addBot(ids[0]);
+    for (let i = 0; i < MAX_PLAYERS + 5; i++) g.addBot(ids[0]);
     expect(g.players.size).toBe(MAX_PLAYERS);
+    expect(new Set([...g.players.values()].map((p) => p.color)).size).toBe(MAX_PLAYERS);
+    expect(new Set([...g.players.values()].map((p) => p.name)).size).toBe(MAX_PLAYERS);
     const j = join(g, 'Late');
     expect(g.players.size).toBe(MAX_PLAYERS);
     expect(g.players.get(j.id)!.spectator).toBe(false);

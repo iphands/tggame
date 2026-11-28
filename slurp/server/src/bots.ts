@@ -5,7 +5,7 @@ import { ON, type Hole, type World } from './world.js';
 
 export type Rng = () => number;
 
-export const BOT_NAMES = ['Gulp', 'Nibbles', 'Crumb', 'Munch', 'Chomp', 'Snackers', 'Guzzle', 'Morsel', 'Scoff', 'Noodle', 'Pudding', 'Biscuit'];
+export const BOT_NAMES = ['Gulp', 'Nibbles', 'Crumb', 'Munch', 'Chomp', 'Snackers', 'Guzzle', 'Morsel', 'Scoff', 'Noodle', 'Pudding', 'Biscuit', 'Dumpling', 'Gobble', 'Pickle', 'Waffle', 'Crouton', 'Nugget'];
 
 /** Bots never aim further ahead than this, which keeps them a little slower than a keen human. */
 const REACH = 150;

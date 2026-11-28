@@ -1,6 +1,6 @@
 # Slurp
 
-A co-op party game for 1 to 8 players, one screen each. Everybody steers a hungry hole round the
+A co-op party game for 1 to 16 players, one screen each. Everybody steers a hungry hole round the
 same picnic blanket. A hole swallows whatever fits and grows with every bite; together you clear
 the table before the clock runs out, then get a bigger one.
 
@@ -39,7 +39,7 @@ Phones on the same Wi-Fi join at `http://<your-ip>:5178`.
 - **Hungriest.** After each course you see who ate how much of it, with a crown for the most; the
   finale lists the hungriest hole on every course.
 - **Players.** The table's area and the amount of food grow with the number of holes, so it is
-  as crowded for eight as for one. Late arrivals watch and get a hole on the next course. A
+  as crowded for sixteen as for one. Late arrivals watch and get a hole on the next course. A
   player who drops off keeps the seat (the hole steers itself meanwhile) and can come straight back.
 - **Host.** The first player (or EasyE) picks the pace (chill, normal, spicy: the clock's length),
   chooses the whole banquet or the last course only, adds Slurpbots and starts.

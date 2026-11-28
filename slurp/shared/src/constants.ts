@@ -1,7 +1,7 @@
 /** Every tunable number and palette lives here. Dependency-free (shared by client and server). */
 
 export const MIN_PLAYERS = 1;
-export const MAX_PLAYERS = 8;
+export const MAX_PLAYERS = 16;
 export { NAME_MAX } from '@tggame/base/shared/text';
 
 // ---- the clock the simulation runs on
@@ -167,7 +167,7 @@ export const STAR_3 = 0.3;
 export const BOT_THINK_MS = 250;
 
 /** Rim colours handed to players in join order. */
-export const PLAYER_COLORS = ['#ffd23f', '#ff8fab', '#7bdff2', '#b8f2a6', '#ffb26b', '#cdb4ff', '#f7a072', '#9be7c4', '#ffe08a', '#a0c4ff'] as const;
+export const PLAYER_COLORS = ['#ffd23f', '#ff8fab', '#7bdff2', '#b8f2a6', '#ffb26b', '#cdb4ff', '#f7a072', '#9be7c4', '#ffe08a', '#a0c4ff', '#ff6b6b', '#c3f0ca', '#f9c6e8', '#8ecae6', '#e9c46a', '#d0a3ff'] as const;
 
 /** Largest WebSocket frame a client may send. */
 export const MAX_PAYLOAD_BYTES = 4 * 1024;

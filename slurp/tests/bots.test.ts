@@ -14,7 +14,7 @@ function botRun(n: number, seed: number): Game {
 }
 
 describe('bots', () => {
-  for (const n of [1, 4, 8]) {
+  for (const n of [1, 4, 8, 16]) {
     it(`${n} of them clear the first course with time to spare`, () => {
       for (const seed of [1, 2, 3]) {
         const g = botRun(n, seed);
