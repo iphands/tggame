@@ -41,7 +41,12 @@ function drawDemo(): void {
   c.clearRect(0, 0, 160, 48);
   drawPill(c, 142, 32, 0, true);
   drawCousin(c, 110, 30, '#3ddc97', 0, 2, 0);
-  drawBeast(c, 46, 32, '#5b3f8f', 0, 0, 0);
+  // she stands head to toe: drawn smaller than in the game, so she fits the strip
+  c.save();
+  c.translate(46, 36);
+  c.scale(0.44, 0.44);
+  drawBeast(c, 0, 0, '#ff5db1', 0, 0, 0);
+  c.restore();
 }
 drawDemo();
 // her picture loads a moment after it is first asked for

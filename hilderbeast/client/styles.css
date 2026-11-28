@@ -353,7 +353,7 @@ input[type='text'] {
   align-items: center;
 }
 .cs-beast {
-  width: min(46vw, 44vh, 320px);
+  width: min(46vw, 39vh, 290px);
   z-index: 1;
   transform-origin: 60% 80%;
   animation: cs-bite 3s ease-in-out both;

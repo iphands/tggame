@@ -1,7 +1,8 @@
 /**
- * Hilder herself: the Hilder Beast's face, as SVG. Bunny ears that glow, fairy wings, a mop of
- * hair going purple, yellow eyes and a roar. The game draws her on the canvas from an image made
- * of this; the cover and the join screen use the same drawing.
+ * Hilder herself: the Hilder Beast, as SVG. Bunny ears that glow, a mop of hair going purple,
+ * yellow eyes and a roar, in her big white beach shirt with a life-size bikini body printed on the
+ * front (the bikini in her player's colour), furry arms and legs, and flip-flops. The game draws
+ * her on the canvas from an image made of this; the catch cutscene shows her from the waist up.
  */
 
 const INK = '#1f1a2e';
@@ -14,11 +15,19 @@ const LIP = '#d8213c';
 const EAR = '#f6b6cf';
 const GLOW = '#b9ffcf';
 
-/** The box the drawing sits in, and the point in it that is the middle of her head. */
-export const HILDER_BOX = { x: -6, y: -30, w: 212, h: 236, cx: 100, cy: 112 };
+/** The box the whole of her sits in, the middle of it across, and where the soles of her feet are. */
+export const HILDER_BOX = { x: -10, y: -30, w: 220, h: 400, cx: 100, feet: 368 };
+/** Head to waist, for the cutscene. */
+const BUST_BOX = { x: -4, y: -30, w: 208, h: 266 };
+
+const PAPER = '#fbfaf6';
+const CREASE = '#dcd6ca';
+const PRINT_SKIN = '#f2b892';
+const PRINT_LINE = '#5a2e1a';
+const HEM = 318;
 
 export type HilderLook = {
-  /** Her top: in the game, the colour of the player who is this Beast. */
+  /** The printed bikini: in the game, the colour of the player who is this Beast. */
   top?: string;
   /** Boosting or dashing: the eyes go red. */
   angry?: boolean;
@@ -47,16 +56,51 @@ function cloud(cx: number, cy: number, rx: number, ry: number, n: number, amp: n
 export function hilderParts(look: HilderLook = {}): string {
   const small = !!look.small;
   const w = small ? 5.5 : 3.2;
-  const top = look.top ?? '#5b3f8f';
+  const suit = look.top ?? '#ff5db1';
   const iris = look.angry ? '#ff3b4e' : '#ffd23f';
   const white = look.angry ? '#ffd0d0' : '#fff3b0';
+  const flip = (s: string): string => `<g transform="translate(200 0) scale(-1 1)">${s}</g>`;
 
-  const wing = (s: number): string => `<g transform="translate(100 0) scale(${s} 1)">
-    <ellipse cx="62" cy="120" rx="30" ry="22" fill="#ffd9ea" opacity=".8" stroke="${INK}" stroke-width="${w * 0.7}" transform="rotate(-25 62 120)"/>
-    <ellipse cx="58" cy="158" rx="22" ry="16" fill="#ffd9ea" opacity=".8" stroke="${INK}" stroke-width="${w * 0.7}" transform="rotate(20 58 158)"/>
-    ${small ? '' : '<path d="M56 122a8 8 0 1 1 8 -8a5 5 0 1 1 -5 5" fill="none" stroke="#f08cb4" stroke-width="1.6"/>'}</g>`;
+  // furry legs in flip-flops, under the hem
+  const leg = `<path d="M72 ${HEM - 6}L74 350Q83 355 92 350L94 ${HEM - 6}Z" fill="${HAIR}" stroke="${INK}" stroke-width="${w}" stroke-linejoin="round"/>
+    <path d="${cloud(83, 349, 11, 5, 8, 3)}" fill="${HAIR_LIGHT}" stroke="${INK}" stroke-width="${w * 0.6}"/>
+    <ellipse cx="82" cy="365" rx="17" ry="5" fill="#ff5d8f" stroke="${INK}" stroke-width="${w * 0.6}"/>
+    <path d="M68 357Q68 351 82 351Q97 351 97 358Q97 364 82 364Q68 364 68 357Z" fill="${HAIR}" stroke="${INK}" stroke-width="${w * 0.75}"/>
+    <path d="M72 356Q82 350 92 356" fill="none" stroke="#ffd23f" stroke-width="4" stroke-linecap="round"/>
+    ${small ? '' : `<path d="M70 363l-4 4l6 -1M77 364l-2 5l5 -4M84 364l0 5l3 -5" fill="#fff" stroke="${INK}" stroke-width="1" stroke-linejoin="round"/>`}`;
+  const legs = leg + flip(leg);
 
-  const body = `<path d="M34 204C36 170 62 156 100 156C138 156 164 170 166 204Z" fill="${top}" stroke="${INK}" stroke-width="${w}" stroke-linejoin="round"/>`;
+  // furry arms hanging out of the sleeves, ending in clawed paws
+  const armPath = 'M32 212L28 252L34 286';
+  const arm = `<path d="${armPath}" fill="none" stroke="${INK}" stroke-width="${16 + w * 2}" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="${armPath}" fill="none" stroke="${HAIR}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M30 300l-3 7l5 -3M35 301l0 8l3 -7M40 299l3 7l-1 -7" fill="#fff" stroke="${INK}" stroke-width="1.2" stroke-linejoin="round"/>
+    <circle cx="35" cy="292" r="9" fill="${HAIR}" stroke="${INK}" stroke-width="${w * 0.75}"/>
+    ${small ? '' : `<path d="${cloud(35, 292, 6, 6, 6, 1.5)}" fill="none" stroke="${HAIR_LIGHT}" stroke-width="1.4"/>`}`;
+  const arms = arm + flip(arm);
+
+  // the big white tee
+  const tee = `<path d="M60 164Q40 168 28 192L18 222L46 231L42 ${HEM}Q100 ${HEM + 12} 158 ${HEM}L154 231L182 222L172 192Q160 168 140 164Q100 176 60 164Z" fill="${PAPER}" stroke="${INK}" stroke-width="${w}" stroke-linejoin="round"/>
+    ${small ? '' : `<path d="M21 213L47 222M179 213L153 222" stroke="${INK}" stroke-width="1.4" opacity=".4"/>
+    <path d="M30 200Q36 206 44 206M170 200Q164 206 156 206" fill="none" stroke="${CREASE}" stroke-width="2.4" stroke-linecap="round"/>`}`;
+
+  // and the body printed on it, lined up with hers
+  const ln = `stroke="${PRINT_LINE}" stroke-width="${small ? 2.6 : 1.8}" stroke-linejoin="round"`;
+  const torso = `M56 170Q100 186 144 170Q151 177 148 191Q142 206 140 222Q136 240 138 252Q146 268 145 290L144 ${HEM - 2}Q124 ${HEM + 3} 102 ${HEM + 3}L100 296L98 ${HEM + 3}Q76 ${HEM + 3} 56 ${HEM - 2}L55 290Q54 268 62 252Q64 240 60 222Q58 206 52 191Q49 177 56 170Z`;
+  const printArm = `<path d="M51 180Q43 190 45 214L48 262Q53 267 58 262L58 214Q58 196 57 186Z" fill="${PRINT_SKIN}" ${ln}/>`;
+  const cup = `<path d="M66 200Q80 192 97 204Q99 214 96 222Q80 228 68 220Q64 210 66 200Z" fill="${suit}" ${ln}/>`;
+  const printed = `<path d="${torso}" fill="${PRINT_SKIN}" ${ln}/>
+    ${small ? '' : `<path d="M78 186Q86 191 94 189M122 186Q114 191 106 189" fill="none" stroke="${PRINT_LINE}" stroke-width="1.2" opacity=".5"/>`}
+    <path d="M99 244q1 3 2 0" fill="none" stroke="${PRINT_LINE}" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M58 258Q100 266 142 258L138 268Q112 276 103 297L97 297Q88 276 62 268Z" fill="${suit}" ${ln}/>
+    <path d="M72 197L62 172M128 197L138 172M67 212L54 216M133 212L146 216" stroke="${suit}" stroke-width="2.4" stroke-linecap="round"/>
+    ${cup}${flip(cup)}
+    <path d="M100 207l-7 -5l1 9zM100 207l7 -5l-1 9z" fill="${suit}" ${ln}/>
+    ${printArm}${flip(printArm)}`;
+
+  const collar = `<path d="M74 164Q100 186 126 164" fill="none" stroke="${INK}" stroke-width="10" stroke-linecap="round"/>
+    <path d="M74 164Q100 186 126 164" fill="none" stroke="#eeeae0" stroke-width="6" stroke-linecap="round"/>`;
+  const body = legs + arms + tee + printed + collar;
 
   const sequins = [[-4, -22], [4, -30], [-3, -40], [3, -50], [0, -58], [5, -16], [-6, -33]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.3" fill="#fff" opacity=".9"/>`).join('');
   const ear = (x: number, rot: number): string => `<g transform="translate(${x} 60) rotate(${rot})">
@@ -92,12 +136,12 @@ export function hilderParts(look: HilderLook = {}): string {
     <path d="M82 137l5 10l5 -9l5 9l4 -10l4 10l5 -9l5 9l4 -10" fill="#fff" stroke="${INK}" stroke-width="1"/>
     ${small ? '' : `<path d="M86 156l5 -8l5 7l4 -8l4 8l5 -7l5 8" fill="#fff" stroke="${INK}" stroke-width="1"/><ellipse cx="100" cy="155" rx="9" ry="4" fill="#e05a6f"/>`}`;
 
-  return wing(1) + wing(-1) + body + ear(74, -20) + ear(126, 20) + hair + face + fringe + headband + eyes + mouth;
+  return body + ear(74, -20) + ear(126, 20) + hair + face + fringe + headband + eyes + mouth;
 }
 
-/** The whole drawing as an SVG document, `px` pixels wide. */
-export function hilderSvg(look: HilderLook = {}, px = 212): string {
-  const b = HILDER_BOX;
+/** The drawing as an SVG document, `px` pixels wide: the whole of her, or (`bust`) head to waist. */
+export function hilderSvg(look: HilderLook = {}, px = 220, bust = false): string {
+  const b = bust ? BUST_BOX : HILDER_BOX;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${b.x} ${b.y} ${b.w} ${b.h}" width="${px}" height="${Math.round((px * b.h) / b.w)}">${hilderParts(look)}</svg>`;
 }
 

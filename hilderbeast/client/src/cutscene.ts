@@ -70,7 +70,7 @@ export function playCutscene(host: HTMLElement, c: Catch): void {
   const [first, second] = sayingsFor(c.seed);
   const picture = h('div', { class: 'cs-pic' });
   // our own drawing, in a colour from the game's own list: safe to set as markup
-  picture.innerHTML = hilderSvg({ top: c.beastColor, angry: true }, 320);
+  picture.innerHTML = hilderSvg({ top: c.beastColor, angry: true }, 320, true);
   // each of the two has their name over their head, in their own colour: who caught, who was caught
   const tag = (name: string, color: string, what: string): HTMLElement => h('div', { class: 'cs-name', style: `--c:${color}` }, h('b', null, name), h('small', null, what));
   const beast = h('div', { class: 'cs-beast' }, tag(c.beast, c.beastColor, 'caught'), picture);
@@ -104,10 +104,11 @@ export function playCutscene(host: HTMLElement, c: Catch): void {
     } else {
       // turning: it swells up out of a flash
       const k = Math.min(1, (t - TURN_AT_MS) / 260);
-      const s = (c.ghost ? 5.5 : 2.9) * (0.5 + 0.5 * k);
+      const s = (c.ghost ? 5.5 : 2.3) * (0.5 + 0.5 * k);
       ctx.scale(s, s);
       if (c.ghost) drawGhost(ctx, 0, 0, c.victimColor, Math.PI, now);
-      else drawBeast(ctx, 0, 6, c.victimColor, Math.PI, 0, now);
+      // head to toe she is tall: stood a little lower, so all of her fits
+      else drawBeast(ctx, 0, 11, c.victimColor, Math.PI, 0, now);
     }
     const flash = 1 - Math.abs(t - TURN_AT_MS) / 220;
     if (flash > 0) {

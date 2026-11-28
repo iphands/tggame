@@ -299,14 +299,16 @@ export function drawCousin(c: Ctx, x: number, y: number, color: string, facing: 
   c.restore();
 }
 
-/** How tall Hilder is drawn, in world units: her head is about as wide as a Cousin and a half. */
-const HILDER_H = 74;
+/** How tall Hilder is drawn, head to toe, in world units: her head is about as wide as a Cousin. */
+const HILDER_H = 100;
 const HILDER_W = (HILDER_H * HILDER_BOX.w) / HILDER_BOX.h;
-/** Where the middle of her head is in the drawing, as a share of its width and height. */
-const HEAD_X = (HILDER_BOX.cx - HILDER_BOX.x) / HILDER_BOX.w;
-const HEAD_Y = (HILDER_BOX.cy - HILDER_BOX.y) / HILDER_BOX.h;
+/** Where the middle of her is across, and her soles, as a share of the drawing's width and height. */
+const MID_X = (HILDER_BOX.cx - HILDER_BOX.x) / HILDER_BOX.w;
+const FEET_Y = (HILDER_BOX.feet - HILDER_BOX.y) / HILDER_BOX.h;
+/** How far below the middle of her body her feet stand: on her shadow. */
+const FEET_AT = 22;
 
-/** A Hilder Beast: Hilder herself (`hilder.ts`), wearing her player's colour as her top. */
+/** A Hilder Beast: Hilder herself (`hilder.ts`), in her bikini shirt, the bikini in her player's colour. */
 export function drawBeast(c: Ctx, x: number, y: number, color: string, facing: number, flags: number, t: number): void {
   const r = BODY_R * 1.45;
   const lx = Math.cos(facing);
@@ -323,20 +325,20 @@ export function drawBeast(c: Ctx, x: number, y: number, color: string, facing: n
     c.stroke();
   }
   c.save();
-  c.translate(x, y);
-  // leaning the way she is going, and bigger in a dash
-  c.rotate(lx * 0.1 + Math.sin(t / 160) * 0.03);
+  // standing on her feet: leaning the way she is going, a waddle, and bigger in a dash
+  c.translate(x, y + FEET_AT);
+  c.rotate(lx * 0.1 + Math.sin(t / 160) * 0.05);
   if (flags & F_DASH) c.scale(1.12, 1.12);
   if (flags & (F_HELD | F_CONVERT)) c.globalAlpha = 0.75;
   const img = hilderSprite(color, (flags & (F_BOOST | F_DASH)) !== 0);
-  if (img) c.drawImage(img, -HILDER_W * HEAD_X, -4 - HILDER_H * HEAD_Y, HILDER_W, HILDER_H);
+  if (img) c.drawImage(img, -HILDER_W * MID_X, -HILDER_H * FEET_Y, HILDER_W, HILDER_H);
   else {
     // the frame or two before her picture is ready
     c.fillStyle = '#b9a3c9';
     c.strokeStyle = INK;
     c.lineWidth = 2.5;
     c.beginPath();
-    c.arc(0, 0, r, 0, Math.PI * 2);
+    c.arc(0, -FEET_AT, r, 0, Math.PI * 2);
     c.fill();
     c.stroke();
   }
