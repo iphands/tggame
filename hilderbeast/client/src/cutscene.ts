@@ -33,6 +33,8 @@ export const SAYINGS = [
   "Y'all leave me alone",
   "I'm loading mah car with mah stuff",
   'Wow, what a woman',
+  "And I don't need to be sittin there",
+  "That's whachu need to do",
 ];
 
 /** When, in the 3 seconds, she bites, and when the Cousin turns. */
