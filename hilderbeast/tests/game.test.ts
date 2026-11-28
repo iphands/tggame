@@ -478,9 +478,9 @@ describe('ghosts', () => {
     // she feels it, but still cannot see who did it
     expect(snap(g, beast.id).bodies.find((s) => s[0] === a.id)).toBeUndefined();
     expect(w.fx.filter((e) => e[0] === 'g')).toEqual([['g', a.id, beast.id, 14.5 * 40, 9.5 * 40]]);
-    // thrown west, whatever the stick says, most of a room away and through the wall
+    // thrown west, whatever the stick says, well away and through the wall
     g.input(a.id, 1, 0, false, false);
-    run(g, GHOST_FLING_MS + 50 - GHOST_SHOVE_MS);
+    run(g, Math.max(0, GHOST_FLING_MS + 50 - GHOST_SHOVE_MS));
     expect(w.flags(a) & F_FLUNG).toBeFalsy();
     expect(14.5 * 40 - a.x).toBeGreaterThan(GHOST_FLING - 120);
     // straight back at her: nothing happens until the wait is over

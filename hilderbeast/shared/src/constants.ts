@@ -140,11 +140,11 @@ export const GHOST_SPEED = 1.3;
 // ---- a ghost bumping the Beast
 
 /** A ghost that touches the Beast throws her this far (walls stop her), over this long, and she can catch no one meanwhile... */
-export const GHOST_SHOVE = 220;
-export const GHOST_SHOVE_MS = 320;
-/** ...and is itself thrown this far the other way, through the walls, over this long. Most of a room and then some. */
-export const GHOST_FLING = 560;
-export const GHOST_FLING_MS = 450;
+export const GHOST_SHOVE = 360;
+export const GHOST_SHOVE_MS = 420;
+/** ...and is itself thrown this far the other way, through the walls, over this long: less far than she goes. */
+export const GHOST_FLING = 280;
+export const GHOST_FLING_MS = 320;
 /** After a bump, that ghost cannot bump again for this long, counted from when it lands. */
 export const GHOST_BUMP_COOLDOWN_MS = 2500;
 
