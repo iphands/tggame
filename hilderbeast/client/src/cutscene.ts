@@ -31,6 +31,8 @@ export const SAYINGS = [
   "It's gone be too much",
   "Look I'm tryin to get a glass of whater",
   "Y'all leave me alone",
+  "I'm loading mah car with mah stuff",
+  'Wow, what a woman',
 ];
 
 /** When, in the 3 seconds, she bites, and when the Cousin turns. */
