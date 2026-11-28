@@ -34,7 +34,8 @@ import {
   GHOST_BUMP_COOLDOWN_MS,
   GHOST_FLING,
   GHOST_FLING_MS,
-  GHOST_NUDGE,
+  GHOST_SHOVE,
+  GHOST_SHOVE_MS,
   HEAD_START_MS,
   HELP_RATE,
   HURT_MS,
@@ -288,7 +289,7 @@ export class World {
 
   /** May this body act on its own right now? */
   private free(b: Body): boolean {
-    return !b.out && b.convertMs <= 0 && b.portalMs <= 0 && b.heldMs <= 0;
+    return !b.out && b.convertMs <= 0 && b.portalMs <= 0 && b.heldMs <= 0 && b.flingMs <= 0;
   }
 
   private stepBody(b: Body): void {
@@ -311,14 +312,15 @@ export class World {
     }
     if (b.heldMs > 0) return;
 
+    if (b.ghost && b.bumpWaitMs > 0) b.bumpWaitMs -= TICK_MS;
+    // thrown by a bump (the ghost back through the walls, the Beast away until a wall stops her):
+    // it goes where it was thrown, whatever the stick says
+    if (b.flingMs > 0) {
+      b.flingMs -= TICK_MS;
+      moveBody(b, b.flingX * dtS, b.flingY * dtS, this.map, b.ghost);
+      return;
+    }
     if (b.ghost) {
-      if (b.bumpWaitMs > 0) b.bumpWaitMs -= TICK_MS;
-      // thrown back from a bump: it goes where it was thrown, whatever the stick says
-      if (b.flingMs > 0) {
-        b.flingMs -= TICK_MS;
-        moveBody(b, b.flingX * dtS, b.flingY * dtS, this.map, true);
-        return;
-      }
       // otherwise a ghost only drifts: no boosts, no doors, and walls are nothing to it
       if (b.ix !== 0 || b.iy !== 0) {
         const d = Math.hypot(b.ix, b.iy);
@@ -489,7 +491,10 @@ export class World {
         dx = g.fx;
         dy = g.fy;
       }
-      moveBody(beast, dx * GHOST_NUDGE, dy * GHOST_NUDGE, this.map);
+      beast.flingMs = GHOST_SHOVE_MS;
+      beast.flingX = (dx * GHOST_SHOVE * 1000) / GHOST_SHOVE_MS;
+      beast.flingY = (dy * GHOST_SHOVE * 1000) / GHOST_SHOVE_MS;
+      beast.dashMs = 0;
       g.flingMs = GHOST_FLING_MS;
       g.flingX = (-dx * GHOST_FLING * 1000) / GHOST_FLING_MS;
       g.flingY = (-dy * GHOST_FLING * 1000) / GHOST_FLING_MS;

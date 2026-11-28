@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BEAST_START_CLEAR, F_FLUNG, GHOST_BUMP_COOLDOWN_MS, GHOST_FLING, GHOST_FLING_MS, GHOST_NUDGE, SPEEDS, F_SCARE_SHIFT, SCARE_MAX, COUNTDOWN_MS, CUTSCENE_MS, DREAD_STEPS, ESCAPE_CLOCK_MS, F_HELD, HEAD_START_MS, LAST_CLOCK_MS, MAX_PLAYERS, TICK_MS, tasksFor } from '../shared/src/constants';
+import { BODY_R, WALL_T, BEAST_START_CLEAR, F_FLUNG, GHOST_BUMP_COOLDOWN_MS, GHOST_FLING, GHOST_FLING_MS, GHOST_SHOVE, GHOST_SHOVE_MS, SPEEDS, F_SCARE_SHIFT, SCARE_MAX, COUNTDOWN_MS, CUTSCENE_MS, DREAD_STEPS, ESCAPE_CLOCK_MS, F_HELD, HEAD_START_MS, LAST_CLOCK_MS, MAX_PLAYERS, TICK_MS, tasksFor } from '../shared/src/constants';
 import { MAP, MAPS } from '../shared/src/maps';
 import { Game } from '../server/src/game';
 import { sees, speedOf } from '../shared/src/sim';
@@ -456,34 +456,44 @@ describe('ghosts', () => {
     run(g, 100);
     expect(a.energy).toBe(0);
   });
-  it('can bump the Beast: a shove for her, a long throw back and a wait for the ghost', () => {
+  it('can bump the Beast: a throw for her, a longer one back and a wait for the ghost', () => {
     const { g, w } = started(4, 'escape');
     const beast = w.beasts()[0];
     const [a] = w.cousins();
     run(g, HEAD_START_MS);
     turn(g, a.id);
     // out in the Hall, the ghost just to the west of her
-    place(w, beast.id, 20.5 * 40, 9.5 * 40);
-    place(w, a.id, 20.5 * 40 - 20, 9.5 * 40);
+    place(w, beast.id, 14.5 * 40, 9.5 * 40);
+    place(w, a.id, 14.5 * 40 - 20, 9.5 * 40);
     run(g, TICK_MS);
-    expect(beast.x).toBeCloseTo(20.5 * 40 + GHOST_NUDGE, 0);
     expect(w.flags(a) & F_FLUNG).toBeTruthy();
+    // she is thrown east, whatever her stick says, and can catch no one on the way
+    expect(w.flags(beast) & F_FLUNG).toBeTruthy();
+    g.input(beast.id, -1, 0, false, false);
+    run(g, GHOST_SHOVE_MS);
+    expect(w.flags(beast) & F_FLUNG).toBeFalsy();
+    expect(beast.x - 14.5 * 40).toBeGreaterThan(GHOST_SHOVE - 20);
+    expect(beast.x - 14.5 * 40).toBeLessThan(GHOST_SHOVE + 20);
+    g.input(beast.id, 0, 0, false, false);
     // she feels it, but still cannot see who did it
     expect(snap(g, beast.id).bodies.find((s) => s[0] === a.id)).toBeUndefined();
-    expect(w.fx.filter((e) => e[0] === 'g')).toEqual([['g', a.id, beast.id, Math.round(beast.x), Math.round(beast.y)]]);
+    expect(w.fx.filter((e) => e[0] === 'g')).toEqual([['g', a.id, beast.id, 14.5 * 40, 9.5 * 40]]);
     // thrown west, whatever the stick says, most of a room away and through the wall
     g.input(a.id, 1, 0, false, false);
-    run(g, GHOST_FLING_MS + 50);
+    run(g, GHOST_FLING_MS + 50 - GHOST_SHOVE_MS);
     expect(w.flags(a) & F_FLUNG).toBeFalsy();
-    expect(20.5 * 40 - a.x).toBeGreaterThan(GHOST_FLING - 120);
+    expect(14.5 * 40 - a.x).toBeGreaterThan(GHOST_FLING - 120);
     // straight back at her: nothing happens until the wait is over
+    place(w, beast.id, 14.5 * 40, 9.5 * 40);
     const at = beast.x;
     place(w, a.id, beast.x - 20, beast.y);
     g.input(a.id, 0, 0, false, false);
     run(g, GHOST_BUMP_COOLDOWN_MS - 200);
     expect(beast.x).toBe(at);
     run(g, 400);
-    expect(beast.x).toBeCloseTo(at + GHOST_NUDGE, 0);
+    expect(w.flags(beast) & F_FLUNG).toBeTruthy();
+    run(g, GHOST_SHOVE_MS);
+    expect(beast.x - at).toBeGreaterThan(GHOST_SHOVE - 20);
   });
   it('cannot shove the Beast through a wall, or bump one still held at the start', () => {
     const { g, w } = started(3, 'escape');
@@ -496,10 +506,14 @@ describe('ghosts', () => {
     run(g, HEAD_START_MS);
     // hard against the east wall of the house
     place(w, beast.id, 39 * 40 - 13, 3.5 * 40);
+    a.bumpWaitMs = 0;
     place(w, a.id, 39 * 40 - 33, 3.5 * 40);
     run(g, TICK_MS);
-    expect(beast.x).toBeCloseTo(39 * 40 - 13, 0);
     expect(w.flags(a) & F_FLUNG).toBeTruthy();
+    expect(w.flags(beast) & F_FLUNG).toBeTruthy();
+    run(g, GHOST_SHOVE_MS);
+    // as far as the face of the wall, and no further
+    expect(beast.x).toBeCloseTo(39 * 40 + (40 - WALL_T) / 2 - BODY_R, 0);
   });
   it('do not happen in Last Cousin Standing', () => {
     const { g, w } = started(4);

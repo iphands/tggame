@@ -36,8 +36,9 @@ loop come from `slurp/`. Shared code is imported from `@tggame/base`. Read `READ
   Beast is in `DREAD_STEPS` coarse steps, through walls. Keep it coarse and keep position out of it.
 - **A ghost is a Cousin with `ghost` set** (Escape only). It is skipped by everything that acts on
   Cousins (`World.cousins()` leaves it out), is sent the whole house, and is never sent to the living.
-- **A ghost's one power is the bump** (`World.bumpBeasts`): a shove for the Beast, a long throw back
-  for the ghost (`F_FLUNG`: the client stops predicting), then a wait. Keep the throw far and the
+- **A ghost's one power is the bump** (`World.bumpBeasts`): a throw for the Beast (`GHOST_SHOVE`,
+  walls stop her, no catching on the way), a longer throw back for the ghost (both `F_FLUNG`: the
+  client stops predicting), then a wait. Keep the throw far and the
   wait real, or ghosts can pin her.
 - **A watcher has no body.** `Roster.watch` (in `base`, the same in every game) marks a player
   who only watches: never seated, sent the whole house. `Game.unseat` takes their body out of a
